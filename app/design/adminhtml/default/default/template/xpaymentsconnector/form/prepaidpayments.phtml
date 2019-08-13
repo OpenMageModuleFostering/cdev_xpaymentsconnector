@@ -1,0 +1,56 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @author     Valerii Demidov
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php
+/**
+ * X-Payments Prepaid Payments method form.
+ *
+ * @see CCdev_XPaymentsConnector_Block_Form_Prepaidpayments
+ */
+?>
+<?php $_code = $this->getMethodCode() ?>
+<?php $userAdminhtmlPrepaidCardsList = $this->getAdminhtmlUserPrepaidCardsList(); ?>
+<?php
+    $admSession = Mage::getSingleton('adminhtml/session');
+    $cardSelected = $admSession->getData("xp_prepaid_payments");
+?>
+
+<?php if( $userAdminhtmlPrepaidCardsList && ($userAdminhtmlPrepaidCardsList->getSize()>0)):?>
+    <ul id="payment_form_<?php echo $_code ?>" class="adminhtml-payment-form" style="display:none;">
+            <?php foreach($userAdminhtmlPrepaidCardsList as $key => $prepaidCard):?>
+                <?php $checked = ($prepaidCard->getData("xp_card_id") == $cardSelected)?"checked":"";
+                ?>
+                <li>
+                    <span class="input-box">
+                        <input disabled="" type="radio" <?php echo $checked;?> title="<?php echo "'".$prepaidCard->getData("card_type")."'"; ?> - credit card" class="input-radio  x-payment-card  validate-one-required-by-name" id="<?php echo $_code."_".$prepaidCard->getData("xp_card_id"); ?>" name="payment[xp_prepaid_payments]" value="<?php echo $prepaidCard->getData("xp_card_id");?>" />
+                        <label for="<?php echo $_code."_".$prepaidCard->getData("xp_card_id") ?>">Use card ( **<?php echo $prepaidCard->getData("last_4_cc_num");?> )</label>
+                        <span class="x-payment-card-logo <?php echo strtolower($prepaidCard->getData("card_type")) ?>" title="<?php echo $prepaidCard->getData("card_type");?>"></span>
+                        <span class="balance" style=""><?php echo Mage::helper('xpaymentsconnector')->__("Balance:"); ?>
+                             &nbsp;&nbsp;
+                            <?php echo Mage::helper('core')->currency($prepaidCard->getAmount()); ?>
+                        </span>
+                    </span>
+
+                </li>
+            <?php endforeach;?>
+    </ul>
+<?php endif;?>
+

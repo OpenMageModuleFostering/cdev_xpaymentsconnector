@@ -1,0 +1,59 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @author     Valerii Demidov
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+/**
+ * @see Cdev_XPaymentsConnector_Block_Customer_Success
+ */
+?>
+
+<html>
+<head>
+    <link href="<?php echo $this->getJsUrl("xpayment/settings.css"); ?>" type="text/css" rel="stylesheet">
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js">
+        <script>
+    </script>
+</head>
+
+<body>
+<div id="wait-message">
+    <strong>
+        <?php
+        $resultMessage = $this->getData("result_message");
+        echo Mage::helper('xpaymentsconnector')->__($resultMessage);
+        ?>
+    </strong>
+</div>
+
+<div class="b-loader-wrap">
+    <div id="ajax-loader">
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    jQuery(document).ready(function(){
+        setTimeout(function() {
+            window.parent.location = "<?php echo Mage::getUrl("xpaymentsconnector/customer/usercards");?>";
+        }, 1500);
+    });
+</script>
+</body>
+
+</html>

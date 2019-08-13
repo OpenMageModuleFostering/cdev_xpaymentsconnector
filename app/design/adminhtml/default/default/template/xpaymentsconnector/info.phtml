@@ -1,0 +1,29 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  Copyright (c) 2010 Creative Development LLC <info@cdev.ru>. All rights reserved
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * @version    SVN: $Id: info.phtml 3624 2010-07-28 05:45:05Z max $
+ */
+?>
+<?php echo $this->getMethod()->getTitle(); ?><br />
+<?php if ($this->getInfo()->getLastTransId() == '') { ?>
+	<?php echo Mage::helper('xpaymentsconnector')->__('Payment has not been processed yet.'); ?><br />
+<?php } else { ?>
+	<?php echo Mage::helper('xpaymentsconnector')->__('X-Payments transaction ID: %s', $this->htmlEscape($this->getInfo()->getLastTransId())); ?><br />
+	<?php echo Mage::helper('xpaymentsconnector')->__('AVS status: %s', $this->htmlEscape($this->getInfo()->getCcAvsStatus())); ?><br />
+	<a href="<?php echo $this->getXPaymentURL(); ?>"><?php echo Mage::helper('xpaymentsconnector')->__('Go to X-Payments payment page'); ?></a><br />
+<?php } ?>
