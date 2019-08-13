@@ -218,7 +218,7 @@
                                             <input type="hidden" name="orderid" value="<?php echo $orderIncrementId;?>">
                                             <input type="hidden" name="xpc_txnid" value="<?php echo $orderStateData['xpc_txnid'];?>">
                                             <input type="hidden" name="xpaction" class="xpaction" value="">
-                                            <?php if($orderStateData["capturedAmountAvailGateway"] > 0): ?>
+                                            <?php if($orderStateData["capturedAmountAvail"] > 0): ?>
                                                 <input type="button"
                                                        class="form-button xp-transaction-submit"
                                                        name="capture"
@@ -230,7 +230,7 @@
                                                        value="Capture">
                                                 </br>
                                             <?php endif;?>
-                                            <?php if($orderStateData["voidedAmountAvailGateway"] > 0): ?>
+                                            <?php if($orderStateData["voidedAmountAvail"] > 0): ?>
                                                 <input type="button"
                                                        class="form-button xp-transaction-submit"
                                                        name="void"
@@ -239,11 +239,11 @@
                                                            '<?php echo $cssFormId?>',
                                                            '<?php echo $amountValidatorName?>',
                                                            '<?php echo $requiredValidatorName?>',
-                                                           '<?php echo $orderStateData["voidedAmountAvailGateway"]?>')"
+                                                           '<?php echo $orderStateData["voidedAmountAvail"]?>')"
                                                        class="form-button "
-                                                       value="Void (<?php echo Mage::helper('core')->currency($orderStateData["voidedAmountAvailGateway"], true, false);?>)">
+                                                       value="Void (<?php echo Mage::helper('core')->currency($orderStateData["voidedAmountAvail"], true, false);?>)">
                                             <?php endif;?>
-                                            <?php if($orderStateData["refundedAmountAvailGateway"] > 0): ?>
+                                            <?php if($orderStateData["refundedAmountAvail"] > 0): ?>
                                                 <input
                                                     type="button"
                                                     name="refund"

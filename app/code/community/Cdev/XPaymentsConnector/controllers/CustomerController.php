@@ -105,9 +105,10 @@ class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Fr
                 Mage::throwException('Missing or invalid transaction ID');
             }
 
-            $CCPaymentModel = Mage::getModel("xpaymentsconnector/payment_cc");
+
+            $CCPaymentModel = Mage::getModel('xpaymentsconnector/payment_cc');
             $transactionStatusLabel =  $CCPaymentModel->getTransactionStatusLabels();
-            $resultMessage = "";
+            $resultMessage = '';
 
             list($status, $response) = $CCPaymentModel->requestPaymentInfo($request['txnId']);
 
@@ -115,22 +116,29 @@ class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Fr
                 !$status
                 || !in_array($response['status'], array($CCPaymentModel::AUTH_STATUS, $CCPaymentModel::CHARGED_STATUS))
             ) {
-                $errorMessage = $this->__("Transaction status is '%s'. Card authorization has been cancelled.",$transactionStatusLabel[$response['status']]);
-                Mage::getSingleton("customer/session")->addError($errorMessage);
-                $resultMessage = "Card authorization has been cancelled.";
-            }else{
-                // save user card
-                Mage::getSingleton("checkout/session")->setData("user_card_save",true);
-                $newCardData = $CCPaymentModel->saveUserCard($request);
-                Mage::getSingleton("checkout/session")->unsetData("user_card_save");
-                $resultMessage = $this->__("Payment card has been added successfully!");
+                if (isset($transactionStatusLabel[$response['status']])) {
+                    $errorMessage = $this->__("Transaction status is '%s'. Card authorization has been cancelled.",$transactionStatusLabel[$response['status']]);
+                } else {
+                    $errorMessage = $this->__('%s. Card authorization has been cancelled.',$response['error_message']);
+                }
 
-                Mage::getSingleton("customer/session")->addSuccess( $this->__("You created card number '%s'. Transaction status is '%s'.",$newCardData->getData("xp_card_id"),$transactionStatusLabel[$response['status']]));
+                Mage::getSingleton('customer/session')->addError($errorMessage);
+                $resultMessage = 'Card authorization has been cancelled.';
+            }else{
+                $customer = Mage::getSingleton('customer/session')->getCustomer();
+                $cardData = unserialize($customer->getData('xp_buffer'));
+
+                // save user card
+                Mage::getSingleton('checkout/session')->setData('user_card_save',true);
+                $newCardData = $CCPaymentModel->saveUserCard($cardData);
+                $resultMessage = $this->__('Payment card has been added successfully!');
+
+                Mage::getSingleton('customer/session')->addSuccess( $this->__("You created card number '%s'. Transaction status is '%s'.",$newCardData->getData('xp_card_id'),$transactionStatusLabel[$response['status']]));
             }
 
             $this->getResponse()->setBody(
                 $this->getLayout()
-                    ->createBlock('xpaymentsconnector/customer_success')->setData("result_message",$resultMessage)
+                    ->createBlock('xpaymentsconnector/customer_success')->setData('result_message',$resultMessage)
                     ->toHtml()
             );
             return;

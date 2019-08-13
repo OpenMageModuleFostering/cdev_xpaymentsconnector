@@ -23,7 +23,7 @@
 <config>
     <modules>
         <Cdev_XPaymentsConnector>
-            <version>1.1.1</version>
+            <version>1.1.2</version>
         </Cdev_XPaymentsConnector>
     </modules>
 	<global>
@@ -81,6 +81,13 @@
 				</connection>
 			</xpaymentsconnector_read>
 		</resources>
+        <fieldsets>
+            <sales_convert_quote>
+                <xp_card_data>
+                    <to_order>*</to_order>
+                </xp_card_data>
+            </sales_convert_quote>
+        </fieldsets>
         <blocks>
             <customer>
                 <rewrite>
@@ -93,8 +100,14 @@
             <checkout>
                 <rewrite>
                     <onepage_payment_methods>Cdev_XPaymentsConnector_Block_Form_Container</onepage_payment_methods>
+                    <onepage_success>Cdev_XPaymentsConnector_Block_Checkout_Onepage_Success</onepage_success>
                 </rewrite>
             </checkout>
+            <adminhtml>
+                <rewrite>
+                    <sales_order_view>Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View</sales_order_view>
+                </rewrite>
+            </adminhtml>
 		</blocks>
         <events>
             <sales_order_payment_cancel_invoice>
@@ -433,6 +446,7 @@
 			<settings>
 				<activationstatus>0</activationstatus>
                 <xpay_minimum_payment_recurring_amount>0.5</xpay_minimum_payment_recurring_amount>
+                <xpay_currency>USD</xpay_currency>
 			</settings>
 		</xpaymentsconnector>
 	</default>

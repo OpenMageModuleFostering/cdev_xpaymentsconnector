@@ -46,19 +46,29 @@
                     <a id="unselect-all-cards" href="#" onclick="removeRelatedCard(event)">Unselect all</a></th>
                 <th><?php echo $this->__('Card id #') ?></th>
                 <th><?php echo $this->__('Card number') ?></th>
-                <th><?php echo $this->__('Card type') ?></th>
                 <th><?php echo $this->__('Usage card type'); ?></th>
+                <th><?php echo $this->__('Card type'); ?></th>
             </tr>
             </thead>
             <tbody>
             <?php $_odd = ''; ?>
             <?php foreach ($_items as $_item): ?>
                 <tr>
-                    <td><input type="checkbox" class="checkbox related-checkbox" value="<?php echo $_item->getData("xp_card_id");?>" name="card[]"></td>
-                    <td><?php echo $_item->getData("xp_card_id");?></td>
-                    <td>**<?php echo $_item->getData("last_4_cc_num");?></td>
-                    <td><span class="x-payment-card-logo-list <?php echo strtolower($_item->getData("card_type")) ?>" title="<?php echo $_item->getData("card_type");?>"></span></td>
-                    <td><?php echo $cardUsageOptions[$_item->getData("usage_type")];?></td>
+                    <td><input type="checkbox" class="checkbox related-checkbox"
+                               value="<?php echo $_item->getXpCardId();?>" name="card[]"></td>
+                    <td><?php echo $_item->getXpCardId();?></td>
+                    <td>
+                        <?php
+                            $xpCardDataStr = Mage::helper('xpaymentsconnector')->prepareCardDataString($_item->getData());
+                            echo $xpCardDataStr;
+                        ?>
+                    </td>
+                    <td><?php echo $cardUsageOptions[$_item->getUsageType()];?></td>
+                    <td>
+                        <span class="x-payment-card-logo-list <?php echo strtolower($_item->getCardType()) ?>"
+                              title="<?php echo $_item->getCardType();?>">
+                        </span>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -71,11 +81,16 @@
     <?php endif; ?>
     <?php echo $this->getChildHtml('pager'); ?>
     <div class="buttons-set">
-        <p class="back-link"><a href="<?php echo $this->escapeUrl($this->getBackUrl()) ?>"><small>&laquo; </small><?php echo $this->__('Back') ?></a></p>
+        <p class="back-link">
+            <a href="<?php echo $this->escapeUrl($this->getBackUrl()) ?>">
+                <small>&laquo; </small><?php echo $this->__('Back') ?>
+            </a>
+        </p>
         <?php  if(count($_items)):  ?>
             <button class="button" title="Save" type="submit"><span><span>Remove</span></span></button>
         <?php endif; ?>
-        <button onclick="window.location='<?php echo $this->getAddCardUrl();?>'" class="button" title="Add new card" type="button"><span><span>Add new card</span></span></button>
+        <button onclick="window.location='<?php echo $this->getAddCardUrl();?>'"
+                class="button" title="Add new card" type="button"><span><span>Add new card</span></span></button>
     </div>
 </form>
 

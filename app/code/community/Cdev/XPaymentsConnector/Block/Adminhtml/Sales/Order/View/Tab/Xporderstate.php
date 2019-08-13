@@ -105,10 +105,14 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
         $currentOrder = $this->getOrder();
         $currentPaymentCode = $currentOrder->getPayment()->getMethodInstance()->getCode();
         $isXpaymentsMethod  = Mage::helper('xpaymentsconnector')->isXpaymentsMethod($currentPaymentCode);
+
+
         if($isXpaymentsMethod){
+            $xpPaymentCcModel = Mage::getModel('xpaymentsconnector/payment_cc');
+
             if($this->txnid){
                 list($this->transactionStatus, $this->transactionInfo[$currentOrder->getIncrementId()])
-                    = Mage::getModel('xpaymentsconnector/payment_cc')->requestPaymentInfo($this->txnid,false,true);
+                    = $xpPaymentCcModel->requestPaymentInfo($this->txnid,false,true);
                 if($this->transactionStatus){
                     $this->transactionInfo[$currentOrder->getIncrementId()]['payment']['xpc_txnid'] = $this->txnid;
                 }
@@ -120,7 +124,7 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
                     $txnid = $currentOrder->getData('xpc_txnid');
                     if($txnid){
                         list($transactionStatus, $transactionInfo)
-                            = Mage::getModel('xpaymentsconnector/payment_cc')->requestPaymentInfo($txnid, false, true);
+                            = $xpPaymentCcModel->requestPaymentInfo($txnid, false, true);
                         if ($transactionStatus) {
                             $this->transactionInfo[$currentOrder->getIncrementId()] = $transactionInfo;
                             $this->transactionInfo[$currentOrder->getIncrementId()]['payment']['xpc_txnid'] = $txnid;
@@ -142,11 +146,11 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
     public function getCurrentActionAmount($xpOrderStateData){
         $actionAmount = 0.00;
         switch (true) {
-            case ($xpOrderStateData['capturedAmountAvailGateway'] > 0 && $xpOrderStateData['refundedAmountAvailGateway'] < 0.01):
+            case ($xpOrderStateData['capturedAmountAvail'] > 0 && $xpOrderStateData['refundedAmountAvail'] < 0.01):
                 $actionAmount = $xpOrderStateData['capturedAmountAvailGateway'];
                 break;
-            case ($xpOrderStateData['refundedAmountAvailGateway'] > 0 && $xpOrderStateData['capturedAmountAvailGateway'] < 0.01):
-                $actionAmount = $xpOrderStateData['refundedAmountAvailGateway'];
+            case ($xpOrderStateData['refundedAmountAvail'] > 0 && $xpOrderStateData['capturedAmountAvail'] < 0.01):
+                $actionAmount = $xpOrderStateData['refundedAmountAvail'];
                 break;
             case ($actionAmount < 0.01 && $xpOrderStateData['chargedAmount'] > 0):
                 $actionAmount = $xpOrderStateData['chargedAmount'];

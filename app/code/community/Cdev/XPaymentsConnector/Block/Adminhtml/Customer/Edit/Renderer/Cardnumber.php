@@ -18,30 +18,24 @@
  * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-?>
-<?php
-/**
- * @see Cdev_XPaymentsConnector_Block_Info_Cc
- */
-?>
-<?php
-  $orderCardData = $this->getCardData();
-?>
 
-<?php echo $this->getMethod()->getTitle(); ?>
-<br />
-<?php if ($this->getInfo()->getLastTransId() == ''): ?>
-    <?php
-        echo $this->__('You will be redirected to X-Payments website when you place an order.');
-    ?>
-<?php else: ?>
-    <?php
-        echo $this->__('X-Payments Transaction ID: %s', $this->htmlEscape($this->getInfo()->getLastTransId()));
-    ?>
-    <br/>
-<?php endif; ?>
-<?php if(!empty($orderCardData)): ?>
-    <span id="x-payment-prepaid-card-info">
-            <?php echo $this->__('For current order we used your payment card %s', $orderCardData); ?>
-    </span>
-<?php endif;?>
+/**
+ * Grid column rendering for'Card Type'
+ */
+
+class Cdev_XPaymentsConnector_Block_Adminhtml_Customer_Edit_Renderer_Cardnumber extends  Mage_Adminhtml_Block_Widget_Grid_Column_Renderer_Action
+{
+
+    public function render(Varien_Object $row){
+
+        $row = $row->getData();
+        $cardNumber = $this->__('%s******%s',
+            $row['first6'],
+            $row['last_4_cc_num']
+        );
+        if (!is_null($row['expire_month']) && !is_null($row['expire_year'])) {
+            $cardNumber .= $this->__(' ( %s/%s )', $row['expire_month'], $row['expire_year']);
+        }
+        return "<span>$cardNumber</span>";
+    }
+}

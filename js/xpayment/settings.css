@@ -107,7 +107,7 @@ iframe .buttonRow {
 
 #payment_form_savedcards .input-box {
     display: block;
-    width: 170px;
+    width: 295px;
     position: relative;
 }
 
@@ -462,3 +462,10 @@ iframe .buttonRow {
     white-space: nowrap
 }
 /* end (checkout cart page) */
+
+/* admin order view buttons */
+.fraud-button {
+    background-image: url("images/btn_bg_fraud.png");
+}
+/* end (admin order view buttons) */
+

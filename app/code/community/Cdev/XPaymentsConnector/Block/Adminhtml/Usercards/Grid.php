@@ -93,11 +93,11 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Usercards_Grid extends Mage_Adminh
             'escape'            => true
         ));
 
-        $this->addColumn('last_4_cc_num', array(
-            'header'            => Mage::helper('xpaymentsconnector')->__('Card number (last 4 digits)'),
-            'index'             => 'last_4_cc_num',
+        $this->addColumn('card_number', array(
+            'header'            => Mage::helper('xpaymentsconnector')->__('Card number'),
             'type'              => 'text',
             'width'             => '1',
+            'renderer'          => 'xpaymentsconnector/adminhtml_customer_edit_renderer_cardnumber',
             'escape'            => true,
 
         ));

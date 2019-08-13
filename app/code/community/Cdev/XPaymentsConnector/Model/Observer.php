@@ -97,26 +97,28 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
         $quote = $observer->getQuote();
 
+        $noticeHelper = $xpHelper->getFailureCheckoutNoticeHelper();
+
         if ($paymentMethod == $xpaymentPaymentCode) {
             $order->setCanSendNewEmailFlag(false);
 
-            $request = $xpHelper->getXpaymentResponse();
+            $cardData = $xpHelper->getXpCardData();
 
 
             if ($useIframe) {
                 /*update order table*/
-                $order->setData('xpc_txnid', $request['txnId']);
-                $order->setData('xp_card_data', serialize($request));
+                $order->setData('xpc_txnid', $cardData['txnId']);
                 $order->save();
 
-                $result = $paymentCcModel->updateOrderByXpaymentResponse($order->getId(), $request['txnId']);
+                $result = $paymentCcModel->updateOrderByXpaymentResponse($order->getId(), $cardData['txnId']);
                 if ($result['success']) {
                     /* save credit card to user profile */
-                    $response = $xpHelper->getXpaymentResponse();
-                    $paymentCcModel->saveUserCard($response);
+                    $xpCardData = unserialize($quote->getXpCardData());
+                    $paymentCcModel->saveUserCard($xpCardData);
                     /* end (save payment card) */
                 } else {
                     $checkoutSession->addError($result['error_message']);
+                    $checkoutSession->addNotice($noticeHelper);
                 }
 
             }
@@ -135,9 +137,11 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
                 $result = $paymentCcModel->updateOrderByXpaymentResponse($order->getId(), $response['response']['transaction_id']);
                 if (!$result['success']) {
                     $checkoutSession->addError($result['error_message']);
+                    $checkoutSession->addNotice($noticeHelper);
                 }
             } else {
                 $checkoutSession->addError($response['error_message']);
+                $checkoutSession->addNotice($noticeHelper);
             }
 
         }

@@ -48,8 +48,13 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
         $refId =  'authorization';
         $updateSendData = array();
 
-        $updateSendData['returnUrl'] = Mage::getUrl('xpaymentsconnector/customer/cardadd', array('order_refid' => $refId,'_secure' => true));
-        $updateSendData['callbackUrl'] =  Mage::getUrl('xpaymentsconnector/processing/callback', array('order_refid' => $refId, '_secure' => true));
+        $customerSession = Mage::getSingleton('customer/session');
+        $customerId = $customerSession->getId();
+
+        $updateSendData['returnUrl'] = Mage::getUrl('xpaymentsconnector/customer/cardadd',
+            array('order_refid' => $refId,'customer_id' => $customerId,'_secure' => true));
+        $updateSendData['callbackUrl'] =  Mage::getUrl('xpaymentsconnector/processing/callback',
+            array('order_refid' => $refId,'customer_id' => $customerId,'_secure' => true));
         $updateSendData['refId'] = $refId;
         $updateSendData['template'] = 'magento_iframe';
 
@@ -58,10 +63,13 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
         $api = Mage::getModel('xpaymentsconnector/payment_cc');
 
         $result = $api->sendIframeHandshakeRequest($updateSendData,$isCardAuthorizePayment = true);
+        if($result['success']){
+            $iframeUrlDataArray = array('target' => $xpaymentFormData['target'], 'token' => $result['response']['token']);
+            $iframeUrl = $xpaymentFormUrl . '?' . http_build_query($iframeUrlDataArray);
+            $result['iframe_url'] = $iframeUrl;
+        }
 
-        $iframeUrlDataArray = array('target' => $xpaymentFormData['target'], 'token' => $result['response']['token']);
-        $iframeUrl = $xpaymentFormUrl . '?' . http_build_query($iframeUrlDataArray);
-        return $iframeUrl;
+        return $result;
     }
 
     /**

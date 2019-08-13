@@ -83,4 +83,14 @@ class Cdev_XPaymentsConnector_Block_Info_Cc extends Mage_Payment_Block_Info
         return preg_replace('/\/+$/Ss', '', $this->getMethod()->getConfig('xpay_url'))
             . '/admin.php?target=payment&amp;txnid=' . $this->getInfo()->getLastTransId();
     }
+
+    public function getCardData()
+    {
+        $order = $this->getInfo()->getMethodInstance()->getOrder();
+        $xpCardData = unserialize($order->getXpCardData());
+        $xpCardDataStr = Mage::helper('xpaymentsconnector')->prepareCardDataString($xpCardData);
+
+        return $xpCardDataStr;
+    }
+
 }

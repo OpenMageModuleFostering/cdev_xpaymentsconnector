@@ -159,11 +159,14 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Mode
                                 updateOrderByXpaymentResponse($orderId, $response['response']['transaction_id']);
                             if (!$result['success']) {
                                 Mage::getSingleton('checkout/session')->addError($result['error_message']);
+                                Mage::getSingleton('checkout/session')
+                                    ->addNotice($xpHelper->getFailureCheckoutNoticeHelper());
                                 $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
                             } else {
                                 // additional subscription profile setting for success transaction
                                 $newTransactionDate = new Zend_Date(time());
-                                $profile->setXpSuccessTransactionDate($newTransactionDate->toString(Varien_Date::DATETIME_INTERNAL_FORMAT));
+                                $profile->setXpSuccessTransactionDate($newTransactionDate
+                                    ->toString(Varien_Date::DATETIME_INTERNAL_FORMAT));
                                 $profile->setXpCountSuccessTransaction(1);
 
                                 $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE);
@@ -171,6 +174,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Mode
 
                         } else {
                             Mage::getSingleton('checkout/session')->addError($response['error_message']);
+                            Mage::getSingleton('checkout/session')->addNotice($xpHelper->getFailureCheckoutNoticeHelper());
                             $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
                         }
                     }

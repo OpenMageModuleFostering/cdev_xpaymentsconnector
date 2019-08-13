@@ -34,6 +34,7 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     const SEMI_MONTH_TIME_STAMP = 1209600;
 
     const STATE_XPAYMENT_PENDING_PAYMENT = 'xp_pending_payment';
+
     const XPAYMENTS_LOG_FILE = 'xpayments.log';
     const RECURRING_ORDER_TYPE = 'recurring';
     const SIMPLE_ORDER_TYPE = 'simple';
@@ -156,21 +157,42 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     }
 
     /**
-     * This function return saved X-Payments response data.
-     * Xpayment Prepare Order Mas(xpayment_prepare_order):
-     * - prepare_order_id (int)
-     * - xpayment_response
-     * - token
-     * return
-     * @return bool or int
+     * This function return saved card data from X-Payments response.
+     * @return bool or array
      */
-    public function getXpaymentResponse()
+    public function getXpCardData($quoteId = null)
     {
-        $xpaymentPrepareOrder = Mage::getSingleton('checkout/session')->getData('xpayment_prepare_order');
-        if ($xpaymentPrepareOrder && isset($xpaymentPrepareOrder['xpayment_response'])) {
-            return $xpaymentPrepareOrder['xpayment_response'];
+        if (is_null($quoteId)) {
+            $currentCart = Mage::getModel('checkout/cart')->getQuote();
+            $quoteId = $currentCart->getEntityId();
+        }
+        $cartModel = Mage::getModel('sales/quote')->load($quoteId);
+        $cardData = $cartModel->getXpCardData();
+        if (!empty($cardData)) {
+            $cardData = unserialize($cardData);
+            return $cardData;
         }
         return false;
+    }
+
+    /**
+     * This function save user card data to Quote
+     * @param null $quoteId
+     * @param array $cardData
+     * @return array|bool|mixed
+     */
+
+    public function saveXpCardData($quoteId = null,$cardData = array())
+    {
+        if (is_null($quoteId)) {
+            $currentCart = Mage::getModel('checkout/cart')->getQuote();
+            $quoteId = $currentCart->getEntityId();
+        }
+        $cartModel = Mage::getModel('sales/quote')->load($quoteId);
+        $cardData = serialize($cardData);
+        $cartModel->setXpCardData($cardData);
+
+        $cartModel->save();
     }
 
     /**
@@ -651,7 +673,8 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
                         return true;
                         break;
                     case($xpaymentCCModel->getCode()):
-                            $cardData = $this->getXpaymentResponse();
+                            $quoteId = Mage::app()->getRequest()->getParam('quote_id');
+                            $cardData = $this->getXpCardData($quoteId);
                             if (!is_null($this->payDeferredProfileId)) {
                                 $this->resendPayDeferredRecurringTransaction($recurringProfile, $orderAmountData, $cardData);
                             } else {
@@ -808,13 +831,15 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
                 Mage::getSingleton('checkout/session')->addError($errorMessage);
             } else {
                 $transactionStatusLabel = Mage::getModel('xpaymentsconnector/payment_cc')->getTransactionStatusLabels();
-                $errorMessage = $this->__("Transaction status is '%s'. The subscription has been canceled.", $transactionStatusLabel[$response['status']]);
+                $errorMessage = $this->__("Transaction status is '%s'. The subscription has been canceled.",
+                    $transactionStatusLabel[$response['status']]);
                 Mage::getSingleton('checkout/session')->addError($errorMessage);
             }
         } else {
             $errorMessage = $this->__('The subscription has been canceled.');
             Mage::getSingleton('checkout/session')->addError($errorMessage);
         }
+        Mage::getSingleton('checkout/session')->addNotice($this->getFailureCheckoutNoticeHelper());
     }
 
     public function setRecurringProductDiscount()
@@ -822,10 +847,12 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         $quote = Mage::getSingleton('checkout/session')->getQuote();
         $items = $quote->getAllVisibleItems();
         foreach ($items as $item) {
-            $discount = $item->getDiscountAmount();
-            $profile = $item->getProduct()->getRecurringProfile();
-            $profile['discount_amount'] = $discount;
-            $item->getProduct()->setRecurringProfile($profile)->save();
+            if($item->getIsNominal()){
+                $discount = $item->getDiscountAmount();
+                $profile = $item->getProduct()->getRecurringProfile();
+                $profile['discount_amount'] = $discount;
+                $item->getProduct()->setRecurringProfile($profile)->save();
+            }
         }
     }
 
@@ -998,6 +1025,43 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         }
 
         return $orderAmountData;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFailureCheckoutNoticeHelper()
+    {
+        $noticeMessage = "Did you enter your billing info correctly? Here are a few things to double check:<br />".
+        "1. Ensure your billing address matches the address on your credit or debit card statement;<br />".
+        "2. Check your card verification code (CVV) for accuracy;<br />".
+        "3. Confirm you've entered the correct expiration date.";
+
+        $noticeHelper = $this->__($noticeMessage);
+
+        return $noticeHelper;
+    }
+
+    /**
+     * @param array $xpCardData
+     * @return string
+     */
+    public function prepareCardDataString($xpCardData)
+    {
+        $xpCardDataStr = '';
+        if (!empty($xpCardData)) {
+            $last4 = (isset($xpCardData['last4'])) ? $xpCardData['last4'] : $xpCardData['last_4_cc_num'];
+
+            $xpCardDataStr = $this->__('%s******%s',
+                $xpCardData['first6'],
+                $last4
+            );
+            if (!empty($xpCardData['expire_month']) && !empty($xpCardData['expire_year'])) {
+                $xpCardDataStr .= $this->__(' ( %s/%s )', $xpCardData['expire_month'], $xpCardData['expire_year']);
+            }
+        }
+
+        return $xpCardDataStr;
     }
 
 }

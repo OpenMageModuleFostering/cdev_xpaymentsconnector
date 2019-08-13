@@ -25,23 +25,23 @@
  */
 ?>
 <?php
-
-$order = $this->getInfo()->getMethodInstance()->getOrder();
-$orderCardData = array();
-if($order){
-    $orderCardData = unserialize($this->getInfo()->getMethodInstance()->getOrder()->getData("xp_card_data"));
-}
-
+  $orderCardData = $this->getCardData();
 ?>
+
 <?php echo $this->getMethod()->getTitle(); ?>
 <br />
-<?php if ($this->getInfo()->getLastTransId() == '') { ?>
-    <!--em><?php echo Mage::helper('xpaymentsconnector')->__('You will be redirected to X-Payments website when you place an order.'); ?></em-->
-<?php } else { ?>
-    <?php echo Mage::helper('xpaymentsconnector')->__('X-Payments Transaction ID: %s', $this->htmlEscape($this->getInfo()->getLastTransId())); ?><br />
-<?php } ?>
+<?php if ($this->getInfo()->getLastTransId() == ''): ?>
+    <?php
+        echo $this->__('You will be redirected to X-Payments website when you place an order.');
+    ?>
+<?php else: ?>
+    <?php
+        echo $this->__('X-Payments Transaction ID: %s', $this->htmlEscape($this->getInfo()->getLastTransId()));
+    ?>
+    <br/>
+<?php endif; ?>
 <?php if(!empty($orderCardData)): ?>
     <span id="x-payment-prepaid-card-info">
-            <?php echo $this->__("For current order we used your payment card (**%s)",$orderCardData['last_4_cc_num']); ?>
+            <?php echo $this->__('For current order we used your payment card %s', $orderCardData); ?>
     </span>
 <?php endif;?>

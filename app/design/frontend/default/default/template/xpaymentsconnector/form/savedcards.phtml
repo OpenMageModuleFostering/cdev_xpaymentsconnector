@@ -30,11 +30,23 @@
 <ul id="payment_form_<?php echo $_code ?>" style="display:none;">
     <?php if($userCreditCardsList):?>
         <?php foreach($userCreditCardsList as $key => $creditCard):?>
+            <?php
+                $xpCardDataStr = Mage::helper('xpaymentsconnector')->prepareCardDataString($creditCard->getData());
+            ?>
             <li>
                 <span class="input-box">
-                    <input type="radio" title="<?php echo "'".$creditCard->getData("card_type")."'"; ?> - credit card" class="input-radio  x-payment-card validate-one-required-by-name" id="<?php echo $_code."_".$creditCard->getData("xp_card_id"); ?>" name="payment[xp_payment_card]" value="<?php echo $creditCard->getData("xp_card_id");?>" />
-                    <label for="<?php echo $_code."_".$creditCard->getData("xp_card_id") ?>">Use card ( **<?php echo $creditCard->getData("last_4_cc_num");?> )</label>
-                    <span class="x-payment-card-logo <?php echo strtolower($creditCard->getData("card_type")) ?>" title="<?php echo $creditCard->getData("card_type");?>"></span>
+                    <input type="radio"
+                           title="<?php echo "'".$creditCard->getCardType()."'"; ?> - credit card"
+                           class="input-radio  x-payment-card validate-one-required-by-name"
+                           id="<?php echo $_code.'_'.$creditCard->getXpCardId(); ?>"
+                           name="payment[xp_payment_card]"
+                           value="<?php echo $creditCard->getData("xp_card_id");?>" />
+                    <label for="<?php echo $_code.'_'.$creditCard->getXpCardId() ?>">
+                        <?php echo $this->__('Use card - %s', $xpCardDataStr); ?>
+                    </label>
+                    <span class="x-payment-card-logo <?php echo strtolower($creditCard->getCardType()) ?>"
+                          title="<?php echo $creditCard->getCardType();?>">
+                    </span>
                 </span>
 
             </li>

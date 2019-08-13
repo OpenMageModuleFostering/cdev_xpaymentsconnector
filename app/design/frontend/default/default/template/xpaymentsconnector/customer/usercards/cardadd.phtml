@@ -33,19 +33,24 @@ $xpayUrl =  $this->getXpayUrl();
 </div>
 
     <?php
-    $iFrameUrl  = $this->getAuthorizeIframeUrl();
+    $result  = $this->getAuthorizeIframeUrl();
     ?>
     <div id="new-card-block">
-        <div id="xpayment-iframe-block">
-            <iframe id="xp-iframe" class="xp-iframe" data-src="<?php echo $iFrameUrl;?>" src="<?php echo $iFrameUrl;?>" name="xp-iframe">
-            </iframe>
-            <button onclick="cardAuthorizeSubmit();" id="create-card-button" class="button" title="Add new card" type="button"><span><span>Create card</span></span></button>
-            <span style="display:none;" id="card-add-please-wait" class="please-wait">
-            <img class="v-middle" title="<?php echo $this->__("Submit card information...");?>" alt="<?php echo $this->__("Submit card information...");?>"
-                 src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif') ?>">&nbsp;<?php echo $this->__("Submit card information...");?>
-            </span>
-        </div>
+        <?php if($result['success']):?>
+            <div id="xpayment-iframe-block">
+                <iframe id="xp-iframe" class="xp-iframe" data-src="<?php echo $result['iframe_url'];?>" src="<?php echo $result['iframe_url'];?>" name="xp-iframe">
+                </iframe>
+                <button onclick="cardAuthorizeSubmit();" id="create-card-button" class="button" title="Add new card" type="button"><span><span>Create card</span></span></button>
+                <span style="display:none;" id="card-add-please-wait" class="please-wait">
+                <img class="v-middle" title="<?php echo $this->__("Submit card information...");?>" alt="<?php echo $this->__("Submit card information...");?>"
+                     src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif') ?>">&nbsp;<?php echo $this->__("Submit card information...");?>
+                </span>
+            </div>
+            <?php elseif(isset($result['error_message'])): ?>
+                <?php echo $result['error_message'] ?>
+        <?php endif;?>
     </div>
+
 
 
 

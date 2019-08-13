@@ -31,6 +31,9 @@ class Cdev_XPaymentsConnector_Block_Info_Savedcards extends Mage_Payment_Block_I
         $this->setTemplate('xpaymentsconnector/info/savedcards.phtml');
     }
 
+    /**
+     * @return mixed
+     */
     public function getAdminXpPaymentCard()
     {
         $admSession = Mage::getSingleton('adminhtml/session');
@@ -39,6 +42,10 @@ class Cdev_XPaymentsConnector_Block_Info_Savedcards extends Mage_Payment_Block_I
         return $adminhtmlPaymentCardNumber;
     }
 
+    /**
+     * @param null $adminhtmlPaymentCardNumber
+     * @return array|mixe
+     */
     public function getCardData($adminhtmlPaymentCardNumber = NULL)
     {
         $cardData = array();
@@ -50,15 +57,20 @@ class Cdev_XPaymentsConnector_Block_Info_Savedcards extends Mage_Payment_Block_I
         } else {
             $cardData = $xpUserCardsModel->load($adminhtmlPaymentCardNumber)->getData();
         }
+        $xpCardDataStr = Mage::helper('xpaymentsconnector')->prepareCardDataString($cardData);
 
-        return $cardData;
+        return $xpCardDataStr;
     }
 
+    /**
+     * @param $orderId
+     * @return string
+     */
     public function getOrderCardData($orderId)
     {
         $orderCardData = unserialize(Mage::getModel('sales/order')->load($orderId)->getData('xp_card_data'));
+        $xpCardDataStr = Mage::helper('xpaymentsconnector')->prepareCardDataString($orderCardData);
 
-        return$orderCardData;
+        return $xpCardDataStr;
     }
-
 }

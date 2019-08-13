@@ -28,25 +28,27 @@
 $adminhtmlPaymentCardNumber = $this->getAdminXpPaymentCard();
 $cardData = $this->getCardData();
 ?>
+
 <?php echo $this->getMethod()->getTitle(); ?>
 <br />
 <?php if (!empty($cardData)): ?>
     <span id="x-payment-card-info">
-        <?php echo $this->__("For current order we used your payment card (**%s)",$cardData['last_4_cc_num']); ?>
+        <?php echo $this->__("For current order we used your payment card %s", $cardData); ?>
     </span>
-<?php elseif ($orderId = $this->getRequest()->getParam('order_id')): ?>
+<?php elseif ($orderId = $this->getRequest()->getParam("order_id")): ?>
     <?php $orderCardData = $this->getOrderCardData($orderId); ?>
     <span id="x-payment-card-info">
-        <?php echo $this->__("For current order we used your payment card (**%s)",$orderCardData['last_4_cc_num']); ?>
+        <?php echo $this->__("For current order we used your payment card %s", $orderCardData); ?>
     </span>
 <?php elseif ($adminhtmlPaymentCardNumber): ?>
     <?php $cardData = $this->getCardData($adminhtmlPaymentCardNumber); ?>
     <?php if(!empty($cardData)): ?>
         <span id="x-payment-card-info">
-            <?php echo $this->__("For current order we used your payment card (**%s)",$cardData['last_4_cc_num']); ?>
+            <?php echo $this->__("For current order we used your payment card %s", $cardData); ?>
         </span>
     <?php endif; ?>
 <?php endif; ?>
+
 
 
 
