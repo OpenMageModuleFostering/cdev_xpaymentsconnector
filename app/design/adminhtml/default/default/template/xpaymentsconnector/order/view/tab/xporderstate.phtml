@@ -223,7 +223,7 @@
                                                                    '<?php echo $requiredValidatorName?>')"
                                                                value="Capture">
                                                         </br>
-                                                    <?endif;?>
+                                                    <?php endif;?>
                                                     <?php if($orderStateData["voidedAmountAvailGateway"] > 0): ?>
                                                         <input type="button"
                                                                class="form-button xp-transaction-submit"
@@ -236,7 +236,7 @@
                                                                    '<?php echo $orderStateData["voidedAmountAvailGateway"]?>')"
                                                                class="form-button "
                                                                value="Void (<?php echo Mage::helper('core')->currency($orderStateData["voidedAmountAvailGateway"], true, false);?>)">
-                                                    <?endif;?>
+                                                    <?php endif;?>
                                                     <?php if($orderStateData["refundedAmountAvailGateway"] > 0): ?>
                                                         <input
                                                             type="button"
@@ -248,12 +248,12 @@
                                                                 '<?php echo $amountValidatorName?>',
                                                                 '<?php echo $requiredValidatorName?>')"
                                                             value="Refund">
-                                                    <?endif;?>
+                                                    <?php endif;?>
                                                 </form>
                                             </div>
                                         </td>
                                     </tr>
-                                <?endforeach?>
+                                <?php endforeach?>
                             </tbody>
                         </table>
                     </div>
