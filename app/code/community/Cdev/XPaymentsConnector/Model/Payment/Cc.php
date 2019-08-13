@@ -999,16 +999,16 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $result['items'][] = array(
                 'sku'      => $product->getData('sku'),
                 'name'     => $product->getData('name'),
-                'price'    => number_format($product->getPrice(), 2, '.',0),
+                'price'    => number_format($product->getPrice(), 2, '.',''),
                 'quantity' => intval($product->getData('qty_ordered')),
             );
         }
 
         // Set costs
-        $result['taxCost'] = number_format($order->getData('tax_amount'), 2, '.',0);
-        $result['discount'] = number_format(abs($order->getDiscountAmount()), 2, '.',0);
-        $result['shippingCost'] = number_format($order->getData('shipping_amount'), 2, '.',0);
-        $result['totalCost'] = number_format($order->getGrandTotal(), 2, '.',0);
+        $result['taxCost'] = number_format($order->getData('tax_amount'), 2, '.','');
+        $result['discount'] = number_format(abs($order->getDiscountAmount()), 2, '.','');
+        $result['shippingCost'] = number_format($order->getData('shipping_amount'), 2, '.','');
+        $result['totalCost'] = number_format($order->getGrandTotal(), 2, '.','');
 
         return $result;
     }
@@ -1547,10 +1547,10 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         $result['currency'] = $this->getCurrency();
         $result['description'] = $description;
 
-        $result['totalCost'] = number_format($totalCost, 2, '.', 0);
-        $result['shippingCost'] = number_format($shipping, 2, '.', 0);
-        $result['taxCost'] = number_format($tax, 2, '.', 0);
-        $result['discount'] = number_format($discount, 2, '.', 0);
+        $result['totalCost'] = number_format($totalCost, 2, '.', '');
+        $result['shippingCost'] = number_format($shipping, 2, '.', '');
+        $result['taxCost'] = number_format($tax, 2, '.', '');
+        $result['discount'] = number_format($discount, 2, '.', '');
 
         $result['merchantEmail'] = $customerEmail;
         $result['forceTransactionType'] = $forceTransactionType;
@@ -1620,7 +1620,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $result['items'][] = array(
                 'sku'      => $product->getData('sku'),
                 'name'     => $product->getData('name'),
-                'price'    => number_format($price, 2, '.',0),
+                'price'    => number_format($price, 2, '.',''),
                 'quantity' => intval($quantity),
             );
         }
@@ -1629,7 +1629,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $result['items'][] = array(
                 'sku'      => "000000",
                 'name'     => 'Card Authorize',
-                'price'    => number_format($totalCost, 2, '.',0),
+                'price'    => number_format($totalCost, 2, '.',''),
                 'quantity' => intval(1),
             );
         }
