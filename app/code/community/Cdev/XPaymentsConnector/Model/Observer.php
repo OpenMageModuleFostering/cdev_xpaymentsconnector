@@ -168,10 +168,21 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         } elseif ($paymentMethod == $prepaidpayments) {
             $xpPrepaidPaymentsCard = $admSession->getData("xp_prepaid_payments");
             $currentUserCard = Mage::getModel("xpaymentsconnector/usercards")->load($xpPrepaidPaymentsCard);
-            $order->setData("xpc_txnid", $currentUserCard->getData("txnId"));
-            $order->getPayment()->setTransactionId($currentUserCard->getData("txnId"));
-            $order->getPayment()->setLastTransId($currentUserCard->getData("txnId"));
-            $order->setData("xp_card_data", serialize($currentUserCard->getData()));
+            $txnid = $currentUserCard->getData("txnId");
+            $lastTransId = $txnid;
+
+            $order->setData("xpc_txnid",$txnid);
+            $order->getPayment()->setTransactionId($txnid);
+            $api = Mage::getModel('xpaymentsconnector/payment_cc');
+            list($status, $response) = $api->requestPaymentInfo($txnid,false,true);
+
+            if($status){
+                $currentTransaction = end($response["transactions"]);
+                $lastTransId = $currentTransaction["txnid"];
+            }
+
+            $order->getPayment()->setLastTransId($lastTransId);
+            $order->setData("xp_card_data",serialize($currentUserCard->getData()));
             $order->setState(
                 Mage_Sales_Model_Order::STATE_PROCESSING,
                 (bool)Mage_Sales_Model_Order::STATE_PROCESSING,

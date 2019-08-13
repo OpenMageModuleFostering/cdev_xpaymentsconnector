@@ -86,7 +86,7 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
             return $result;
         }
 
-        if (!$this->transactionStatus && empty($this->transactionInfo)) {
+        if (!$this->transactionStatus || empty($this->transactionInfo)) {
             $xpaymentsConnect = Mage::helper("xpaymentsconnector")->__("Can't get information about the order from X-Payments server. More information is available in log files.");
             $result["success"] = false;
             $result["error_message"] = $xpaymentsConnect;
@@ -109,7 +109,10 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
             if($this->txnid){
                 list($this->transactionStatus, $this->transactionInfo[$currentOrder->getIncrementId()])
                     = Mage::getModel("xpaymentsconnector/payment_cc")->requestPaymentInfo($this->txnid,false,true);
-                $this->transactionInfo[$currentOrder->getIncrementId()]["payment"]["xpc_txnid"] = $this->txnid;
+                if($this->transactionStatus){
+                    $this->transactionInfo[$currentOrder->getIncrementId()]["payment"]["xpc_txnid"] = $this->txnid;
+                }
+
             }
 
             while(!is_null($parentOrder = $currentOrder->getRelationParentId())){

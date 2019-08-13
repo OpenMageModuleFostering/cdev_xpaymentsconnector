@@ -1644,14 +1644,16 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      * @return array
      */
     public function updateOrderByXpaymentResponse($orderId,$txnid,$checkOrderAmount = true){
+
         $result = array();
         $order = Mage::getModel('sales/order')->load($orderId);
         $order->setData('xpc_txnid', $txnid);
         /* update order by xpyament response state */
-        list($status, $response) = $this->requestPaymentInfo($txnid);
+        list($status, $response) = $this->requestPaymentInfo($txnid,false,true);
+
         if (
             $status
-            && in_array($response['status'], array(self::AUTH_STATUS, self::CHARGED_STATUS))
+            && in_array($response["payment"]['status'], array(self::AUTH_STATUS, self::CHARGED_STATUS))
         ) {
             // TODO - save message - $response['message']
 
@@ -1661,22 +1663,22 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             }
             */
             /**/
-            if ($response['amount'] != number_format($order->getGrandTotal(), 2, '.','') && $checkOrderAmount) {
+            if ($response["payment"]['amount'] != number_format($order->getGrandTotal(), 2, '.','') && $checkOrderAmount) {
 
                 // Total wrong
                 Mage::log(
                     'Order total amount doesn\'t match: Order total = ' . number_format($order->getGrandTotal(), 2, '.','')
-                    . ', X-Payments amount = ' . $response['amount'],
+                    . ', X-Payments amount = ' . $response["payment"]['amount'],
                     Zend_Log::ERR
                 );
                 Mage::throwException('Transaction amount doesn\'t match.');
 
-            } elseif ($response['currency'] != $this->getCurrency()) {
+            } elseif ($response["payment"]['currency'] != $this->getCurrency()) {
 
                 // Currency wrong
                 Mage::log(
                     'Order currency doesn\'t match: Order currency = ' . $this->getCurrency()
-                    . ', X-Payments currency = ' . $response['currency'],
+                    . ', X-Payments currency = ' . $response["payment"]['currency'],
                     Zend_Log::ERR
                 );
                 Mage::throwException('Transaction currency doesn\'t match.');
@@ -1684,12 +1686,18 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             } else {
 
                 $order->getPayment()->setTransactionId($txnid);
-                $order->getPayment()->setLastTransId($txnid);
-                if (isset($response['advinfo']) && isset($response['advinfo']['AVS'])) {
-                    $order->getPayment()->setCcAvsStatus($response['advinfo']['AVS']);
+
+                $currentTransaction = end($response["transactions"]);
+                $order->getPayment()->setLastTransId($currentTransaction["txnid"]);
+
+
+
+
+                if (isset($response["payment"]['advinfo']) && isset($response["payment"]['advinfo']['AVS'])) {
+                    $order->getPayment()->setCcAvsStatus($response["payment"]['advinfo']['AVS']);
                 }
 
-                if ($response['status'] == self::AUTH_ACTION) {
+                if ($response["payment"]['status'] == self::AUTH_ACTION) {
                     $order->setState(
                         Mage_Sales_Model_Order::STATE_PROCESSING,
                         (bool)$order->getPayment()->getMethodInstance()->getConfigData('order_status'),
@@ -1719,11 +1727,11 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $order->save();
 
             $result["success"] = false;
-            if(!empty($response["error_message"])){
-                $result["error_message"] = Mage::helper('xpaymentsconnector')->__('%s. The order has been canceled.',$response["error_message"]);
+            if(!empty($response["payment"]["error_message"])){
+                $result["error_message"] = Mage::helper('xpaymentsconnector')->__('%s. The order has been canceled.',$response["payment"]["error_message"]);
             }else{
                 $transactionStatusLabel =  $this->getTransactionStatusLabels();
-                $result["error_message"] = Mage::helper('xpaymentsconnector')->__('Transaction status is "%s". The order has been canceled.',$transactionStatusLabel[$response['status']]);
+                $result["error_message"] = Mage::helper('xpaymentsconnector')->__('Transaction status is "%s". The order has been canceled.',$transactionStatusLabel[$response["payment"]['status']]);
             }
 
             return $result;
