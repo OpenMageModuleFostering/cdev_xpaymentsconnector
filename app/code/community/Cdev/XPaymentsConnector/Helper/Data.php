@@ -891,13 +891,16 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
                     $recurringProfile['init_amount'] > 0
                 ) {
 
-                    $quoteItem->setXpRecurringInitialFee($totalInitAmount);
-                    $initialFeeTax = $this->calculateTaxForProductCustomPrice($product,$totalInitAmount);
-                    if($initialFeeTax){
-                        $quoteItem->setInitialfeeTaxAmount($initialFeeTax);
-                    }
+                    $quoteItemData = $quoteItem->getData();
+                    if(array_key_exists('xp_recurring_initial_fee',$quoteItemData)){
+                        $quoteItem->setXpRecurringInitialFee($totalInitAmount);
+                        $initialFeeTax = $this->calculateTaxForProductCustomPrice($product,$totalInitAmount);
+                        if($initialFeeTax){
+                            $quoteItem->setInitialfeeTaxAmount($initialFeeTax);
+                        }
 
-                    $quoteItem->save();
+                        $quoteItem->save();
+                    }
                 }
             }
         }
