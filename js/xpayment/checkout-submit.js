@@ -54,7 +54,7 @@ function submitXpaymentIframe(iframeCheckUrl) {
             }
         },
         error: function(){
-            alert('error!');
+            alert("Can't check token state!");
         }
     });
 }

@@ -999,15 +999,16 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $result['items'][] = array(
                 'sku'      => $product->getData('sku'),
                 'name'     => $product->getData('name'),
-                'price'    => number_format($product->getPrice(), 2, '.',''),
+                'price'    => number_format($product->getPrice(), 2, '.',0),
                 'quantity' => intval($product->getData('qty_ordered')),
             );
         }
 
         // Set costs
-        $result['shippingCost'] = number_format($order->getData('shipping_amount'), 2, '.','');
-        $result['taxCost'] = number_format($order->getData('tax_amount'), 2, '.','');
-        $result['totalCost'] = number_format($order->getGrandTotal(), 2, '.','');
+        $result['taxCost'] = number_format($order->getData('tax_amount'), 2, '.',0);
+        $result['discount'] = number_format(abs($order->getDiscountAmount()), 2, '.',0);
+        $result['shippingCost'] = number_format($order->getData('shipping_amount'), 2, '.',0);
+        $result['totalCost'] = number_format($order->getGrandTotal(), 2, '.',0);
 
         return $result;
     }
@@ -1483,41 +1484,51 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         $result = array();
         /*initial fee check*/
         $quoteItem = current($checkoutData->getQuote()->getAllItems());
-        $totalCost = 0;
         $forceTransactionType = ($this->isForceAuth()) ? 'A' : 'S';
         $minimalPayment = false;
         $cardAuthorizeAmount = 0;
 
-        $result['description'] = 'Order(i-frame) #' . $refId;
+        $totals = $quote->getTotals(); //Total object
+
+        $totalCost = 0;
+        $discount = 0;
+        $tax = 0;
+        $shipping = 0;
+        $description = 'Order(i-frame) #' . $refId;
+
         if ($quoteItem && $quoteItem->getProduct()->getIsRecurring()) {
             $useStartDateParam = Mage::helper("xpaymentsconnector")->checkStartDateData();
             if ($useStartDateParam["success"]) {
                 $minimalPayment = $useStartDateParam["minimal_payment_amount"];
 
-                $result['shippingCost'] = number_format(0, 2, '.', '');
-                $result['taxCost'] = number_format(0, 2, '.', '');
-                $result['totalCost'] = number_format($minimalPayment, 2, '.', '');
+                $totalCost = $minimalPayment;
                 $description = "Recurring profile subscription.";
-                $result['description'] = $description;
 
             } else {
+                $tax = $quoteItem->getData("tax_amount");
+                $shipping = $quoteItem->getData("shipping_amount");
                 $totalCost = $quoteItem->getData("nominal_row_total");
-                $result['shippingCost'] = number_format($quoteItem->getData("shipping_amount"), 2, '.', '');
-                $result['taxCost'] = number_format($quoteItem->getData("tax_amount"), 2, '.', '');
-                $result['totalCost'] = number_format($totalCost, 2, '.', '');
+                $discount = abs($quoteItem->getData("discount_amount"));
             }
 
         } elseif ($isCardAuthorizePayment) {
-            $cardAuthorizeAmount = floatval(Mage::getStoreConfig("xpaymentsconnector/settings/xpay_minimum_payment_recurring_amount"));
-            $result['shippingCost'] = number_format(0, 2, '.', '');
-            $result['taxCost'] = number_format(0, 2, '.', '');
-            $result['totalCost'] = number_format($cardAuthorizeAmount, 2, '.', '');
+
+            $totalCost = floatval(Mage::getStoreConfig("xpaymentsconnector/settings/xpay_minimum_payment_recurring_amount"));
+
         } else {
+
+            if (isset($totals['discount']) && $totals['discount']->getValue()) {
+                $discount = abs($totals['discount']->getValue());
+            }
+            if(isset($totals['tax']) && $totals['tax']->getValue()) {
+                $tax = $totals['tax']->getValue();
+            }
+            if(isset($totals['shipping']) && $totals['shipping']->getValue()) {
+                $shipping = $totals['shipping']->getValue();
+            }
+
             // Set costs
             $totalCost = $quote->getGrandTotal();
-            $result['shippingCost'] = number_format($checkoutData->getData("shippingCost"), 2, '.', '');
-            $result['taxCost'] = number_format($checkoutData->getData("taxCost"), 2, '.', '');
-            $result['totalCost'] = number_format($totalCost, 2, '.', '');
         }
 
         if(!$customer){
@@ -1525,7 +1536,6 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         } else{
             $customerEmail = $customer->getEmail();
         }
-
 
         $result['billingAddress']  = array(
             'email' => $customerEmail,
@@ -1535,10 +1545,18 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         );
         $result['items']   = array();
         $result['currency'] = $this->getCurrency();
-        $result['discount'] = 0.00;
+        $result['description'] = $description;
+
+        $result['totalCost'] = number_format($totalCost, 2, '.', 0);
+        $result['shippingCost'] = number_format($shipping, 2, '.', 0);
+        $result['taxCost'] = number_format($tax, 2, '.', 0);
+        $result['discount'] = number_format($discount, 2, '.', 0);
+
         $result['merchantEmail'] = $customerEmail;
         $result['forceTransactionType'] = $forceTransactionType;
         $result['login'] = $customerEmail;
+
+
 
         $namePrefixes  = array(
             'billing'  => $billingAddress,
@@ -1556,6 +1574,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             'phone'     => 'telephone',
             'fax'       => 'telephone',
         );
+
 
         // Prepare shipping and billing address
         $shippingIsEmpty = true;
@@ -1601,7 +1620,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $result['items'][] = array(
                 'sku'      => $product->getData('sku'),
                 'name'     => $product->getData('name'),
-                'price'    => number_format($price, 2, '.',''),
+                'price'    => number_format($price, 2, '.',0),
                 'quantity' => intval($quantity),
             );
         }
@@ -1610,7 +1629,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $result['items'][] = array(
                 'sku'      => "000000",
                 'name'     => 'Card Authorize',
-                'price'    => number_format($cardAuthorizeAmount, 2, '.',''),
+                'price'    => number_format($totalCost, 2, '.',0),
                 'quantity' => intval(1),
             );
         }

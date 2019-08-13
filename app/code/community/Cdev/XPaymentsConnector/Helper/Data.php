@@ -452,28 +452,31 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     public function checkStartDateData(){
         $result = array();
         $quoteItem = current(Mage::getSingleton("checkout/session")->getQuote()->getAllItems());
-        $productAdditionalInfo = unserialize($quoteItem->getProduct()->getCustomOption('info_buyRequest')->getValue());
-        $dateTimeStamp = strtotime($productAdditionalInfo["recurring_profile_start_datetime"]);
-        if ($dateTimeStamp) {
-            $userSetTime = new Zend_Date($productAdditionalInfo["recurring_profile_start_datetime"]);
-            $currentZendDate = new Zend_Date(time());
-            if ($userSetTime->getTimestamp() > $currentZendDate->getTimestamp()) {
-                $result["success"] = true;
-                $recurringProfileData = $quoteItem->getProduct()->getData("recurring_profile");
-                $initAmount = $recurringProfileData["init_amount"];
-                $defaultMinimumPayment = floatval(Mage::getStoreConfig("xpaymentsconnector/settings/xpay_minimum_payment_recurring_amount"));
-                $minimumPaymentAmount = ($initAmount) ? $initAmount : $defaultMinimumPayment;
-                $result["minimal_payment_amount"] = $minimumPaymentAmount;
-                return $result;
+        if($quoteItem){
+            $productAdditionalInfo = unserialize($quoteItem->getProduct()->getCustomOption('info_buyRequest')->getValue());
+            $dateTimeStamp = strtotime($productAdditionalInfo["recurring_profile_start_datetime"]);
+            if ($dateTimeStamp) {
+                $userSetTime = new Zend_Date($productAdditionalInfo["recurring_profile_start_datetime"]);
+                $currentZendDate = new Zend_Date(time());
+                if ($userSetTime->getTimestamp() > $currentZendDate->getTimestamp()) {
+                    $result["success"] = true;
+                    $recurringProfileData = $quoteItem->getProduct()->getData("recurring_profile");
+                    $initAmount = $recurringProfileData["init_amount"];
+                    $defaultMinimumPayment = floatval(Mage::getStoreConfig("xpaymentsconnector/settings/xpay_minimum_payment_recurring_amount"));
+                    $minimumPaymentAmount = ($initAmount) ? $initAmount : $defaultMinimumPayment;
+                    $result["minimal_payment_amount"] = $minimumPaymentAmount;
+                    return $result;
+                } else {
+                    $result["success"] = false;
+                    return $result;
+                }
             } else {
                 $result["success"] = false;
                 return $result;
             }
-        } else {
-            $result["success"] = false;
-            return $result;
         }
-
+        $result["success"] = false;
+        return $result;
     }
 
     public function getRecurringProfileState(){
