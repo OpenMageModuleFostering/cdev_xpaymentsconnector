@@ -396,6 +396,15 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
     }
 
     /**
+     * Remove X-Payments token after update shipping method
+     * @param $observer
+     */
+    public function postdispatchSaveShippingMethod($observer){
+        $unsetParams = array("token");
+        Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+    }
+
+    /**
      * Set discount for recurring product
      * @param $observer
      */

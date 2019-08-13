@@ -242,8 +242,16 @@
                    </web4procheckout>
                </observers>
            </controller_action_postdispatch_checkout_cart_delete>
-
-
+            <!--Remove X-Payments token after update shipping method -->
+            <controller_action_postdispatch_checkout_onepage_saveShippingMethod>
+                <observers>
+                    <web4procheckout>
+                        <type>singleton</type>
+                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
+                        <method>postdispatchSaveShippingMethod</method>
+                    </web4procheckout>
+                </observers>
+            </controller_action_postdispatch_checkout_onepage_saveShippingMethod>
         </events>
         <sales>
             <quote>
