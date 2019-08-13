@@ -24,7 +24,7 @@
  * @see Cdev_XPaymentsConnector_Block_Info_Prepaidpayments
  */
 ?>
-<?
+<?php
 $admSession = Mage::getSingleton('adminhtml/session');
 $xpPrepaidPaymentsCard = $admSession->getData("xp_prepaid_payments");
 $cardData = Mage::getModel("xpaymentsconnector/usercards")->load($xpPrepaidPaymentsCard)->getData();

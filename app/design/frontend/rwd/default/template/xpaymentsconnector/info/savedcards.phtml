@@ -24,7 +24,7 @@
  * @see Cdev_XPaymentsConnector_Block_Info_Savedcards
  */
 ?>
-<?
+<?php
 $admSession = Mage::getSingleton('adminhtml/session');
 $adminhtmlPaymentCardNumber = $admSession->getData("xp_payment_card");
 $quote = Mage::getSingleton('checkout/session')->getQuote();
