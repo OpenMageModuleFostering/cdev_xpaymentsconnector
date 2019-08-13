@@ -1697,6 +1697,8 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         $result = array();
         $order = Mage::getModel('sales/order')->load($orderId);
         $order->setData('xpc_txnid', $txnid);
+        $xpaymentsHelper = Mage::helper('xpaymentsconnector');
+
         /* update order by xpyament response state */
         list($status, $response) = $this->requestPaymentInfo($txnid,false,true);
 
@@ -1710,24 +1712,30 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             if ($response['payment']['amount'] != number_format($order->getGrandTotal(), 2, '.','') && $checkOrderAmount) {
                 $order->cancel();
                 $order->save();
+
                 // Total wrong
-                Mage::log(
-                    'Order total amount doesn\'t match: Order total = ' . number_format($order->getGrandTotal(), 2, '.','')
-                    . ', X-Payments amount = ' . $response['payment']['amount'],
-                    Zend_Log::ERR
-                );
-                Mage::throwException('Transaction amount doesn\'t match.');
+                Mage::log('Order total amount doesn\'t match: Order total = ' . number_format($order->getGrandTotal(), 2, '.','').
+                        ', X-Payments amount = ' . $response['payment']['amount'],
+                        null,
+                        $xpaymentsHelper::XPAYMENTS_LOG_FILE,
+                        true);
+
+                $result['success'] = false;
+                return $result;
 
             } elseif ($response['payment']['currency'] != $this->getCurrency()) {
                 $order->cancel();
                 $order->save();
+
                 // Currency wrong
-                Mage::log(
-                    'Order currency doesn\'t match: Order currency = ' . $this->getCurrency()
+                Mage::log('Order currency doesn\'t match: Order currency = ' . $this->getCurrency()
                     . ', X-Payments currency = ' . $response['payment']['currency'],
-                    Zend_Log::ERR
-                );
-                Mage::throwException('Transaction currency doesn\'t match.');
+                    null,
+                    $xpaymentsHelper::XPAYMENTS_LOG_FILE,
+                    true);
+
+                $result['success'] = false;
+                return $result;
 
             } else {
 
@@ -1744,14 +1752,14 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
                     $order->setState(
                         Mage_Sales_Model_Order::STATE_PROCESSING,
                         (bool)$order->getPayment()->getMethodInstance()->getConfigData('order_status'),
-                        Mage::helper('xpaymentsconnector')->__('preauthorize: Customer returned successfully')
+                        $xpaymentsHelper->__('preauthorize: Customer returned successfully')
                     );
                     $order->setStatus(Cdev_XPaymentsConnector_Helper_Data::STATE_XPAYMENT_PENDING_PAYMENT);
                 }else{
                     $order->setState(
                         Mage_Sales_Model_Order::STATE_PROCESSING,
                         (bool)$order->getPayment()->getMethodInstance()->getConfigData('order_status'),
-                        Mage::helper('xpaymentsconnector')->__('preauthorize: Customer returned successfully')
+                        $xpaymentsHelper->__('preauthorize: Customer returned successfully')
                     );
                     $order->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
                 }
@@ -1761,20 +1769,20 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $result['success'] = true;
             return $result;
         }else{
-            Mage::helper('xpaymentsconnector')->unsetXpaymentPrepareOrder();
+            $xpaymentsHelper->unsetXpaymentPrepareOrder();
             $order->cancel();
             $order->addStatusToHistory(
                 $order::STATE_CANCELED,
-                Mage::helper('xpaymentsconnector')->__('charge: Callback request')
+                $xpaymentsHelper->__('charge: Callback request')
             );
             $order->save();
 
             $result['success'] = false;
             if(!empty($response['payment']['error_message'])){
-                $result['error_message'] = Mage::helper('xpaymentsconnector')->__('%s. The order has been canceled.',$response['payment']['error_message']);
+                $result['error_message'] = $xpaymentsHelper->__('%s. The order has been canceled.',$response['payment']['error_message']);
             }else{
                 $transactionStatusLabel =  $this->getTransactionStatusLabels();
-                $result['error_message'] = Mage::helper('xpaymentsconnector')->__('Transaction status is "%s". The order has been canceled.',$transactionStatusLabel[$response['payment']['status']]);
+                $result['error_message'] = $xpaymentsHelper->__('Transaction status is "%s". The order has been canceled.',$transactionStatusLabel[$response['payment']['status']]);
             }
 
             return $result;

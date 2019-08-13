@@ -530,14 +530,7 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     public function updateCurrentBillingPeriodTimeStamp(Mage_Payment_Model_Recurring_Profile $recurringProfile, bool $result, $newTransactionDate = null)
     {
         if (!$result) {
-            $currentCycleFailureCount = $recurringProfile->getXpCycleFailureCount();
-            //add failed attempt
-            $currentCycleFailureCount++;
-            $recurringProfile->setXpCycleFailureCount($currentCycleFailureCount);
-            $maxPaymentFailure = $recurringProfile->getSuspensionThreshold();
-            if ($currentCycleFailureCount > $maxPaymentFailure) {
-                $recurringProfile->cancel();
-            }
+            $this->updateProfileFailureCount($recurringProfile);
         } else {
             $recurringProfile->setXpCycleFailureCount(0);
 
@@ -553,6 +546,22 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
 
         $recurringProfile->save();
 
+    }
+
+    /**
+     * This function update 'failure count params' in recurring profile
+     * @param Mage_Payment_Model_Recurring_Profile $recurringProfile
+     */
+    public function updateProfileFailureCount(Mage_Payment_Model_Recurring_Profile $recurringProfile){
+        $currentCycleFailureCount = $recurringProfile->getXpCycleFailureCount();
+        //add failed attempt
+        $currentCycleFailureCount++;
+        $recurringProfile->setXpCycleFailureCount($currentCycleFailureCount);
+        $maxPaymentFailure = $recurringProfile->getSuspensionThreshold();
+        if ($currentCycleFailureCount >= $maxPaymentFailure) {
+            $recurringProfile->cancel();
+        }
+        $recurringProfile->save();
     }
 
     public function checkIssetRecurringOrder()
@@ -702,7 +711,11 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
 
         //update order
         if(!is_null($orderId)){
-            $xpaymentCCModel->updateOrderByXpaymentResponse($orderId, $response['response']['transaction_id']);
+            $result = $xpaymentCCModel->updateOrderByXpaymentResponse($orderId, $response['response']['transaction_id']);
+            if($result['success'] == false){
+                $this->updateProfileFailureCount($recurringProfile);
+                return;
+            }
         }
 
         if ($response['success']) {
