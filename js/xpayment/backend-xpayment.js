@@ -1,3 +1,4 @@
+// vim: set ts=2 sw=2 sts=2 et:
 /**
  * Magento
  *
@@ -11,46 +12,58 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 
 /**
- *
- * @param formName
- * @param amountValidatorName
- * @param requiredValidatorName
+ * Submit secondary X-Payments transaction
  */
-function submitXpTransaction(action,formName,amountValidatorName,requiredValidatorName,amount) {
-    Validation.add(amountValidatorName,'Please enter a valid amount. For example 100.00.',function(v){
-        return Validation.get('IsEmpty').test(v) ||  /^([1-9]{1}[0-9]{0,2}(\,[0-9]{3})*(\.[0-9]{0,2})?|[1-9]{1}\d*(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|(\.[0-9]{1,2})?)$/.test(v);
-    });
-    Validation.add(requiredValidatorName,'This is a required field.',function(v){
-        return !Validation.get('IsEmpty').test(v);
-    });
+function submitXpcTransaction(action, formId, amountValidatorName, requiredValidatorName, amount) 
+{
+    // Amount field validation
+    Validation.add(
+        amountValidatorName, 
+        'Please enter a valid amount. For example 100.00.',
+        function (v) {
+            var regex = /^([1-9]{1}[0-9]{0,2}(\,[0-9]{3})*(\.[0-9]{0,2})?|[1-9]{1}\d*(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|(\.[0-9]{1,2})?)$/;
+            return Validation.get('IsEmpty').test(v) 
+            ||  regex.test(v);
+        }
+    );
 
-    var xpTransactionForm = new varienForm(formName);
-    $(formName).down('.xpaction').value = action;
-    if (action == "void") {
-        $(formName).down('.transaction-amount').value = amount;
-        xpTransactionForm.submit();
+    // Required fields validation
+    Validation.add(
+        requiredValidatorName,
+        'This is a required field.',
+        function (v) {
+            return !Validation.get('IsEmpty').test(v);
+        }
+    );
+
+    var form = new varienForm(formId);
+    $(formId).down('.xpc_action').value = action;
+
+    if (action == 'void') {
+        $(formId).down('.transaction-amount').value = amount;
+        form.submit();
     } else {
-        if (xpTransactionForm.validator.validate()) {
-            xpTransactionForm.submit();
+        if (form.validator.validate()) {
+            form.submit();
         }
     }
-
-
 };
 
 document.observe("dom:loaded", function () {
 
     $$('.xp-transaction-head-block').each(function(element) {
-        element.on("click", function(event) {
+
+        element.on('click', function(event) {
+
             var grid = $(this).up('.entry-edit');
 
             if ( $(grid).down('.grid').getStyle('display') === 'none'){

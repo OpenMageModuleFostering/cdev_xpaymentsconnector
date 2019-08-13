@@ -14,10 +14,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -92,59 +92,26 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
     /**
      * Process masked card data from the callback request
      *
-     * @param array $cardData Card data
-     * @param int $customerId Customer ID
-     *
-     * @return void
-     */
-    protected function saveUserCard($cardData, $customerId)
-    {
-        $txnId = $cardData['txnId'];
-
-        // Try to find card with already existing txnId.
-        // Then update it or fill the empty found entity.
-        $usercards = Mage::getModel('xpaymentsconnector/usercards')
-            ->getCollection()
-            ->addFieldToFilter('txnId', $txnId)
-            ->getFirstItem();
-
-        $data = array(
-            'user_id'       => $customerId,
-            'txnId'         => $txnId,
-            'last_4_cc_num' => $cardData['last4'],
-            'first6'        => $cardData['first6'],
-            'card_type'     => $cardData['type'],
-            'expire_month'  => $cardData['expire_month'],
-            'expire_year'   => $cardData['expire_year'],
-            'usage_type'    => Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD,
-        );
-
-        if ($usercards->getData('xp_card_id')) {
-            $data['xp_card_id'] = $usercards->getData('xp_card_id');
-        }
-
-        $usercards->setData($data)->save();
-    }
-
-    /**
-     * Process masked card data from the callback request
-     *
      * @param array  $data Update data
+     * @param int    $xpcSlot Slot index of the XPC payment method
+     * @param int    $confId Payment configuration ID
      * @param string $txnId Payment reference
+     * @param string $parentTxnId Parent payment reference
      *
      * @return void
      */
-    protected function processMaskedCardData($data, $txnId)
+    protected function processMaskedCardData($data, $xpcSlot, $confId, $txnId, $parentTxnId = '')
     {
         if (!empty($data['maskedCardData'])) {
 
             $helper = Mage::helper('xpaymentsconnector');
 
-            $order = $helper->getOrderByTxnId($txnId);
+            $order = $helper->getOrderByTxnId($txnId, $parentTxnId);
             $customerId = Mage::app()->getRequest()->getParam('customer_id');
 
             $cardData = $data['maskedCardData'];
             $cardData['txnId'] = $txnId;
+            $cardData['confid'] = $confId;
 
             if (!empty($data['advinfo'])) {
                 $cardData['advinfo'] = $data['advinfo'];
@@ -155,17 +122,28 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
                 $helper->saveMaskedCardToOrder($order, $cardData);
 
                 $customerId = $order->getData('customer_id');
+
+                $quote = Mage::getModel('xpaymentsconnector/quote')->load($order->getQuoteId())
+                    ->setXpcSlot($xpcSlot);
+
+                $isRecurring = (bool)$quote->getRecurringItem();
+
+            } else {
+
+                $isRecurring = false;
             }
 
-            $successStatus = Cdev_XPaymentsConnector_Model_Payment_Cc::AUTH_STATUS == $data['status']
-                || Cdev_XPaymentsConnector_Model_Payment_Cc::CHARGED_STATUS == $data['status'];
-
             if (
-                $successStatus
+                Mage::helper('api_xpc')->isSuccessStatus($data['status']) 
                 && isset($data['saveCard'])
                 && 'Y' == $data['saveCard']
             ) {
-                $this->saveUserCard($cardData, $customerId);
+
+                $usageType = $isRecurring
+                    ? Cdev_XPaymentsConnector_Model_Usercards::RECURRING_CARD
+                    : Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD;
+
+                Mage::getModel('xpaymentsconnector/usercards')->saveUserCard($cardData, $customerId, $usageType);
             }
         }
     }
@@ -201,10 +179,10 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
 
                     $modelData = array(
                         'order_id'       => $order->getId(),
-                        'code'           => $fraudCheckData['code'],
-                        'service'        => $fraudCheckData['service'],
-                        'result'         => $fraudCheckData['result'],
-                        'status'         => $fraudCheckData['status'],
+                        'code'           => $fraudCheckData['code'],       // All these fields are considered as mandatory.
+                        'service'        => $fraudCheckData['service'],    // So it's normal to cause a notice or an exception
+                        'result'         => $fraudCheckData['result'],     // in case one of them is missing.
+                        'status'         => isset($fraudCheckData['status']) ? $fraudCheckData['status'] : '',
                         'score'          => isset($fraudCheckData['score']) ? $fraudCheckData['score'] : 0,
                         'message'        => isset($fraudCheckData['message']) ? $fraudCheckData['message'] : '',
                         'transaction_id' => isset($fraudCheckData['transactionId']) ? $fraudCheckData['transactionId'] : '',
@@ -229,18 +207,200 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
     }
 
     /**
-     * Process payment status from the callback request. Chhange order status.
+     * Process flat order payment data from the callback request
      *
      * @param array  $data Update data
      * @param string $txnId Payment reference
+     * @param string $parentTxnId Parent payment reference
      *
      * @return void
      */
-    protected function processPaymentStatus($data, $txnId)
+    protected function processFlatOrderPaymentData($data, $txnId, $parentTxnId = '')
+    {
+        $helper = Mage::helper('xpaymentsconnector');
+        $order = $helper->getOrderByTxnId($txnId, $parentTxnId);
+
+        try {
+
+            // Process AVS
+            if (!empty($data['advinfo']['AVS'])) {
+
+                $avs = $data['advinfo']['AVS'];
+
+            } elseif (!empty($data['cardValidation'])) {
+
+                $cardValidation = array(
+                    'avs_z' => 'AVS ZIP/Postal code',
+                    'avs_a' => 'AVS Address (street)',
+                    'avs_c' => 'AVS Cardholder name',
+                );
+
+                $avs = array();
+
+                foreach ($cardValidation as $key => $title) {
+                    if ($data['cardValidation'][$key]) {
+                        $avs[] = $title . ': ' . ('1' == $data['cardValidation'][$key] ? 'Match' : 'Not match');
+                    }
+                }
+
+                $avs = implode(PHP_EOL, $avs); 
+
+            } else {
+ 
+                $avs = '';
+            }
+
+            // Process CVV
+            if (!empty($data['advinfo']['CVV'])) {
+
+                $cvv = $data['advinfo']['CVV'];
+
+            } elseif (
+                !empty($data['cardValidation'])
+                && $data['cardValidation']['cvv']
+            ) {
+
+                $cvv = 'CVV2/CVD/Card secure code: ' . ('1' == $data['cardValidation']['cvv'] ? 'Match' : 'Not match');
+
+            } else {
+
+                $cvv = '';
+            }
+
+            $ccOwner = isset($data['maskedCardData']['cardholder_name'])
+                ? $data['maskedCardData']['cardholder_name']
+                : '';
+
+            // This is for the USAePay module
+            if (!empty($data['advinfo']['UMcardRef'])) {
+
+                $encCardNumber = $data['advinfo']['UMcardRef'];
+
+            } else {
+
+                $parentOrder = $helper->getOrderByTxnId($parentTxnId);
+
+                if (
+                    $parentOrder->getEntityId()
+                    && $parentOrder->getPayment()->getData('cc_number_enc')
+                ) {
+
+                    $encCardNumber = $parentOrder->getPayment()->getData('cc_number_enc');
+
+                } else {
+
+                    $encCardNumber = '';
+                }
+            }
+
+            // This is for Payflow Pro module
+            if (!empty($data['advinfo']['PNREF'])) {
+                $lastTransId = $data['advinfo']['PNREF'];
+            } else {
+                $lastTransId = '';
+            }
+
+            $order->getPayment()
+                ->setData('cc_avs_status', $avs)
+                ->setData('cc_cid_status', $cvv)
+                ->setData('cc_owner', $ccOwner)
+                ->setData('cc_last4', $data['maskedCardData']['last4'])
+                ->setData('cc_type', $data['maskedCardData']['type'])
+                ->setData('cc_number_enc', $encCardNumber)
+                ->setData('cc_exp_month', $data['maskedCardData']['expire_month'])
+                ->setData('cc_exp_year', $data['maskedCardData']['expire_year'])
+                ->setData('cc_trans_id', $data['advinfo']['txn_id'])
+                ->setData('cc_status', $data['advinfo']['Message'])
+                ->setData('last_trans_id', $lastTransId)
+                ->save();
+
+        } catch (Exception $e) {
+            $helper->writeLog('Error while saving flat order payment data data: ' . $e->getMessage(), $e->getTraceAsString());
+        }
+    }
+
+    /**
+     * Check returned transaction total and currency
+     *
+     * @param Mage_Sales_Model_Order $order
+     * @param array  $data Update data
+     *
+     * @return bool
+     */
+    private function checkTotalAndCurrency(Mage_Sales_Model_Order $order, $data)
+    {
+        $total = $order->getGrandTotal();
+
+        $currency = $order->getData('order_currency_code');
+
+        return $currency == $data['currency']
+            && 0.001 > abs($total - $data['amount']);
+    }
+
+    /**
+     * Clear usage information of the coupon for the declined/canceled order
+     *
+     * @param Mage_Sales_Model_Order $order
+     *
+     * @return void
+     */ 
+    private function clearCouponUsage(Mage_Sales_Model_Order $order)
+    {
+        $couponCode = $order->getCouponCode();
+
+        if (!empty($couponCode)) {
+
+            try {
+
+                $coupon = Mage::getModel('salesrule/coupon');
+                $coupon->load($couponCode, 'code');
+
+                if ($coupon->getRuleId()) {
+
+                    $coupon->setTimesUsed($coupon->getTimesUsed() - 1)->save();
+
+                    $customerId = $order->getCustomerId();
+
+                    if ($customerId) {
+
+                        $customerCoupon = Mage::getModel('salesrule/rule_customer')->loadByCustomerRule($customerId, $coupon->getRuleId());
+
+                        if ($customerCoupon) {
+                            $customerCoupon->setTimesUsed($customerCoupon->getTimesUsed() - 1)->save();
+                        }
+
+                        $couponUsage = Mage::getResourceModel('salesrule/coupon_usage');
+                        $couponUsage->decreaseCustomerCouponTimesUsed($customerId, $coupon->getId());
+                    }
+                }
+
+                Mage::helper('xpaymentsconnector')->writeLog('Clear coupon usage. Code: ' . $couponCode);
+
+            } catch (Exception $e) {
+    
+                Mage::helper('xpaymentsconnector')->writeLog(
+                    'Error in clear coupon usage. Code: : ' . $couponCode . PHP_EOL . $e->getMessage(), 
+                    $e->getTraceAsString()
+                );
+            }
+        }
+    }
+
+    /**
+     * Process payment status from the callback request. Chhange order status.
+     *
+     * @param array  $data Update data
+     * @param int    $xpcSlot Slot index of the XPC payment method
+     * @param string $txnId Payment reference
+     * @param string $parentTxnId Parent payment reference
+     *
+     * @return array
+     */
+    protected function processPaymentStatus($data, $xpcSlot, $txnId, $parentTxnId = '')
     {
         $helper = Mage::helper('xpaymentsconnector');
 
-        $order = $helper->getOrderByTxnId($txnId);
+        $order = $helper->getOrderByTxnId($txnId, $parentTxnId);
 
         if (
             !$order->getId()
@@ -249,20 +409,34 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             
             $helper->writeLog('Order not found for ' . $txnId);
 
-            return;
+            return $data;
         }
 
         $status = $state = false;
 
-        $quote = Mage::getModel('sales/quote')->load($order->getQuoteId());
-        $api = Mage::getModel('xpaymentsconnector/payment_cc');
+        $quote = Mage::getModel('xpaymentsconnector/quote')->load($order->getQuoteId())
+            ->setXpcSlot($xpcSlot);
+
+        $api = Mage::helper('api_xpc');
 
         $message = $helper->getResultMessage($data);
 
         if (
-            $api::AUTH_STATUS == $data['status']
-            || $api::CHARGED_STATUS == $data['status']
+            $api->isSuccessStatus($data['status'])
+            && !$this->checkTotalAndCurrency($order, $data)
         ) {
+
+            $data['status'] = $api::DECLINED_STATUS;
+
+            $message = $this->__(
+                'Gateway reported about the successfull transaction, but the transaction amount %s, or currency %s do not match the order. Original response was: %s',
+                $data['amount'],
+                $data['currency'],
+                $message
+            );            
+        }
+
+        if ($api->isSuccessStatus($data['status'])) {
 
             // Success
 
@@ -270,14 +444,6 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
 
                 // Set X-Payments payment reference
                 $order->getPayment()->setTransactionId($txnId);
-
-                // Set AVS. Something wrong actually. Need to add cardValidation
-                if (
-                    isset($data['advinfo']) 
-                    && isset($data['advinfo']['AVS'])
-                ) {
-                    $order->getPayment()->setCcAvsStatus($data['advinfo']['AVS']);
-                }
 
                 // Set status
                 $status = $api::AUTH_STATUS == $data['status']
@@ -316,11 +482,37 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             $state = $status = $order::STATE_CANCELED;
 
             // Save error message for quote
-            $helper->getQuoteXpcData($quote)
+            $quote->getXpcData()
                 ->setData('xpc_message', $message)
                 ->save(); 
 
+            // Clear coupon usage information
+            $this->clearCouponUsage($order);
+
             $quote->setIsActive(true)->save();
+
+        } elseif ($api::REFUNDED_STATUS == $data['status']) {
+
+            // Order is refunded
+
+            $state = $status = $order::STATE_CLOSED;
+
+            // Save error message for quote (if any)
+            $quote->getXpcData()
+                ->setData('xpc_message', $message)
+                ->save();
+
+        } elseif ($api::PART_REFUNDED_STATUS == $data['status']) {
+
+            // Order is partially refunded
+            // Curently processing is the most suitable state
+
+            $state = $status = $order::STATE_PROCESSING;
+
+            // Save error message for quote (if any)
+            $quote->getXpcData()
+                ->setData('xpc_message', $message)
+                ->save();
         }
 
         if ($status) {
@@ -335,32 +527,61 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             // Message for status change
             $statusMessage = 'Callback request. ' . $message;
 
-            $order->setState($state, $status, $statusMessage, false);
+            if (
+                $order::STATE_CLOSED == $state
+                || $order::STATE_COMPLETE == $state
+            ) {
+
+                // These states cannot be set manually.
+                // So use this way to avoid error.
+
+                $order->setData('state', $state);
+                $order->setData('status', $status);
+            
+            } else {
+
+                $order->setState($state, $status, $statusMessage, false);
+
+            }
 
             $order->save();
 
             $helper->writeLog('Order status changed by callback request.', $logMessage);
         }
+
+        return $data;
     }
 
     /**
      * Get check cart response for checkout
      *
      * @param string $quoteId
+     * @param int    $xpcSlot Slot index of the XPC payment method
      *
      * @return array
      */
-    protected function getQuoteCheckCartResponse($quoteId)
+    protected function getQuoteCheckCartResponse($quoteId, $xpcSlot)
     {
         $helper = Mage::helper('xpaymentsconnector');
 
-        $quote = Mage::getModel('sales/quote')->load($quoteId);
+        $quote = Mage::getModel('xpaymentsconnector/quote')->load($quoteId)
+            ->setXpcSlot($xpcSlot);
 
-        if ($helper->getRecurringQuoteItem($quote)) {
+        if ($quote->isBackendOrderQuote()) {
+
+            // This order has been created in the backend. We'll not place it again
+            $refId = $quote->getXpcData()->getData('backend_orderid');
+
+            // Send items "as is"
+            $response = array(
+                'status' => 'cart-not-changed',
+            );
+
+        } elseif ($quote->getRecurringItem($quote)) {
 
             // Place order with recurring profile. 
             // After that checking for nominal item is not possible.
-            $refId = $helper->funcPlaceOrder($quote);
+            $refId = $helper->funcPlaceOrder($quote, $xpcSlot);
 
             // Send nominal items "as is"
             $response = array(
@@ -370,12 +591,12 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
         } else {
 
             // Place regular order.
-            $refId = $helper->funcPlaceOrder($quote);
+            $refId = $helper->funcPlaceOrder($quote, $xpcSlot);
 
             if ($refId) {
 
                 // Cart data to update payment
-                $preparedCart = $helper->prepareCart($quote, $refId);
+                $preparedCart = Mage::helper('cart_xpc')->prepareCart($quote, $refId);
 
                 $response = array(
                     'status' => 'cart-changed',
@@ -404,18 +625,41 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
      */
     protected function getCustomerCheckCartResponse($customerId)
     {
-        $helper = Mage::helper('xpaymentsconnector');
-
-        $customer = Mage::getModel('customer/customer')->load($customerId);
-        $preparedCart = $helper->prepareFakeCart($customer);
-
         $data = array(
-            'status' => 'cart-changed',
+            'status' => 'cart-not-changed',
             'ref_id' => 'Authorization',
-            'cart'   => $preparedCart,
         );
 
         return $data;
+    }
+
+    /**
+     * Flush response
+     *
+     * @param string $response Response
+     *
+     * @return void
+     */
+    protected function flushResponse($response = '')
+    {
+        ob_end_clean();
+
+        header('Connection: close');
+
+        ignore_user_abort(true);
+
+        ob_start();
+
+        echo $response;
+
+        $size = ob_get_length();
+
+        header('Content-Length: ' . $size);
+
+        ob_end_flush();
+        flush();
+
+        exit;
     }
 
     /**
@@ -439,7 +683,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             Mage::throwException('Invalid request');
         }
 
-        $api = Mage::getModel('xpaymentsconnector/payment_cc');
+        $api = Mage::helper('api_xpc');
 
         // Check IP addresses
         if (!$this->checkIpAdress()) {
@@ -450,9 +694,12 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
 
         $quoteId = Mage::app()->getRequest()->getParam('quote_id');
         $customerId = Mage::app()->getRequest()->getParam('customer_id');
+        $xpcSlot = Mage::app()->getRequest()->getParam('xpc_slot');
+        $confId = Mage::helper('settings_xpc')->getConfidByXpcSlot($xpcSlot);
 
         if (
             'check_cart' == $request['action']
+            && !empty($xpcSlot)
             && (
                 !empty($quoteId)
                 || !empty($customerId)
@@ -462,7 +709,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             // Process check-cart callback request
             
             $data = $quoteId
-                ? $this->getQuoteCheckCartResponse($quoteId)
+                ? $this->getQuoteCheckCartResponse($quoteId, $xpcSlot)
                 : $this->getCustomerCheckCartResponse($customerId, $request['txnId']);
 
             $helper->writeLog('Response for check-cart request', $data);
@@ -471,9 +718,8 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             $xml = $api->convertHash2XML($data);
             $xml = $api->encrypt($xml);
 
-            echo $xml;
-
-            exit;
+            // Flush response, close connection and exit
+            $this->flushResponse($xml);
 
         } elseif (
             'callback' == $request['action']
@@ -487,52 +733,29 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
 
             $helper->writeLog('Callback request received', $data);
 
-            // Save used credit card
-            $this->processMaskedCardData($data, $request['txnId']);
-
-            // Process fraud check data
-            $this->processFraudCheckData($data, $request['txnId']);
+            $txnId = $request['txnId'];
+            $parentTxnId = !empty($data['parentId']) ? $data['parentId'] : '';
 
             // Change order status according to the X-Payments payment status
-            $this->processPaymentStatus($data, $request['txnId']);
+            $data = $this->processPaymentStatus($data, $xpcSlot, $txnId, $parentTxnId);
+
+            // Save used credit card
+            $this->processMaskedCardData($data, $xpcSlot, $confId, $txnId, $parentTxnId);
+
+            // Process fraud check data
+            $this->processFraudCheckData($data, $txnId);
+
+            // Process flat order payment data
+            $this->processFlatOrderPaymentData($data, $txnId, $parentTxnId);
+
+            // Close connection and exit
+            $this->flushResponse();
 
         } else {
 
             $helper->writeLog('Invalid callback request', $request);
         }
 
-    }
-
-    /**
-     * Payment is success
-     *
-     * @return void
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
-     */
-    public function successAction()
-    {
-        Mage::getSingleton('checkout/session')->setData('xpayments_token', null);
-        $this->_redirect('checkout/onepage/success');
-    }
-
-    /**
-     * Payment is cancelled
-     *
-     * @return void
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
-     */
-    public function cancelAction()
-    {
-        Mage::helper('xpaymentsconnector')->unsetXpaymentPrepareOrder();
-        $profileIds = Mage::getSingleton('checkout/session')->getLastRecurringProfileIds();
-        if(empty($profileIds)){
-            $this->_getCheckout()->addError(Mage::helper('xpaymentsconnector')->__('The order has been canceled.'));
-        }
-        $this->_redirect('checkout/cart');
     }
 
     /**
@@ -588,94 +811,20 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
     }
 
     /**
-     * Start payment (handshake + redirect to X-Payments)
-     *
-     * @return void
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
-     */
-    public function redirectAction()
-    {
-        try {
-            $session = $this->_getCheckout();
-
-            // Get order id
-            $order = Mage::getModel('sales/order');
-            $orderId = $session->getLastRealOrderId();
-            $api = Mage::getModel('xpaymentsconnector/payment_cc');
-
-            if($orderId){
-
-                $order->loadByIncrementId($orderId);
-
-                $result = $api->sendHandshakeRequest($order);
-
-                if (!$result) {
-                    $failedCompleteMessage = 'Failed to complete the payment transaction.'
-                        .' Please use another payment method or contact the store administrator.';
-                    $this->_getCheckout()->addError($failedCompleteMessage);
-
-                } else {
-
-                    // Update order
-                    if ($order->getState() != Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
-                        $order->setState(
-                            Mage_Sales_Model_Order::STATE_PENDING_PAYMENT,
-                            (bool)Mage_Sales_Model_Order::STATE_PENDING_PAYMENT,
-                            Mage::helper('xpaymentsconnector')->__('Customer has been redirected to X-Payments.')
-                        )->save();
-                    }
-
-                    $this->loadLayout();
-
-                    $this->renderLayout();
-
-                    return;
-                }
-            }
-
-            $profileIds = Mage::getSingleton('checkout/session')->getLastRecurringProfileIds();
-            if(!empty($profileIds)){
-                $this->loadLayout();
-                $this->renderLayout();
-                return;
-            }
-
-            if (!$orderId || $profileIds) {
-                Mage::throwException('No order or profile for processing found');
-            }
-
-
-
-        } catch (Mage_Core_Exception $e) {
-            $this->_getCheckout()->addError($e->getMessage());
-
-        } catch(Exception $e) {
-            Mage::logException($e);
-        }
-
-        $this->_redirect('checkout/cart');
-    }
-
-    /**
      * Save address in the address book
      *
      * @param array $data Address data to save
+     * @param int   $customerId Customer Id
      *
      * @return void
      */
-    private function saveAddress($data)
+    private function saveAddress($data, $customerId)
     {
-        if (empty($data['customer_id'])) {
-            return;
-        }
-
         $newAddress = Mage::getModel('customer/address');
 
         $newAddress->setData($data)
-            ->setCustomerId($data['customer_id'])
-            ->setSaveInAddressBook('1');
+            ->setCustomerId($customerId)
+            ->setSaveInAddressBook(true);
 
         $newAddress->save();
     }
@@ -683,38 +832,40 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
     /**
      * Save addresses in address book (if necessary) 
      *
-     * @param Mage_Sales_Model_Quote $quote
+     * @param Cdev_XPaymentsConnector_Model_Quote $quote
+     * @param Mage_Sales_Model_Order $order
      *
      * @return void
      */
-    private function processSaveAddresses(Mage_Sales_Model_Quote $quote)
+    private function processSaveAddresses(Cdev_XPaymentsConnector_Model_Quote $quote, Mage_Sales_Model_Order $order)
     {
-        if (Mage::helper('xpaymentsconnector')->getQuoteXpcData($quote)->getData('address_saved')) {
+        $customerId = $quote->getCustomer()->getId();
+
+        if ($quote->getXpcData()->getData('address_saved')) {
             // Address already saved during customer registration
             return;
         }
 
-        if ($quote->getBillingAddress()->getData('save_in_address_book')) {
-            $this->saveAddress($quote->getBillingAddress()->getData());
+        $customerId = $quote->getCustomer()->getId();
+
+        if ($quote->isSaveBillingAddressInAddressBook()) {
+            $this->saveAddress($order->getBillingAddress()->getData(), $customerId);
         }
 
-        if (
-            $quote->getShippingAddress()->getData('save_in_address_book')
-            && !$quote->getShippingAddress()->getData('same_as_billing')
-        ) {
-            $this->saveAddress($quote->getShippingAddress()->getData());
+        if ($quote->isSaveShippingAddressInAddressBook()) {
+            $this->saveAddress($order->getShippingAddress()->getData(), $customerId);
         }
     }
 
     /**
      * Process return after successful payment
      *
-     * @param Mage_Sales_Model_Quote $quote
+     * @param Cdev_XPaymentsConnector_Model_Quote $quote
      * @param Mage_Sales_Model_Order $order
      *
      * @return void
      */
-    private function processReturnSuccess(Mage_Sales_Model_Quote $quote, Mage_Sales_Model_Order $order)
+    private function processReturnSuccess(Cdev_XPaymentsConnector_Model_Quote $quote, Mage_Sales_Model_Order $order)
     {
         $quoteId = $quote->getId(); 
 
@@ -733,7 +884,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
         Mage::helper('xpaymentsconnector')->processCreateInvoice($order);
 
         // Save addresses in the adress book if necessary
-        $this->processSaveAddresses($quote);
+        $this->processSaveAddresses($quote, $order);
 
         $session->setXpcRedirectUrl(Mage::getUrl('checkout/onepage/success'));
     }
@@ -741,17 +892,17 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
     /**
      * Process return after declined payment
      *
-     * @param Mage_Sales_Model_Quote $quote
+     * @param Cdev_XPaymentsConnector_Model_Quote $quote
      * @param Mage_Sales_Model_Order $order
      *
      * @return void 
      */
-    private function processReturnDecline(Mage_Sales_Model_Quote $quote, Mage_Sales_Model_Order $order)
+    private function processReturnDecline(Cdev_XPaymentsConnector_Model_Quote $quote, Mage_Sales_Model_Order $order)
     {
         $session = $this->getOnePage()->getCheckout();
         $helper = Mage::helper('xpaymentsconnector');
 
-        $message = $helper->getQuoteXpcData($quote)->getData('xpc_message');
+        $message = $quote->getXpcData()->getData('xpc_message');
 
         if (!$message) {
             $message = 'Order declined. Try again';
@@ -761,7 +912,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
 
         $quote->setAsActive(true);
 
-        $helper->resetInitData();
+        $helper->resetInitData($quote);
 
         Mage::getSingleton('core/session')->addError($message);
         $this->_getCheckout()->addError($message);
@@ -770,21 +921,21 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
     /**
      * Process return when order is lost
      *
-     * @param Mage_Sales_Model_Quote $quote
+     * @param Cdev_XPaymentsConnector_Model_Quote $quote
      *
      * @return void
      */
-    private function processReturnLostOrder(Mage_Sales_Model_Quote $quote)
+    private function processReturnLostOrder(Cdev_XPaymentsConnector_Model_Quote $quote)
     {
         $helper = Mage::helper('xpaymentsconnector');
 
-        $message = $helper->getQuoteXpcData($quote)->getData('xpc_message');
+        $message = $quote->getXpcData()->getData('xpc_message');
 
         if (!$message) {
             $message = 'Order was lost';
         }
 
-        $helper->resetInitData();
+        $helper->resetInitData($quote);
 
         Mage::throwException($message);
     }
@@ -792,7 +943,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
     /**
      * Send confirmation email
      *
-     * @param Mage_Sales_Model_Quote $quote
+     * @param Mage_Sales_Model_Order $order
      *
      * @return void
      */
@@ -846,7 +997,10 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
         $helper->writeLog('Customer returned from X-Payments', $request);        
 
         $quoteId = Mage::app()->getRequest()->getParam('quote_id');
-        $quote = Mage::getModel('sales/quote')->load($quoteId);
+        $xpcSlot = Mage::app()->getRequest()->getParam('xpc_slot');
+
+        $quote = Mage::getModel('xpaymentsconnector/quote')->load($quoteId)
+            ->setXpcSlot($xpcSlot);
 
         try {
 
@@ -903,32 +1057,47 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
         $this->renderLayout();
     }
 
+    /**
+     * Get quote model
+     *
+     * @param int $xpcSlot Slot index of the XPC payment method
+     *
+     * @return Cdev_XPaymentsConnector_Model_Quote
+     */
+    private function getCheckoutSessionQuote($xpcSlot)
+    {
+        $quoteId = Mage::getSingleton('checkout/session')->getQuoteId();
 
-    public function saveusercardAction(){
-        $request = $this->getRequest()->getPost();
-        if(!empty($request)){
-            if($request['user_card_save']){
-                Mage::getSingleton('checkout/session')->setData('user_card_save',$request['user_card_save']);
-            }
-        }
+        $quote = Mage::getModel('xpaymentsconnector/quote')->load($quoteId)
+            ->setXpcSlot($xpcSlot);
+    
+        return $quote;
     }
 
     /**
-     * Redirect iframe to the X-Payments URL
+     * Redirect action
+     * Submit form to X-Payments payment start action
      *
      * @return void
      */
-    public function redirectiframeAction()
+    public function redirectAction()
     {
+        $xpcSlot = Mage::app()->getRequest()->getParam('xpc_slot');
+
+        if (!Mage::helper('settings_xpc')->checkXpcSlot($xpcSlot, false)) {
+            Mage::throwException('Invalid request');
+        }
+
         if (Mage::app()->getRequest()->getParam('checkout_method')) {
 
             Mage::getSingleton('checkout/session')->setData('xpc_checkout_method', Mage::app()->getRequest()->getParam('checkout_method'));
         }        
 
-        if (Mage::app()->getRequest()->getParam('unset_xp_prepare_order')) {
+        if (Mage::app()->getRequest()->getParam('drop_token')) {
 
-            $helper = Mage::helper('xpaymentsconnector');
-            $helper->resetInitData();
+            $quote = $this->getCheckoutSessionQuote($xpcSlot);
+
+            Mage::helper('xpaymentsconnector')->resetInitData($quote);
         }
 
         if (!Mage::app()->getRequest()->isXmlHttpRequest()) {
@@ -936,6 +1105,77 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             $this->loadLayout();
 
             $this->renderLayout();
+        }
+    }
+
+    /**
+     * Recharge action
+     * Pay by saved card at checkout
+     *
+     * @return void
+     */
+    public function rechargeAction()
+    {
+        $session = Mage::getSingleton('checkout/session');
+
+        $cardId = $session->getXpcSaveCardId();
+        $order = Mage::getModel('sales/order')->load(
+            $session->getLastOrderId()
+        );
+
+        $card = Mage::getModel('xpaymentsconnector/usercards')->load($cardId);
+
+        $helper = Mage::helper('xpaymentsconnector');
+
+        $helper->saveMaskedCardToOrder($order, $card->getData());
+        $order->setData('xpc_txnid', $card->getData('txnId'))->save();
+
+        $paymentMethod = $order->getPayment()->getMethodInstance();
+
+        $quote = Mage::getModel('xpaymentsconnector/quote')->load($order->getQuoteId())
+            ->setXpcSlot($paymentMethod->getXpcSlot());
+
+        $response = $paymentMethod->processPayment($quote);
+
+        // Reload order and quote data, since it has been changed
+        $order = Mage::getModel('sales/order')->load($order->getId());
+        $quote = Mage::getModel('xpaymentsconnector/quote')->load($order->getQuoteId())
+            ->setXpcSlot($paymentMethod->getXpcSlot());
+
+        if (
+            !$response->getStatus()
+            || !Mage::helper('api_xpc')->isSuccessStatus($response->getField('status'))
+        ) {
+
+            // Payment is declined (or something went wrong)
+
+            if ($quote->getXpcData()->getData('xpc_message')) {
+                $message = $quote->getXpcData()->getData('xpc_message');
+            } else {
+                $message = $response->getErrorMessage('Transaction failed');
+            }
+
+            // Cancel order if it's not canceled yet
+            if ($order::STATE_CANCELED != $order->getState()) {
+
+                $order->cancel();
+                $order->setState($order::STATE_CANCELED, false, $message, false)->save();
+
+                $quote->setIsActive(true)->save();
+            }
+
+            Mage::getSingleton('core/session')->addError($message);
+
+            $this->_redirect('checkout/cart');
+
+        } else {
+
+            // Payment is processed
+
+            // Auto create invoice if necessary
+            Mage::helper('xpaymentsconnector')->processCreateInvoice($order);
+
+            $this->_redirect('checkout/onepage/success');
         }
     }
 
@@ -948,22 +1188,23 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
     {
         $request = $this->getRequest();
 
+        $xpcSlot = Mage::app()->getRequest()->getParam('xpc_slot');
+
         if (
             !$request->isPost()
             || !$request->isXmlHttpRequest()
+            || !Mage::helper('settings_xpc')->checkXpcSlot($xpcSlot, false)
         ) {
              Mage::throwException('Invalid request');
         }
 
-        $helper = Mage::helper('xpaymentsconnector');
-
-        $quote = Mage::getSingleton('checkout/session')->getQuote();
-
-        $helper->getQuoteXpcData($quote)
+        $quote = $this->getCheckoutSessionQuote($xpcSlot);
+        
+        $quote->getXpcData()
             ->setData('checkout_data', serialize($request->getPost()))
             ->save();
 
-        if ($helper->checkFirecheckoutModuleEnabled()) {
+        if (Mage::helper('settings_xpc')->checkFirecheckoutModuleEnabled()) {
             // return properly formatted {} for Firecheckout 
             $this->getResponse()->setBody(Mage::helper('core')->jsonEncode(array()));
         }

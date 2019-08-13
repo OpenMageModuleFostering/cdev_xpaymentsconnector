@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,28 +13,37 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
  * Grid column rendering for'X-Payments order url'
  */
-
-class Cdev_XPaymentsConnector_Block_Adminhtml_Customer_Edit_Renderer_Txnid extends  Mage_Adminhtml_Block_Widget_Grid_Column_Renderer_Action
+class Cdev_XPaymentsConnector_Block_Adminhtml_Customer_Edit_Renderer_Txnid extends Mage_Adminhtml_Block_Widget_Grid_Column_Renderer_Action
 {
-
-    public function render(Varien_Object $row){
-
+    /**
+     * Render row
+     *
+     * @param Varien_Object $row
+     *
+     * @return string
+     */
+    public function render(Varien_Object $row)
+    {
         $txnid = $row->getData($this->getColumn()->getIndex());
-        $xpayUrl =  Mage::getModel('xpaymentsconnector/payment_cc')->getConfig('xpay_url').'admin.php?';
-        $data = array('target'=>'payment', 'txnid'=>$txnid);
-        $xpayQueryParam =  http_build_query($data);
-        $xpayQueryUrl = $xpayUrl.$xpayQueryParam;
 
-        return '<a href="'. $xpayQueryUrl . '" target="_blank" >' . $txnid . '</a>';
+        $params = array(
+            'target' => 'payment',
+            'txnid'  => $txnid,
+        );
+
+        $url = Mage::helper('settings_xpc')->getAdminUrl()
+            . http_build_query($params);
+
+        return '<a href="'. $url . '" target="_blank" >' . $txnid . '</a>';
     }
 }

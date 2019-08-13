@@ -1,0 +1,82 @@
+<?php
+// vim: set ts=2 sw=2 sts=2 et:
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @author     Qualiteam Software <info@x-cart.com>
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php
+/**
+ * Add new card 
+ *
+ * @see Cdev_XPaymentsConnector_Block_Adminhtml_Usercards_Add 
+ */
+?>
+
+<div class="content-header">
+  <table cellspacing="0">
+    <tr>
+      <td><h3><?php echo $this->__('Add new payment card'); ?></h3></td>
+    </tr>
+  </table>
+</div>
+
+<div id="billing-address-block">
+  <strong><?php echo $this->__('Billing address'); ?></strong>
+  &nbsp;
+  <?php if ($this->isEmptyAddressList()): ?>
+    <?php echo $this->__('Address for this profile is not defined'); ?>
+  <?php elseif ($this->isSingleAddress()): ?>
+    <span id="single-address"><?php echo $this->__($this->getSingleAddress()); ?></span>
+  <?php else: ?>
+    <select name="id_address" id="billing-address">
+      <?php foreach ($this->getAddressList() as $id => $address): ?>
+        <option value="<?php echo $id; ?>" <?php if ($this->isCurrentAddress($id)): ?>selected="selected"<?php endif; ?>><?php echo $this->__($address); ?></option>
+      <?php endforeach; ?>
+    </select>
+  <?php endif; ?>
+  &nbsp;
+  <a href="<?php echo $this->escapeUrl($this->getAddressBookUrl()); ?>"><?php echo $this->__('Add new address'); ?></a>
+</div>
+
+<?php if (!$this->isEmptyAddressList() && !$this->getError()): ?>
+
+  <div id="iframe-container">
+    <iframe src="<?php echo $this->escapeUrl($this->getIframeUrl()); ?>" id="xpc-iframe"></iframe>
+    <div id="loading-container"></div>
+    <button type="submit" id="submit-button" /><?php echo $this->__('Save payment card'); ?></button>
+    &nbsp;
+    <a href="<?php echo $this->escapeUrl($this->getPaymentCardsUrl()); ?>"><?php echo $this->__('Back to payment cards'); ?></a>
+  </div>
+
+  <script type="text/javascript">
+  //<![CDATA[
+    var xpcData = <?php echo $this->getXpcData(); ?>;
+  //]]>
+  </script>
+
+<?php elseif ($this->getError()): ?>
+
+  <div class="error">
+    <br/>
+    <?php echo $this->__($this->getError()); ?>
+    <br/><br/>
+    <a href="<?php echo $this->escapeUrl($this->getPaymentCardsUrl()); ?>"><?php echo $this->__('Back to payment cards'); ?></a>
+  </div>
+
+<?php endif; ?>

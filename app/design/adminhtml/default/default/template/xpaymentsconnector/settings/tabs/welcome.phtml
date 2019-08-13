@@ -1,0 +1,90 @@
+<?php
+// vim: set ts=2 sw=2 sts=2 et:
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @author     Qualiteam Software <info@x-cart.com>
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php
+/**
+ * @see Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Tab_Welcome
+ */
+?>
+
+<div class="payment-description">
+
+  <div class="payment-logo">
+    <img src="<?php echo $this->escapeUrl(Mage::getBaseUrl('js') . 'xpayment/images/xpayment-logo.png'); ?>" alt="X-Payments Connector"/>
+  </div>
+
+  <div class="description-block">
+    <?php echo $this->getDescription(); ?>
+  </div>
+
+  <div class="pci-logo"></div>
+
+</div>
+
+<h3 class="connect-caption">
+  <?php echo $this->__('Connect to X-Payments. Complete 3 easy steps.'); ?>
+</h3>
+
+<div class="payment-step">
+
+  <div class="step">
+    <span class="step-number">1</span>
+    <p>
+      <?php echo $this->__('Open your X-Payments dashboard or'); ?>
+    </p>
+    <button onclick="javascript: window.open('<?php echo $this->escapeUrl($this->getTrialDemoUrl()); ?>');">
+      <?php echo $this->__('Start FREE Trial'); ?>
+    </button>
+  </div>
+
+  <img src="<?php echo $this->escapeUrl(Mage::getBaseUrl('js') . 'xpayment/images/step-arrow.png'); ?>" class="step-arrow" />
+
+  <div class="step">
+    <span class="step-number">2</span>
+    <p>
+      <?php echo $this->__('Configure your gateway in'); ?>
+      <strong style="white-space: nowrap;"><?php echo $this->__('X-Payments'); ?></strong>
+    </p>
+    <a href="<?php echo $this->escapeUrl($this->getUserManualGatewaysUrl()); ?>" target="_blank"><?php echo $this->__('See how'); ?></a>
+  </div>
+
+  <img src="<?php echo $this->escapeUrl(Mage::getBaseUrl('js') . 'xpayment/images/step-arrow.png'); ?>" class="step-arrow" />
+
+  <div class="step">
+    <span class="step-number">3</span>
+    <p>
+      <a href="javascript: void();" id="connect-link" title="<?php echo $this->__('Go to Connection settings tab'); ?>">
+        <?php echo $this->__('Connect'); ?>
+        <strong><?php echo $this->__('X-Payments'); ?></strong>
+        <?php echo $this->__('with'); ?>
+        <strong><?php echo $this->__('Magento'); ?></strong>
+      </a>
+    </p>
+    <a href="<?php echo $this->escapeUrl($this->getUserManualMagentoUrl()); ?>" target="_blank"><?php echo $this->__('See how'); ?></a>
+  </div>
+
+</div>
+
+<div class="video">
+  <iframe width="560" height="315" src="<?php echo $this->escapeUrl($this->getVideoUrl()); ?>" frameborder="0" allowfullscreen></iframe>
+</div>
+

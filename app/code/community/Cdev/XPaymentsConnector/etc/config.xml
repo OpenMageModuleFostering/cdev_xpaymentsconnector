@@ -14,26 +14,30 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 -->
 <config>
     <modules>
         <Cdev_XPaymentsConnector>
-            <version>1.1.3</version>
+            <version>1.8.0</version>
         </Cdev_XPaymentsConnector>
     </modules>
     <global>
         <models>
+            <salesrule_resource>
+                <rewrite>     
+                    <coupon_usage>Cdev_XPaymentsConnector_Model_Mysql4_Coupon_Usage</coupon_usage>
+                </rewrite>
+            </salesrule_resource>
             <sales>
                 <rewrite>
                     <recurring_profile>Cdev_XPaymentsConnector_Model_Sales_Recurring_Profile</recurring_profile>
                     <quote_address_total_nominal>Cdev_XPaymentsConnector_Model_Quote_Address_Total_Nominal</quote_address_total_nominal>
-                    <quote>Cdev_XPaymentsConnector_Model_Quote</quote>
                 </rewrite>
             </sales>
             <payment>
@@ -67,6 +71,18 @@
             <xpaymentsconnector>
                 <class>Cdev_XPaymentsConnector_Helper</class>
             </xpaymentsconnector>
+            <settings_xpc>
+                <class>Cdev_XPaymentsConnector_Helper_Settings</class>
+            </settings_xpc>
+            <api_xpc>
+                <class>Cdev_XPaymentsConnector_Helper_Api</class>
+            </api_xpc>
+            <address_xpc>
+                <class>Cdev_XPaymentsConnector_Helper_Address</class>
+            </address_xpc>
+            <cart_xpc>
+                <class>Cdev_XPaymentsConnector_Helper_Cart</class>
+            </cart_xpc>
         </helpers>
         <resources>
             <xpaymentsconnector_setup>
@@ -101,7 +117,6 @@
             </xpaymentsconnector>
             <checkout>
                 <rewrite>
-                    <onepage_payment_methods>Cdev_XPaymentsConnector_Block_Form_Container</onepage_payment_methods>
                     <onepage_success>Cdev_XPaymentsConnector_Block_Checkout_Onepage_Success</onepage_success>
                 </rewrite>
             </checkout>
@@ -112,207 +127,62 @@
             </adminhtml>
         </blocks>
         <events>
+
+            <!-- Cancel payment in X-Payments -->
             <sales_order_payment_cancel_invoice>
                 <observers>
-                    <xpaymentsconnector>
+                    <xpaymentsconnector ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                         <type>singleton</type>
                         <class>Cdev_XPaymentsConnector_Model_Observer</class>
                         <method>invoiceVoid</method>
                     </xpaymentsconnector>
                 </observers>
             </sales_order_payment_cancel_invoice>
+
+            <!-- Capture payment in X-Payments -->
             <sales_order_invoice_save_before>
                 <observers>
-                    <xpaymentsconnector>
+                    <xpaymentsconnector ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                         <type>singleton</type>
                         <class>Cdev_XPaymentsConnector_Model_Observer</class>
                         <method>orderInvoiceSaveBefore</method>
                     </xpaymentsconnector>
                 </observers>
             </sales_order_invoice_save_before>
-            <controller_action_predispatch_checkout_onepage_index>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>preDispatchCheckout</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_predispatch_checkout_onepage_index>
-            <controller_action_postdispatch_checkout_onepage_savePayment>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>postDispatchSavePayment</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_postdispatch_checkout_onepage_savePayment>
-            <!--<checkout_type_onepage_save_order_after>-->
-            <checkout_type_onepage_save_order_after>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>updateOrder</method>
-                    </xpaymentsconnector>
-                </observers>
-            </checkout_type_onepage_save_order_after>
-            <checkout_onepage_controller_success_action>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>orderSuccessAction</method>
-                    </xpaymentsconnector>
-                </observers>
-            </checkout_onepage_controller_success_action>
-            <payment_method_is_active>
-                <observers>
-                    <paymentfilter_payment_method_is_active>
-                        <type>singleton</type>
-                        <class>xpaymentsconnector/observer</class>
-                        <method>paymentMethodIsActive</method>
-                    </paymentfilter_payment_method_is_active>
-                </observers>
-            </payment_method_is_active>
-            <!--send xp transaction from 'XP Order State tab'-->
-            <controller_action_predispatch_adminhtml_sales_order_view>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>adminhtmlSalesOrderView</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_predispatch_adminhtml_sales_order_view>
 
-            <controller_action_postdispatch_adminhtml_sales_order_create_save>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>postdispatchAdminhtmlSalesOrderCreateSave</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_postdispatch_adminhtml_sales_order_create_save>
-            <controller_action_predispatch_adminhtml_sales_order_create_save>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>predispatchAdminhtmlSalesOrderCreateSave</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_predispatch_adminhtml_sales_order_create_save>
-            <!--add x-payments transaction for 'admin order edit' event   -->
-            <controller_action_postdispatch_adminhtml_sales_order_edit_save>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>postdispatchAdminhtmlSalesOrderEditSave</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_postdispatch_adminhtml_sales_order_edit_save>
-            <controller_action_predispatch_adminhtml_sales_order_create_index>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>unsetXpaymentSelectedCard</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_predispatch_adminhtml_sales_order_create_index>
-            <!--save selected x-payment card on admin side -->
-            <controller_action_postdispatch_adminhtml_sales_order_edit_loadBlock>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>adminhtmlSavePaymentCard</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_postdispatch_adminhtml_sales_order_edit_loadBlock>
-            <controller_action_postdispatch_adminhtml_sales_order_create_loadBlock>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>adminhtmlSavePaymentCard</method>
-                    </xpaymentsconnector>
-                </observers>
-            </controller_action_postdispatch_adminhtml_sales_order_create_loadBlock>
-            <!--add redirect for buying recurring product by xpayments method(without iframe) -->
-            <checkout_submit_all_after>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>addRedirectForXpaymentMethod</method>
-                    </xpaymentsconnector>
-                </observers>
-             </checkout_submit_all_after>
             <!--set discount for recurring product(for ajax cart item quantity update). Remove X-Payments token -->
             <checkout_cart_update_items_after>
                 <observers>
-                    <web4proall_upd>
+                    <xpaymentsconnector ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                         <type>singleton</type>
                         <class>Cdev_XPaymentsConnector_Model_Observer</class>
                         <method>updateCartItem</method>
-                    </web4proall_upd>
+                    </xpaymentsconnector>
                 </observers>
             </checkout_cart_update_items_after>
-            <!--Remove X-Payments token -->
-            <checkout_cart_add_product_complete>
+
+            <!-- Delete associated quote XPC data -->
+            <sales_order_delete_before>
                 <observers>
-                    <web4proall_upd>
+                    <xpaymentsconnector ifconfig="xpaymentsconnector/settings/active">
                         <type>singleton</type>
                         <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>checkoutCartAdd</method>
-                    </web4proall_upd>
+                        <method>orderDeleteBefore</method>
+                    </xpaymentsconnector>
                 </observers>
-            </checkout_cart_add_product_complete>
-            <!--set discount for recurring product-->
-            <controller_action_predispatch_checkout_cart_index>
+            </sales_order_delete_before>
+
+            <!-- Delete associated quote XPC data -->
+            <sales_quote_delete_before>
                 <observers>
-                    <web4procheckout>
+                    <xpaymentsconnector ifconfig="xpaymentsconnector/settings/active">
                         <type>singleton</type>
                         <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>preDispatchCartIndex</method>
-                    </web4procheckout>
+                        <method>quoteDeleteBefore</method>
+                    </xpaymentsconnector>
                 </observers>
-            </controller_action_predispatch_checkout_cart_index>
-            <!--Remove X-Payments token and prepare order number -->
-           <controller_action_postdispatch_checkout_cart_delete>
-               <observers>
-                   <web4procheckout>
-                       <type>singleton</type>
-                       <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                       <method>postdispatchCartDelete</method>
-                   </web4procheckout>
-               </observers>
-           </controller_action_postdispatch_checkout_cart_delete>
-            <!--Remove X-Payments token after update shipping method -->
-            <controller_action_postdispatch_checkout_onepage_saveShippingMethod>
-                <observers>
-                    <web4procheckout>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>postdispatchSaveShippingMethod</method>
-                    </web4procheckout>
-                </observers>
-            </controller_action_postdispatch_checkout_onepage_saveShippingMethod>
-            <!--Remove X-Payments token after update shipping method -->
-            <controller_action_predispatch_checkout_onepage_saveShippingMethod>
-                <observers>
-                    <web4procheckout>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>predispatchSaveShippingMethod</method>
-                    </web4procheckout>
-                </observers>
-            </controller_action_predispatch_checkout_onepage_saveShippingMethod>
+            </sales_quote_delete_before>
+
         </events>
         <sales>
             <quote>
@@ -389,14 +259,27 @@
     </adminhtml>
     <default>
         <payment>        
-            <xpayments>
+            <xpayments1>
                 <active>0</active>
-                <model>xpaymentsconnector/payment_cc</model>
+                <model>xpaymentsconnector/payment_cc1</model>
                 <order_status>1</order_status>
                 <allowspecific>0</allowspecific>
                 <title>Credit Card (X-Payments)</title>
-                <use_iframe>1</use_iframe>
-            </xpayments>
+            </xpayments1>
+            <xpayments2>
+                <active>0</active>
+                <model>xpaymentsconnector/payment_cc2</model>
+                <order_status>1</order_status>
+                <allowspecific>0</allowspecific>
+                <title>Credit Card (X-Payments)</title>
+            </xpayments2>
+            <xpayments3>
+                <active>0</active>
+                <model>xpaymentsconnector/payment_cc3</model>
+                <order_status>1</order_status>
+                <allowspecific>0</allowspecific>
+                <title>Credit Card (X-Payments)</title>
+            </xpayments3>
             <savedcards>
                 <active>0</active>
                 <model>xpaymentsconnector/payment_savedcards</model>
@@ -404,20 +287,15 @@
                 <allowspecific>0</allowspecific>
                 <title>Use saved payment cards (X-Payments)</title>
             </savedcards>
-            <!-- @TODO: need process 'charge response' from 'x-payment server'  -->
-            <!--<prepaidpayments>
-                <active>0</active>
-                <model>xpaymentsconnector/payment_prepaidpayments</model>
-                <order_status>1</order_status>
-                <allowspecific>0</allowspecific>
-                <title>Prepaid Payments (X-Payments)</title>
-            </prepaidpayments>-->
         </payment>
         <xpaymentsconnector>
             <settings>
                 <activationstatus>0</activationstatus>
-                <xpay_minimum_payment_recurring_amount>0.5</xpay_minimum_payment_recurring_amount>
-                <xpay_currency>USD</xpay_currency>
+                <xpay_api_version>1.7</xpay_api_version>
+                <xpay_use_iframe>1</xpay_use_iframe>
+                <xpay_iframe_place>payment</xpay_iframe_place>
+                <xpay_zero_auth_amount>0.5</xpay_zero_auth_amount>
+                <xpay_zero_auth_description>Card setup</xpay_zero_auth_description>
             </settings>
         </xpaymentsconnector>
     </default>

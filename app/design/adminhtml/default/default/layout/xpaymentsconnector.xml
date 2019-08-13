@@ -13,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 -->
@@ -24,14 +24,14 @@
 
     <adminhtml_customer_edit>
         <reference name="head">
-            <action method="addItem">
+            <action method="addItem" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
                 <params/>
             </action>
         </reference>
         <reference name="customer_edit_tabs">
-            <action method="addTab">
+            <action method="addTab" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <name>customer_edit_tab_usercards</name>
                 <block>xpaymentsconnector/adminhtml_customer_edit_tab_usercards</block>
             </action>
@@ -43,7 +43,7 @@
 
     <adminhtml_sales_order_create_index>
         <reference name="head">
-            <action method="addItem">
+            <action method="addItem" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
                 <params/>
@@ -53,12 +53,12 @@
 
     <adminhtml_sales_order_view>
         <reference name="head">
-            <action method="addItem">
+            <action method="addItem" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js</type>
                 <name>xpayment/backend-xpayment.js</name>
                 <params/>
             </action>
-            <action method="addItem">
+            <action method="addItem" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
                 <params/>
@@ -99,7 +99,51 @@
                 <type>js_css</type>
                 <name>xpayment/settings-xpc.css</name>
             </action>
+            <action method="addItem">
+                <type>js</type>
+                <name>xpayment/settings-xpc.js</name>
+            </action>
+        </reference>
+        <reference name="left">
+            <block type="xpaymentsconnector/adminhtml_settings_tabs" name="settings_xpc_tabs">
+                <block type="xpaymentsconnector/adminhtml_settings_tab_welcome" name="settings_xpc_tab_welcome" />
+                <block type="xpaymentsconnector/adminhtml_settings_tab_connection" name="settings_xpc_tab_connection" />
+                <block type="xpaymentsconnector/adminhtml_settings_tab_paymentMethods" name="settings_xpc_tab_paymentmethods" />
+                <block type="xpaymentsconnector/adminhtml_settings_tab_zeroAuth" name="settings_xpc_tab_zeroauth" />
+                <action method="addTab">
+                    <name>welcome_section</name>
+                    <block>settings_xpc_tab_welcome</block>
+                </action>
+                <action method="addTab">
+                    <name>connection_section</name>
+                    <block>settings_xpc_tab_connection</block>
+                </action>
+                <action method="addTab">
+                    <name>paymentmethods_section</name>
+                    <block>settings_xpc_tab_paymentmethods</block>
+                </action>
+                <action method="addTab">
+                    <name>zeroauth_section</name>
+                    <block>settings_xpc_tab_zeroauth</block>
+                </action>
+            </block>
+            <block type="xpaymentsconnector/adminhtml_settings_help" name="xpc_help"></block>
         </reference>
     </adminhtml_settings_xpc_index>
+
+    <adminhtml_addnewcard_index>
+        <reference name="head">
+            <action method="addItem">
+                <type>js_css</type>
+                <name>xpayment/add-new-card.css</name>
+            </action>
+        </reference>
+        <reference name="head">
+            <action method="addItem">
+                <type>js</type>
+                <name>xpayment/add-new-card.js</name>
+            </action>
+        </reference>
+    </adminhtml_addnewcard_index>
 
 </layout>

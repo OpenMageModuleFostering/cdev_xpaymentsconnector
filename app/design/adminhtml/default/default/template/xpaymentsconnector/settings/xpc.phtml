@@ -13,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 ?>
@@ -25,155 +25,48 @@
  * @see Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Xpc
  */
 ?>
-<?php if ($this->getRequiremenetsErrors()): ?>
 
-  <h4><?php echo $this->__('Failed to meet environment requirements'); ?></h4>
-  
-  <ul>
-    <?php foreach ($this->getRequiremenetsErrors() as $err): ?>
-      <li class="error">
-        <?php echo $this->__($err); ?>
-      </li>
-    <?php endforeach; ?>
-  </ul>
-
-  <br/>
-
-<?php endif; ?>
-
-<div class="xpayment-info">
-
-  <div class="content-header">
-    <table cellspacing="0">
+<div class="content-header">
+  <table cellspacing="0">
     <tr>
-      <td><h3><?php echo $this->__('X-Payments Connector'); ?></h3></td>
+      <td style="width:50%;"><h3><?php echo $this->__('X-Payments Connector'); ?></h3></td>
+      <td class="form-buttons"<?php if (!$this->isShowStickyPanel()): ?> style="display: none;"<?php endif; ?>>
+        <?php if (!$this->isWelcomeMode()): ?>
+          <?php echo $this->getChildHtml('updateButton'); ?>
+          <?php echo $this->getChildHtml('importButton'); ?>
+          &nbsp;
+          <a href="<?php echo $this->escapeUrl($this->getAddNewPaymentMethodUrl()); ?>" target="_blank"><?php echo $this->__('Add payment method'); ?></a>
+        <?php endif; ?>
+      </td>
     </tr>
-    </table>
-  </div>
-
-  <?php if ($this->getConfigurationErrors()): ?>
-
-    <h4 class="sub-heading">
-      <?php echo $this->__('X-Payments Connector is not configured yet. Please, check'); ?>
-      <a href="<?php echo $this->getSystemConfigXpcUrl(); ?>" target="_blank"><?php echo $this->__('settings') ?></a>
-    </h4>
-
-    <div class="payment-description">
-
-      <div class="payment-logo">
-        <img src="<?php echo Mage::getBaseUrl('js') . 'xpayment/images/xpayment-logo.png'; ?>" alt="X-Payments Connector"/>
-      </div>
-
-      <div class="description-block">
-        <p>
-          <?php echo $this->getDescription(); ?>
-        </p>
-      </div>
-
-    </div>
-
-    <h4>
-      <?php echo $this->__('Connect to X-Payments in 3 easy steps:'); ?>
-    </h4>
-
-    <div class="payment-step">
-
-      <div class="step">
-        <span class="step-number">1</span>
-        <p>
-          <?php echo $this->__('Open your'); ?>
-          <a href="<?php echo $this->getTrialDemoUrl(); ?>" target="_blank"><?php echo $this->__('X-Payments'); ?></a>
-          <?php echo $this->__('back-end (if you do not have it)'); ?>
-        </p>
-        <button onclick="javascript: window.open('<?php echo $this->getTrialDemoUrl(); ?>');">
-          <?php echo $this->__('Start free Trial'); ?>
-        </button>
-      </div>
-      
-      <img src="<?php echo Mage::getBaseUrl('js') . 'xpayment/images/atep-arrow.png' ?>" class="step-arrow">
-
-      <div class="step">
-        <span class="step-number">2</span>
-        <p>
-          <?php echo $this->__('Configure payment methods at'); ?>
-          <strong style="white-space: nowrap;"><?php echo $this->__('X-Payments'); ?></strong>
-        </p>
-        <a href="<?php echo $this->getUserManualUrl(); ?>" target="_blank"><?php echo $this->__('Read how to do that'); ?></a>
-      </div>
-
-      <img src="<?php echo Mage::getBaseUrl('js') . 'xpayment/images/atep-arrow.png' ?>" class="step-arrow">
-
-      <div class="step">
-        <span class="step-number">3</span>
-        <p>
-          <?php echo $this->__('Connect'); ?>
-          <strong><?php echo $this->__('X-Payments'); ?></strong>
-          <?php echo $this->__('with'); ?>
-          <strong><?php echo $this->__('Magento'); ?></strong>
-        </p>
-        <a href="<?php echo $this->getUserVideoUrl(); ?>" target="_blank"><?php echo $this->__('See how to do that'); ?></a>
-      </div>
-
-    </div>
-
-    <hr/>
-
-  <?php endif; ?>
-
+  </table>
 </div>
 
-<br/>
-
-<h4><?php echo $this->__('Import payment methods'); ?></h4>
-
-<p><?php echo $this->__('To be able to use X-Payments payment methods you need to import them from X-Payments first.'); ?></p>
-
-<?php if ($this->isMethodsRequested()) { ?>
-
-    <?php echo $this->__('The list of payment configurations imported from X-Payments'); ?>:<br/>
-
-    <div class="grid">
-        <table cellpadding="5" cellspacing="1">
-            <tr class="headings">
-                <th><?php echo $this->__('Payment method'); ?></th>
-                <th><?php echo $this->__('Payment method ID'); ?></th>
-                <th><?php echo $this->__('Auth'); ?></th>
-            </tr>
-
-            <?php foreach ($this->getPaymentMethods() as $pm) { ?>
-
-                <tr>
-                    <td><?php echo $pm['name']; ?></td>
-                    <td><?php echo $pm['confid']; ?></td>
-                    <td><?php if ($pm['is_auth']) { ?><?php echo $this->__('Yes'); ?><?php } else { ?><?php echo $this->__('No'); ?><?php } ?></td>
-                </tr>
-
-            <?php } ?>
-
-        </table>
+<div id="settings_xpc">
+  
+  <?php if ($this->isWelcomeMode()): ?>
+    <div id="settings_xpc_tabs_welcome_section_content">
+      <?php echo $this->getChildHtml('welcomeSection'); ?>
     </div>
+  <?php endif; ?>
 
-    <form action="<?php echo $this->getUrl('adminhtml/settings_xpc/clear'); ?>" method="post" name="clear_form">
-        <?php echo $this->getBlockHtml('formkey'); ?>
-        <?php echo $this->getChildHtml('clearButton'); ?>
-    </form>
+  <div id="settings_xpc_tabs_connection_section_content">
+    <?php echo $this->getChildHtml('connectionSection'); ?>
+  </div>
 
-    <?php if ($this->isMethodsAlreadyImported()) { ?>
-        <br/>
-        <br/>
-        <p><?php echo $this->__('Warning! Importing payment configurations from X-Payments will disable the X-Payments connector payment method!'); ?></p>
-    <?php } ?>
+  <?php if (!$this->isWelcomeMode()): ?>
+    <div id="settings_xpc_tabs_paymentmethods_section_content">
+      <?php echo $this->getChildHtml('paymentMethodsSection'); ?>
+    </div>
+    <?php if ($this->isCanSaveCards()): ?>
+      <div id="settings_xpc_tabs_zeroauth_section_content">
+        <?php echo $this->getChildHtml('zeroAuthSection'); ?>
+      </div>
+    <?php endif; ?>
+  <?php endif; ?>
+  
+</div>
 
-<?php } ?>
-
-<form action="<?php echo $this->getUrl('adminhtml/settings_xpc/request'); ?>" method="post" name="request_form">
-    <?php echo $this->getBlockHtml('formkey'); ?>
-    <?php echo $this->getChildHtml('requestButton'); ?>
-</form>
-
-<br/>
-<br/>
-<h4>
-    <?php echo $this->__('Need help in settings of X-Payments?'); ?>
-    <a href="<?php echo $this->getContactUsUrl(); ?>" target="_blank"><?php echo $this->__('Contact us!'); ?></a>
-</h4>
+<script type="text/javascript">
+  var MAX_SLOTS = <?php echo Cdev_XPaymentsConnector_Helper_Settings_Data::MAX_SLOTS; ?>;
+</script>

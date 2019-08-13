@@ -1,5 +1,5 @@
 <?php
-// vim: set ts=4 sw=4 sts=4 et:
+// vim: set ts=2 sw=2 sts=2 et:
 /**
  * Magento
  *
@@ -21,69 +21,66 @@
  *
  * @category    design
  * @package     base_default
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-$profiles = $this->getRecurringProfiles();
+$profile = $this->getRecurringProfile();
 ?>
+
 <div class="page-title">
-    <h1>
-        <?php if ($this->checkOrderSuccess()): ?>
-            <?php echo $this->__('Your order has been received.') ?>
-        <?php else: ?>
-            <?php echo $this->__('Order incomplete.') ?>
-        <?php endif; ?>
-    </h1>
+  <h1>
+    <?php echo $this->__('Your order has been received.') ?>
+  </h1>
 </div>
+
 <?php echo $this->getMessagesBlock()->toHtml() ?>
-<?php if ($this->checkOrderSuccess()): ?>
-    <h2 class="sub-title"><?php echo $this->__('Thank you for your purchase!') ?></h2>
+
+<h2 class="sub-title"><?php echo $this->__('Thank you for your purchase!') ?></h2>
+
+<?php if ($this->getOrderId()): ?>
+
+  <p>
+    <?php echo $this->__('Your order # is: '); ?>
+    <?php if ($this->getCanViewOrder()): ?>
+      <a href="<?php echo $this->escapeUrl($this->getViewOrderUrl()); ?>"><?php echo $this->getOrderId(); ?></a>
+    <?php  else: ?>
+      <?php echo $this->getOrderId(); ?>
+    <?php endif; ?>
+  </p>
+
+  <p><?php echo $this->__('You will receive an order confirmation email with details of your order and a link to track its progress.') ?></p>
+
+  <?php if ($this->getCanViewOrder() && $this->getCanPrintOrder()): ?>
+    <p>
+      <?php echo $this->__('Click <a href="%s" target="_blank">here to print</a> a copy of your order confirmation.', $this->escapeUrl($this->getPrintUrl())); ?>
+      <?php echo $this->getChildHtml(); ?>
+    </p>
+  <?php endif; ?>
+
 <?php endif; ?>
 
-<?php if ($this->getOrderId()):?>
-<?php if ($this->checkOrderSuccess()) :?>
-    <?php if ($this->getCanViewOrder()) :?>
-        <p><?php echo $this->__('Your order # is: %s.', sprintf('<a href="%s">%s</a>', $this->escapeHtml($this->getViewOrderUrl()), $this->escapeHtml($this->getOrderId()))) ?></p>
-    <?php  else :?>
-        <p><?php echo $this->__('Your order # is: %s.', $this->escapeHtml($this->getOrderId())) ?></p>
-    <?php endif;?>
-<?php endif;?>
-<?php if ($this->checkOrderSuccess()): ?>
-    <p><?php echo $this->__('You will receive an order confirmation email with details of your order and a link to track its progress.') ?></p>
-<?php endif;?>
-<?php if ($this->getCanViewOrder() && $this->getCanPrintOrder() && $this->checkOrderSuccess()) :?>
-    <p>
-        <?php echo $this->__('Click <a href="%s" onclick="this.target=\'_blank\'">here to print</a> a copy of your order confirmation.', $this->getPrintUrl()) ?>
-        <?php echo $this->getChildHtml() ?>
-    </p>
-<?php endif;?>
-<?php endif;?>
-
 <?php if ($this->getAgreementRefId()): ?>
-    <p><?php echo $this->__('Your billing agreement # is: %s.', sprintf('<a href="%s">%s</a>', $this->escapeHtml($this->getAgreementUrl()), $this->escapeHtml($this->getAgreementRefId())))?></p>
-<?php endif;?>
+  <p>
+    <?php echo $this->__('Your billing agreement # is: '); ?>
+    <a href="<?php echo $this->escapeUrl($this->getAgreementUrl()); ?>"><?php echo $this->getAgreementRefId(); ?></a>
+  </p>
+<?php endif; ?>
 
-<?php if ($profiles && $this->checkOrderSuccess()): ?>
-
-<p><?php echo $this->__('Your recurring payment profiles:'); ?></p>
-<ul class="disc">
-<?php foreach($profiles as $profile):?>
-    <li>
-        <?php echo $this->__('Payment profile #'); ?>
-        <?php if ($this->getCanViewProfiles()): ?>
-            <a href="<?php echo $this->escapeHtml($this->getProfileUrl($profile)); ?>"><?php echo $profile->getReferenceId(); ?></a>
-        <?php else: ?>
-            <?php echo $profile->getReferenceId(); ?>
-        <?php endif; ?>
-        : <?php echo $profile->getScheduleDescription(); ?>
-    </li>
-<?php endforeach;?>
-</ul>
-<?php endif;?>
+<?php if ($profile): ?>
+  <p>
+    <?php echo $this->__('Your recurring payment profile # is: '); ?>
+    <?php if ($this->getCanViewProfiles()): ?>
+      <a href="<?php echo $this->escapeUrl($this->getProfileUrl($profile)); ?>"><?php echo $profile->getReferenceId(); ?></a>
+    <?php else: ?>
+      <?php echo $profile->getReferenceId(); ?>
+    <?php endif; ?>
+    : <?php echo $profile->getScheduleDescription(); ?>
+  </p>
+<?php endif; ?>
 
 <div class="buttons-set">
-    <button type="button" class="button" title="<?php echo $this->getButtonLabel() ?>"
-            onclick="window.location='<?php echo $this->getButtonUrl() ?>'">
-        <span><span><?php echo $this->getButtonLabel() ?></span></span></button>
+  <button type="button" class="button" title="<?php echo $this->__('Continue shopping'); ?>" onclick="window.location='<?php echo $this->escapeUrl($this->getUrl()); ?>'">
+    <span><span><?php echo $this->__('Continue shopping'); ?></span></span>
+  </button>
 </div>

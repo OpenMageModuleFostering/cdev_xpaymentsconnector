@@ -13,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -30,11 +30,6 @@
 class Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Xpc extends Mage_Adminhtml_Block_Template
 {
     /**
-     * @var array
-     */
-    private $_configurationErrorList = array();
-
-    /**
      * Constructor
      * 
      * @return void
@@ -43,6 +38,23 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Xpc extends Mage_Adminhtm
     {
         parent::__construct();
         $this->setTemplate('xpaymentsconnector/settings/xpc.phtml');
+    }
+
+    /**
+     * Get button data
+     *
+     * @return array
+     */
+    private function getButtonData($name, $mode, $class = 'task')
+    {
+        return array(
+            'type'         => 'submit',
+            'element_name' => 'mode',
+            'value'        => $mode,
+            'label'        => Mage::helper('adminhtml')->__($name),
+            'class'        => $class,
+            'onclick'      => 'javascript: submitPaymentMethodsForm(this);',
+        );
     }
 
     /**
@@ -55,168 +67,82 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Xpc extends Mage_Adminhtm
         parent::_prepareLayout();
 
         $this->setChild(
-            'requestButton',
+            'welcomeSection',
+            $this->getLayout()
+                ->createBlock('xpaymentsconnector/adminhtml_settings_tab_welcome')
+                ->setTemplate('xpaymentsconnector/settings/tabs/welcome.phtml')
+        );
+
+        $this->setChild(
+            'connectionSection',
+            $this->getLayout()
+                ->createBlock('xpaymentsconnector/adminhtml_settings_tab_connection')
+                ->setTemplate('xpaymentsconnector/settings/tabs/connection.phtml')
+        );
+
+        $this->setChild(
+            'paymentMethodsSection',
+            $this->getLayout()
+                ->createBlock('xpaymentsconnector/adminhtml_settings_tab_paymentMethods')
+                ->setTemplate('xpaymentsconnector/settings/tabs/payment_methods.phtml')
+        );
+
+        $this->setChild(
+            'zeroAuthSection',
+            $this->getLayout()
+                ->createBlock('xpaymentsconnector/adminhtml_settings_tab_zeroAuth')
+                ->setTemplate('xpaymentsconnector/settings/tabs/zero_auth.phtml')
+        );
+
+        $this->setChild(
+            'updateButton',
             $this->getLayout()->createBlock('adminhtml/widget_button')
                 ->setData(
-                    array(
-                        'type'  => 'submit',
-                        'label' => Mage::helper('adminhtml')->__('Import payment methods from X-Payments'),
-                        'class' => 'task'
-                    )
+                    $this->getButtonData('Save config', 'update', 'save')
                 )
         );
 
         $this->setChild(
-            'clearButton',
+            'importButton',
             $this->getLayout()->createBlock('adminhtml/widget_button')
                 ->setData(
-                    array(
-                        'type'  => 'submit',
-                        'label' => Mage::helper('adminhtml')->__('Clear'),
-                        'class' => 'task'
-                    )
+                    $this->getButtonData('Re-import payment methods', 'import', 'gray')
                 )
         );
     }
 
     /**
-     * Check - payment configuration is requested or not
-     * 
-     * @return boolean
-     */
-    public function isMethodsRequested()
-    {
-        return 0 < count($this->getPaymentMethods());
-    }
-
-    /**
-     * Get requested payment configurations
-     * 
-     * @return array 
-     */
-    public function getPaymentMethods()
-    {
-        $list = Mage::getModel('xpaymentsconnector/paymentconfiguration')->getCollection();
-
-        return !empty($list) ? $list : array();
-    }
-
-    /**
-     * Check - is payment configurations are already imported into DB or not
-     * 
-     * @return boolean
-     */
-    public function isMethodsAlreadyImported()
-    {
-        // TODO: Same as isMethodsRequested()
-        return 0 < count($this->getPaymentMethods());
-    }
-
-    /**
-     * Get system requiremenets errors list
-     * 
-     * @return array
-     */
-    public function getRequiremenetsErrors()
-    {
-        $api = Mage::getModel('xpaymentsconnector/payment_cc');
-
-        $result = $api->checkRequirements();
-
-        $list = array();
-        if ($result & $api::REQ_CURL) {
-            $list[] = 'PHP extension cURL is not installed on your server';
-        }
-
-        if ($result & $api::REQ_OPENSSL) {
-            $list[] = 'PHP extension OpenSSL is not installed on your server';
-        }
-
-        if ($result & $api::REQ_DOM) {
-            $list[] = 'PHP extension DOM is not installed on your server';
-        }
-
-        return $list;
-    }
-
-    /**
-     * Get module configuration errors list
-     * 
-     * @return array
-     */
-    public function getConfigurationErrors()
-    {
-        if (empty($this->_configurationErrorList)) {
-            $api = Mage::getModel('xpaymentsconnector/payment_cc');
-
-            $result = $api->getConfigurationErrors();
-
-            $list = array();
-
-            if ($result & $api::CONF_CART_ID) {
-                $list[] = 'Store ID is empty or has an incorrect value';
-            }
-
-            if ($result & $api::CONF_URL) {
-                $list[] = 'X-Payments URL is empty or has an incorrect value';
-            }
-
-            if ($result & $api::CONF_PUBLIC_KEY) {
-                $list[] = 'Public key is empty';
-            }
-
-            if ($result & $api::CONF_PRIVATE_KEY) {
-                $list[] = 'Private key is empty';
-            }
-
-            if ($result & $api::CONF_PRIVATE_KEY_PASS) {
-                $list[] = 'Private key password is empty';
-            }
-
-            $this->_configurationErrorList = $list;
-        }
-
-        return $this->_configurationErrorList;
-    }
-
-    /**
-     * Get System/X-Payments connector link
+     * Check if it's welcome mode.
+     * I.e. module is not configured, payment methods are not imported, etc.
      *
-     * @return string
+     * @return bool
      */
-    public function getSystemConfigXpcUrl()
+    protected function isWelcomeMode()
     {
-        return $this->getUrl('adminhtml/system_config/edit/section/xpaymentsconnector/');
+        return !Mage::helper('settings_xpc')->isConfigured();
     }
 
     /**
-     * Get System/X-Payments connector link
+     * Check if at least one of the payment configurations can be used for saving cards
      *
-     * @return string
+     * @return bool
      */
-    public function getTrialDemoUrl()
+    public function isCanSaveCards()
     {
-        return 'http://www.x-payments.com/trial-demo.html?utm_source=mage_shop&utm_medium=link&utm_campaign=mage_shop_link';
+        return Mage::helper('settings_xpc')->isCanSaveCards();
     }
 
     /**
-     * Get User manual link
+     * Check if sticky panel should be shown initially
      *
-     * @return string
+     * @return bool
      */
-    public function getUserManualUrl()
+    public function isShowStickyPanel()
     {
-        return 'http://help.x-cart.com/index.php?title=X-Payments:User_manual#Online_Stores';
-    }
-    
-    /**
-     * Get video link
-     *
-     * @return string
-     */
-    public function getVideoUrl()
-    {
-        return 'https://www.youtube.com/embed/2VRR0JW23qc';
+        $tabId = Mage::app()->getRequest()->getParam('tab');
+
+        return $tabId != Cdev_XPaymentsConnector_Helper_Settings_Data::TAB_CONNECTION
+            && $tabId != Cdev_XPaymentsConnector_Helper_Settings_Data::TAB_ZERO_AUTH;
     }
 
     /**
@@ -229,21 +155,14 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Xpc extends Mage_Adminhtm
         return 'http://www.x-payments.com/contact-us.html?utm_source=mage_shop&utm_medium=link&utm_campaign=mage_shop_link';
     }
 
-
     /**
-     * Get description
+     * Get Add new payment method URL
      *
-     * @return string
+     * @return array
      */
-    public function getDescription()
+    public function getAddNewPaymentMethodUrl()
     {
-        $description = 'Give your customers – and yourself – peace of mind with this payment processing module
-            that guarantees compliance with PCI security mandates, significantly reduces the risk of
-            data breaches and ensures you won’t be hit with a fine of up to $500,000 for non-compliance.
-            Safely and conveniently store customers credit card information to use for new orders, reorders
-            or recurring payments.';
-
-        return $this->__($description);
+        return Mage::helper('settings_xpc')->getAdminUrl()
+            . '?target=payment_confs';
     }
-
 }

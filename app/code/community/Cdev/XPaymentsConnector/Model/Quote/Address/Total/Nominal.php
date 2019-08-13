@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -30,12 +31,11 @@ class Cdev_XPaymentsConnector_Model_Quote_Address_Total_Nominal extends Mage_Sal
      * Invoke collector for nominal items
      *
      * @param Mage_Sales_Model_Quote_Address $address
-     * @param Mage_Sales_Model_Quote_Address_Total_Nominal
+     *
+     * @return Mage_Sales_Model_Quote_Address_Total_Nominal
      */
     public function collect(Mage_Sales_Model_Quote_Address $address)
     {
-        Mage::helper('xpaymentsconnector')->updateAllRecurringQuoteItem();
-
         $collector = Mage::getSingleton('sales/quote_address_total_nominal_collector',
             array('store' => $address->getQuote()->getStore())
         );
@@ -94,5 +94,4 @@ class Cdev_XPaymentsConnector_Model_Quote_Address_Total_Nominal extends Mage_Sal
 
         return $this;
     }
-
 }

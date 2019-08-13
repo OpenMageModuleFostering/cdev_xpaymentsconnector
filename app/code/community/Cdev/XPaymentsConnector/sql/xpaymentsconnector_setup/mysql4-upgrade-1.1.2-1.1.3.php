@@ -13,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -31,14 +31,14 @@ $installer->run("
 CREATE TABLE {$this->getTable('xpayment_quote_xpcdata')} (
     `data_id` int(11) unsigned NOT NULL auto_increment,    
     `quote_id` int(11) NOT NULL default 0,
-	`payment_method_code` varchar(255) NOT NULL,
-	`txn_id` varchar(255) NOT NULL,
-	`token` varchar(255) NOT NULL,
+    `payment_method_code` varchar(255) NOT NULL,
+    `txn_id` varchar(255) NOT NULL,
+    `token` varchar(255) NOT NULL,
     `address_saved` BOOL default false,
     `recurring_order_id` int(11) NOT NULL default 0,
     `recurring_profile_id` int(11) NOT NULL default 0,
     `xpc_message` TEXT,
-	`checkout_data` TEXT,
+    `checkout_data` TEXT,
      PRIMARY KEY (`data_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

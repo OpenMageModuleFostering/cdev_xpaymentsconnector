@@ -1,0 +1,139 @@
+<?php
+// vim: set ts=2 sw=2 sts=2 et:
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @author     Qualiteam Software <info@x-cart.com>
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php
+/**
+ * @see Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Tab_Connection
+ */
+?>
+
+<?php if ($this->getErrorList()): ?>
+  <ul class="messages">
+    <?php foreach ($this->getErrorList() as $error): ?>
+      <li class="error-msg">
+        <?php echo $this->__($error); ?>
+      </li>
+    <?php endforeach; ?>
+  </ul>
+<?php elseif (!$this->isWelcomeMode()): ?>
+  <ul class="messages">
+    <li class="success-msg">
+      <?php echo $this->__('Connection with X-Payments is OK. API version:'); ?>
+      <?php echo Mage::helper('settings_xpc')->getXpcConfig('xpay_api_version'); ?>
+    </li>
+  </ul>
+<?php endif; ?>
+
+<div class="entry-edit">
+  <div class="entry-edit-head">
+    <h4><?php echo $this->__('X-Payments configuration bundle'); ?></h4>
+  </div>
+  <fieldset>
+    <p>
+      <?php echo $this->__('Copy the Configuration bundle from Online Store Details page in your X-Payments dashboard, paste it here and click'); ?>
+      <strong><?php echo $this->__('Deploy.'); ?></strong>
+      <br/>
+      <?php echo $this->__('Connection will be completed automatically.'); ?>
+    </p> 
+    <form action="<?php echo $this->escapeUrl($this->getUrl('adminhtml/settings_xpc/deploy')); ?>" method="post" name="deploy_form">
+      <?php echo $this->getBlockHtml('formkey'); ?>
+      <input type="text" name="bundle" id="xpc-bundle" />
+      <?php echo $this->getChildHtml('deployButton'); ?>
+    </form>
+  </fieldset>
+</div>
+
+<?php if (!$this->isWelcomeMode()): ?>
+
+<div class="entry-edit">
+  <div class="entry-edit-head">
+    <h4><?php echo $this->__('Settings'); ?></h4>
+  </div>
+  <fieldset>
+    <form action="<?php echo $this->escapeUrl($this->getUrl('adminhtml/settings_xpc/update')); ?>" method="post" name="update_form">
+      <?php echo $this->getBlockHtml('formkey'); ?>
+      <table cellspacing="0" class="form-list">
+        <tr>
+          <td class="label">
+            <?php echo $this->__('X-Payments URL'); ?>
+          </td>
+          <td class="value">
+            <span id="xpay-url"><?php echo $this->escapeUrl(Mage::helper('settings_xpc')->getXpcConfig('xpay_url')); ?></span>
+            <br/>
+            <input type="checkbox" name="force_http" id="force-http-checkbox" value="1" <?php if (Mage::helper('settings_xpc')->getXpcConfig('xpay_force_http')): ?>checked="checked"<?php endif; ?> onclick="javascript: switchUrl(this); "/>
+            <label for="force-http-checkbox">
+              <?php echo $this->__('Use HTTP protocol'); ?>
+            </label>
+            <p class="note">
+              <?php echo $this->__('You should activate the Developer mode in X-Payments to be able to use this option.'); ?>
+              <br/>
+              <?php echo $this->__('Developer mode can be used to access X-Payments via HTTP (HTTPS is not required) and communicate with the store using a self-signed SSL certificate. To remind the user that Developer mode is on, special marks are displayed on the credit card form.'); ?>
+              <br/>
+              <span class="error">
+                <strong><?php echo $this->__('Important!'); ?></strong>
+                <?php echo $this->__('Never process real credit cards while in Developer mode. This results in PA-DSS non-compliance.'); ?>
+              </span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="label">
+            <?php echo $this->__('IP addresses for X-Payments callbacks'); ?>
+          </td>
+          <td class="value">
+            <input type="text" name="ip_address" class="input-text" value="<?php echo Mage::helper('settings_xpc')->getXpcConfig('xpay_allowed_ip_addresses'); ?>"/>
+            <p class="note">
+              <?php echo $this->__('X-Payments sends callback requests to the store from specific IP addresses. To secure the data transfer and avoid fraudulent requests, specify these IP addresses here as a comma-separated list. Usually it is the IP address of the server where X-Payments is installed.'); ?>
+            </p>
+          </td>
+        </tr>
+        <?php if ($this->isDisplayIframeOptions()): ?>
+          <tr>
+            <td class="label">
+              <?php echo $this->__('Use iframe'); ?>
+            </td>
+            <td class="value">
+              <select name="use_iframe" class="input-text" id="use-iframe-select">
+                <option value="1" <?php if (Mage::helper('settings_xpc')->isUseIframe()): ?>selected="selected"<?php endif; ?>><?php echo $this->__('Yes'); ?></option>
+                <option value="0" <?php if (!Mage::helper('settings_xpc')->isUseIframe()): ?>selected="selected"<?php endif; ?>><?php echo $this->__('No'); ?></option>
+              </select>
+            </td>
+          </tr>
+          <tr id="iframe-place-row">
+            <td class="label">
+              <?php echo $this->__('Show credit card form at'); ?>
+            </td>
+            <td class="value">
+              <select name="iframe_place" class="input-text"/>
+                <option value="payment" <?php if (Mage::helper('settings_xpc')->getIframePlace() == 'payment'): ?>selected="selected"<?php endif; ?>><?php echo $this->__('Payment Information step'); ?></option>
+                <option value="review" <?php if (Mage::helper('settings_xpc')->getIframePlace() == 'review'): ?>selected="selected"<?php endif; ?>><?php echo $this->__('Order Review step'); ?></option>
+              </select>
+            </td>
+          </tr>
+        <?php endif; ?>
+      </table>
+      <?php echo $this->getChildHtml('updateButton'); ?>
+    </form>
+  </fieldset>
+</div>
+
+<?php endif; ?>

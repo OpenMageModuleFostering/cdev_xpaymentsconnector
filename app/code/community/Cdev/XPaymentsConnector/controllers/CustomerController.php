@@ -13,169 +13,223 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
- * Customer account controller
+ * Customer account controller for user cards
  */
 
 class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Front_Action
 {
-
     /**
      * Check customer authentication
+     *
+     * @return Mage_Core_Controller_Front_Action
      */
     public function preDispatch()
     {
         parent::preDispatch();
-        $action = $this->getRequest()->getActionName();
+
         $loginUrl = Mage::helper('customer')->getLoginUrl();
 
         if (!Mage::getSingleton('customer/session')->authenticate($this, $loginUrl)) {
             $this->setFlag('', self::FLAG_NO_DISPATCH, true);
         }
+
+        return $this;
     }
 
     /**
-     * Display downloadable links bought by customer
+     * Display list of customer's cards
      *
+     * @return void
      */
     public function usercardsAction()
     {
+        $this->loadLayout();
+        $this->_initLayoutMessages('customer/session');
+
+        $block = $this->getLayout()->getBlock('xpaymentsconnector_customer_usercards_list');
+        $block->setRefererUrl($this->_getRefererUrl());
+        
+        $headBlock = $this->getLayout()->getBlock('head');
+        $headBlock->setTitle(Mage::helper('xpaymentsconnector')->__('My Payment Cards'));
+        
+        $this->renderLayout();
+    }
+
+    /**
+     * Remove card action
+     * 
+     * @return void
+     */
+    public function removecardAction()
+    {
         $request = $this->getRequest()->getPost();
 
-        if (
-            !empty($request)
-            && !empty($request['action'])
-            && 'remove' == $request['action']
-        ) {
-            if (
-                isset($request['card']) 
-                && count($request['card']) > 0
-             ) {
+        $result = false;
 
-                $itemCollection = Mage::getModel('xpaymentsconnector/usercards')
-                    ->getCollection()
-                    ->addFieldToFilter('xp_card_id', array('in' => $request['card']));
+        if (!empty($request['card'])) {
 
-                foreach ($itemCollection as $item) {
+            $items = Mage::getModel('xpaymentsconnector/usercards')
+                ->getCollection()
+                ->addFieldToFilter('xp_card_id', array('in' => $request['card']));
 
-                    if ($item->getUsageType() == Cdev_XPaymentsConnector_Model_Usercards::RECURRING_CARD) {
+            foreach ($items as $item) {
 
-                        $recurringProfile = Mage::getModel('sales/recurring_profile')->load($item->getData('txnId'), 'reference_id');
+                if (Cdev_XPaymentsConnector_Model_Usercards::RECURRING_CARD == $item->getUsageType()) {
 
-                        if ($recurringProfile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE) {
+                    $recurringProfile = Mage::getModel('sales/recurring_profile')->load($item->getData('txnId'), 'reference_id');
 
-                            $errorMessage = Mage::helper('xpaymentsconnector')->__(
-                                'You can\'t delete %s card. Because this is recurring card and this recurring(s) is still active.',
-                                $item->getXpCardId()
-                            );
+                    if (Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE == $recurringProfile->getState()) {
 
-                            Mage::getSingleton('customer/session')->addError($errorMessage);
+                        $message = Mage::helper('xpaymentsconnector')->__(
+                            'You can\'t delete %s card. Because this is recurring card and this recurring(s) is still active.',
+                            $item->getXpCardId()
+                        );
+
+                        Mage::getSingleton('customer/session')->addError($errorMessage);
                      
-                            continue;
-                        }
-                    } 
+                        continue;
+                    }
+                } 
    
-                    $item->delete();
-                }
+                $item->delete();
+                $result = true;
+           }
 
-                $message = $this->__('Credit cards have been removed successfully.');
-                Mage::getSingleton('customer/session')->addSuccess($message);
+            if ($result) {
+                Mage::getSingleton('customer/session')->addSuccess('Credit cards have been removed successfully.');
+            }
+        }
+
+        $this->_redirect('xpaymentsconnector/customer/usercards');
+    }
+
+    /**
+     * Add new card action
+     *
+     * @return void
+     */
+    public function cardaddAction()
+    {
+        try {
+
+            $customer = $this->getCustomer();
+
+            $this->loadLayout();
+
+            $block = $this->getLayout()->getBlock('xpaymentsconnector_customer_usercards_add');
+
+            $response = Mage::helper('settings_xpc')->getZeroAuthMethod()
+                ->obtainToken(null, $customer);
+
+            if (!$response->getStatus()) {
+
+                $error = !empty($response->getErrorMessage())
+                    ? $response->getErrorMessage()
+                    : 'Unable to obtain token from X-Payments';
+
+                $block->setError($error);
 
             } else {
 
-                $message = $this->__('You have not selected any credit card.');
-                Mage::getSingleton('customer/session')->addError($message);
+                $fields = array(
+                    'target' => 'main',
+                    'action' => 'start',
+                    'token'  => $response->getField('token'),
+                    'allow_save_card' => 'Y',
+                );
+
+                Mage::getSingleton('customer/session')->setData('xpc_fields', $fields);
             }
-        }
 
+            $this->renderLayout();
 
-        $this->loadLayout();
-        $this->_initLayoutMessages('customer/session');
-        if ($block = $this->getLayout()->getBlock('xpaymentsconnector_customer_usercards')) {
-            $block->setRefererUrl($this->_getRefererUrl());
+        } catch (Exception $e) {
+
+            Mage::getSingleton('customer/session')->addError($this->__($e->getMessage()));
+
+            $this->_redirect('xpaymentsconnector/customer/usercards');
         }
-        $headBlock = $this->getLayout()->getBlock('head');
-        if ($headBlock) {
-            $headBlock->setTitle(Mage::helper('xpaymentsconnector')->__('My Payment Cards'));
-        }
-        $this->renderLayout();
     }
 
+    /**
+     * Iframe action
+     *
+     * @return void
+     */
+    public function iframeAction()
+    {
+        $block = $this->getLayout()->createBlock('xpaymentsconnector/customer_usercards_iframe');
 
-    public function cardaddAction(){
+        try {
 
+            $fields = Mage::getSingleton('customer/session')->getData('xpc_fields');
+            $block->setFields($fields);
+
+        } catch (Exception $e) {
+
+            $block->setError($e->getMessage());
+        }
+
+        echo $block->toHtml();
+        exit;
+    }
+
+    /**
+     * Return action
+     *
+     * @return void
+     */
+    public function returnAction()
+    {
+        // If were here, then everything is OK, the transaction was authorized by the gateway.
+        // But we need to make sure that the card was saved by the store successfully.
+
+        $isCardSaved = Mage::getModel('xpaymentsconnector/usercards')
+            ->checkSavedCard(
+                $this->getRequest()->getParam('customer_id'),
+                $this->getRequest()->getParam('txnId')
+            ); 
+
+        if ($isCardSaved) {
+
+            Mage::getSingleton('customer/session')->addSuccess($this->__('Payment card saved'));
+
+        } else {
+
+            Mage::getSingleton('customer/session')->addError($this->__(
+                'Payment gateway reported about successful authorization, but the store is unable to receive the payment token. '
+                . 'Please contact the store admnistrator.'
+            ));
+        }
+
+        $block = $this->getLayout()->createBlock('xpaymentsconnector/customer_usercards_iframe');
+        $block->setReturnFlag(true);
+
+        echo $block->toHtml();
+        exit;
+    }
+
+    /**
+     * Get current customer profile
+     *
+     * @return Mage_Customer_Model_Customer
+     */
+    private function getCustomer()
+    {
         $customer = Mage::getSingleton('customer/session')->getCustomer();
-        if ($customer) {
-            if (empty($customer->getDefaultBillingAddress()))
-                Mage::getSingleton("core/session")->addError("Please specify billing address for this credit card.");
+
+        if (!$customer->getId()) {
+            throw new Exception('Wrong customer reference.');
         }
 
-        $isPostResponse = $this->getRequest()->isPost();
-        if($isPostResponse){
-            // Check request data
-            $request = $this->getRequest()->getPost();
-
-            if (empty($request)) {
-                Mage::throwException('Request doesn\'t contain POST elements.');
-            }
-
-            // check txn id
-            if (empty($request['txnId'])) {
-                Mage::throwException('Missing or invalid transaction ID');
-            }
-
-
-            $CCPaymentModel = Mage::getModel('xpaymentsconnector/payment_cc');
-            $transactionStatusLabel =  $CCPaymentModel->getTransactionStatusLabels();
-            $resultMessage = '';
-
-            list($status, $response) = $CCPaymentModel->requestPaymentInfo($request['txnId']);
-
-            if (
-                !$status
-                || !in_array($response['status'], array($CCPaymentModel::AUTH_STATUS, $CCPaymentModel::CHARGED_STATUS))
-            ) {
-                if (!empty($response['advinfo']['Message'])) {
-                    $errorMessage = $this->__('%s New card has not been saved.', $response['advinfo']['Message']);
-                } elseif (isset($transactionStatusLabel[$response['status']])) {
-                    $errorMessage = $this->__("Transaction status is '%s'. New card has not been saved.", $transactionStatusLabel[$response['status']]);
-                } else {
-                    $errorMessage = $this->__('%s New card has not been saved.', $response['error_message']);
-                }
-
-                Mage::getSingleton('customer/session')->addError($errorMessage);
-                $resultMessage = 'Card authorization has been cancelled.';
-            }else{
-                $resultMessage = $this->__('Payment card has been added successfully!');
-
-                Mage::getSingleton('customer/session')->addSuccess( $this->__("You created new card. Transaction status is '%s'.", $transactionStatusLabel[$response['status']]));
-            }
-
-            $this->getResponse()->setBody(
-                $this->getLayout()
-                    ->createBlock('xpaymentsconnector/customer_success')->setData('result_message',$resultMessage)
-                    ->toHtml()
-            );
-            return;
-        }
-
-        $this->loadLayout();
-        $this->_initLayoutMessages('customer/session');
-        if ($block = $this->getLayout()->getBlock('xpaymentsconnector_customer_cardadd')) {
-            $block->setRefererUrl($this->_getRefererUrl());
-        }
-        $headBlock = $this->getLayout()->getBlock('head');
-        if ($headBlock) {
-            $headBlock->setTitle(Mage::helper('xpaymentsconnector')->__('Add new credit card to list (X-Payments)'));
-        }
-        $this->renderLayout();
+        return $customer;
     }
-
 }

@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,226 +13,204 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
  * 'Use saved credit cards (X-Payments)'
- * Class Cdev_XPaymentsConnector_Model_Payment_Savedcards
  */
-
-class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Model_Method_Abstract
+class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Cdev_XPaymentsConnector_Model_Payment_Abstract 
     implements  Mage_Payment_Model_Recurring_Profile_MethodInterface
 {
+    /**
+     * Unique internal payment method identifier
+     **/
     protected $_code = 'savedcards';
-    protected $_formBlockType = 'xpaymentsconnector/form_savedcards';
-    protected $_infoBlockType = 'xpaymentsconnector/info_savedcards';
-
 
     protected $_isGateway               = false;
-    protected $_paymentMethod           = 'cc';
+
     protected $_defaultLocale           = 'en';
-    protected $_canCapturePartial       = true;
-    protected $_canCapture              = true;
-    protected $_canUseInternal          = true;
+
+    protected $_paymentMethod           = 'cc';
+   
     protected $_canUseCheckout          = true;
+    protected $_canUseInternal          = true;
     protected $_canUseForMultishipping  = false;
 
+    protected $_canCapture              = true; 
+    protected $_canCapturePartial       = true;
     protected $_canRefund               = true;
     protected $_canRefundInvoicePartial = true;
 
-    protected $_order = null;
+
+    /**
+     * Payment method info block
+     */
+    protected $_infoBlockType = 'xpaymentsconnector/info_savedcards';
+
+    /**
+     * Payment method form block
+     */
+    protected $_formBlockType = 'xpaymentsconnector/form_savedcards';
+
     public $firstTransactionSuccess = true;
 
-
+    /**
+     * Get saved card data from order
+     *
+     * @return array
+     */
+    private function getOrderCardData()
+    {
+        return Mage::helper('xpaymentsconnector')->getOrderXpcCardData(
+            $this->getOrder()
+        );
+    }    
 
     /**
-     * Get order
+     * Get payment configuration model
      *
-     * @return Mage_Sales_Model_Order
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
+     * @return Cdev_XPaymentsConnector_Model_Paymentconfiguration
      */
-    public function getOrder()
+    public function getPaymentConfiguration()
     {
-        if (!$this->_order) {
-            $this->_order = $this->getInfoInstance()->getOrder();
-        }
+        $data = $this->getOrderCardData();
 
-        return $this->_order;
+        return Mage::getModel('xpaymentsconnector/paymentconfiguration')
+            ->load($data['confid']);
     }
 
     /**
-     * Capture payment abstract method
+     * Get internal XPC method code
+     * (number from xpayments1, xpayments1, etc)
      *
-     * @param Varien_Object $payment
-     * @param float $amount
-     *
-     * @return Mage_Payment_Model_Abstract
+     * @return int
      */
-    public function capture(Varien_Object $payment, $amount)
+    public function getXpcSlot()
     {
+        return Mage::helper('settings_xpc')->getXpcSlotByConfid(
+            $this->getPaymentConfiguration()->getData('confid')
+        );
+    }
 
-        if (!$this->canCapture()) {
-            Mage::throwException(Mage::helper('payment')->__('Capture action is not available.'));
+    /**
+     * Process payment by saved card
+     *
+     * @param Cdev_XPaymentsConnector_Model_Quote $quote Quote (for checkout or backend order)
+     *
+     * @return Cdev_XPaymentsConnector_Transport_ApiResponse
+     */
+    public function processPayment(Cdev_XPaymentsConnector_Model_Quote $quote)
+    {
+        $entityId = $quote->getEntityId();
+
+        if ($quote->isBackendOrderQuote()) {
+            $isBackend = true;
+            $refId = $quote->getXpcData()->getData('backend_orderid');
+            $amount = $quote->getBackendOrder()->getGrandTotal();
+        } else {
+            $isBackend = false;
+            $refId = $quote->getData('reserved_order_id');
+            $amount = $quote->getGrandTotal();
         }
 
-        $order = $this->getOrder();
+        $description = 'Order #' . $refId;
+
+        $preparedCart = Mage::helper('cart_xpc')->prepareCart($quote, $refId);
+
+        $cardData = $this->getOrderCardData();
+
+        // Data to send to X-Payments
         $data = array(
-            'txnId' => $order->getData('xpc_txnid'),
-            'amount' => number_format($amount, 2, '.', ''),
+            'txnId'       => $cardData['txnId'],
+            'refId'       => $refId,
+            'amount'      => $amount,
+            'description' => $description,
+            'cart'        => $preparedCart,
+            'callbackUrl' => Mage::helper('xpaymentsconnector')->getCallbackUrl($entityId, $this->getXpcSlot(), false),
         );
 
-        Mage::getModel('xpaymentsconnector/payment_cc')->authorizedTransactionRequest('capture', $data);
+        $response = Mage::helper('api_xpc')->requestPaymentRecharge($data);
 
-
-        return $this;
+        return $response;
     }
 
-
-    public function refund(Varien_Object $payment, $amount)
+    /**
+     * Check method availability
+     *
+     * @param Mage_Sales_Model_Quote $quote Quote
+     *
+     * @return boolean
+     */
+    public function isAvailable($quote = null)
     {
+        if (
+            parent::isAvailable($quote)
+            && $quote
+            && $quote->getData('customer_id')
+        ) {
 
-        if (!$this->canRefund()) {
-            Mage::throwException(Mage::helper('payment')->__('Refund action is not available.'));
+            $cardsCount = Mage::getModel('xpaymentsconnector/usercards')
+                ->getCollection()
+                ->addFieldToFilter('user_id', $quote->getData('customer_id'))
+                ->addFieldToFilter('usage_type', Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD)
+                ->count();
+
+            $result = (bool)$cardsCount;
+
+        } else {
+
+            $result = false;
         }
 
-        /*processing during create invoice*/
-        $order = $this->getOrder();
-        /*processing during capture invoice*/
-        $data = array(
-            'txnId' => $order->getData('xpc_txnid'),
-            'amount' => number_format($amount, 2, '.', ''),
-        );
-
-        Mage::getModel('xpaymentsconnector/payment_cc')->authorizedTransactionRequest('refund', $data);
-
-        return $this;
-    }
-
-
-    /**
-     * Validate data
-     *
-     * @param Mage_Payment_Model_Recurring_Profile $profile
-     * @throws Mage_Core_Exception
-     */
-    public function validateRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile){
-
+        return $result;
     }
 
     /**
-     * Submit to the gateway
+     * Get redirect URL to process recharge
      *
-     * @param Mage_Payment_Model_Recurring_Profile $profile
-     * @param Mage_Payment_Model_Info $paymentInfo
+     * @return string
      */
-    public function submitRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile, Mage_Payment_Model_Info $paymentInfo){
+    public function getOrderPlaceRedirectUrl()
+    {
+        $request = Mage::app()->getRequest()->getParam('payment');
 
-        $xpHelper = Mage::helper('xpaymentsconnector');
-        $xpHelper->setPrepareOrderType();
-        $quote = $profile->getQuote();
-        $orderItemInfo = $profile->getData('order_item_info');
-        // registered new user and update profile
-        $xpHelper->addXpDefaultRecurringSettings($profile);
-        // end registered user
-        $paymentCardNumber = $quote->getPayment()->getData('xp_payment_card');
-        $cardData = Mage::getModel('xpaymentsconnector/usercards')->load($paymentCardNumber);
-        $txnid = $cardData->getData('txnId');
+        $session = Mage::getSingleton('checkout/session');
 
-        if ($xpHelper->getRecurringQuoteItem()) {
-            if(is_null($xpHelper->payDeferredProfileId)){
-                $payDeferredSubscription = $xpHelper->payDeferredSubscription($profile);
-                if(!$payDeferredSubscription){
-                    $grandTotal = $orderItemInfo['nominal_row_total'];
-                    if($txnid){
-                        $orderId = $xpHelper->createOrder($profile,$isFirstRecurringOrder = true);
-                        $response = Mage::getModel('xpaymentsconnector/payment_cc')->
-                            sendAgainTransactionRequest($orderId, NULL, $grandTotal);
+        try {
 
-                        if ($response['success']) {
-                            $result = Mage::getModel('xpaymentsconnector/payment_cc')->
-                                updateOrderByXpaymentResponse($orderId, $response['response']['transaction_id']);
-                            if (!$result['success']) {
-                                Mage::getSingleton('checkout/session')->addError($result['error_message']);
-                                Mage::getSingleton('checkout/session')
-                                    ->addNotice($xpHelper->getFailureCheckoutNoticeHelper());
-                                $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
-                            } else {
-                                // additional subscription profile setting for success transaction
-                                $newTransactionDate = new Zend_Date(time());
-                                $profile->setXpSuccessTransactionDate($newTransactionDate
-                                    ->toString(Varien_Date::DATETIME_INTERNAL_FORMAT));
-                                $profile->setXpCountSuccessTransaction(1);
-
-                                $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE);
-                            }
-
-                        } else {
-                            Mage::getSingleton('checkout/session')->addError($response['error_message']);
-                            Mage::getSingleton('checkout/session')->addNotice($xpHelper->getFailureCheckoutNoticeHelper());
-                            $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
-                        }
-                    }
-                }
-
-                $xpHelper->prepareOrderKeyByRecurringProfile($profile);
+            // Check card from checkout
+            if (empty($request['xp_payment_card'])) {
+                throw new Exception('Wrong card id');
             }
 
-            if($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_CANCELED){
-                $this->firstTransactionSuccess = false;
-            }else{
-                if (!$this->firstTransactionSuccess) {
-                    $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
-                }
-            };
+            $cardId = $request['xp_payment_card'];
+            $customerId = $session->getQuote()->getCustomerId();
+
+            $card = Mage::getModel('xpaymentsconnector/usercards')->load($cardId);
+
+            // Make sure this card belongs to the current customer
+            if ($card->getUserId() != $customerId) {
+                throw new Exception('Wrong card id');
+            }
+
+            $session->setXpcSaveCardId($cardId);
+
+        } catch (Exception $exception) {
+
+            // Save error to display
+            $session->addError($e->getMessage());
+
+            // And throw it further
+            throw $exception;
         }
+ 
+        $url = Mage::getUrl('xpaymentsconnector/processing/recharge');
 
-        $profile->setReferenceId($txnid);
-
+        return $url;
     }
-
-    /**
-     * Fetch details
-     *
-     * @param string $referenceId
-     * @param Varien_Object $result
-     */
-    public function getRecurringProfileDetails($referenceId, Varien_Object $result){
-        // TODO
-    }
-
-    /**
-     * Check whether can get recurring profile details
-     *
-     * @return bool
-     */
-    public function canGetRecurringProfileDetails(){
-        return true;
-    }
-
-    /**
-     * Update data
-     *
-     * @param Mage_Payment_Model_Recurring_Profile $profile
-     */
-    public function updateRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile){
-       // TODO
-    }
-
-    /**
-     * Manage status
-     *
-     * @param Mage_Payment_Model_Recurring_Profile $profile
-     */
-    public function updateRecurringProfileStatus(Mage_Payment_Model_Recurring_Profile $profile){
-        // TODO
-    }
-
 }
-

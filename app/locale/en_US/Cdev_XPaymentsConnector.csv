@@ -64,7 +64,6 @@
 "X-Payments connector control","X-Payments connector control"
 "System","System"
 "The test transaction has been completed successfully.","The test transaction has been completed successfully."
-"Test transaction failed. Please check the X-Payment Connector settings and try again. If all options is ok review your X-Payments settings and make sure you have properly defined shopping cart properties.","Test transaction failed. Please check the X-Payment Connector settings and try again. If all options is ok review your X-Payments settings and make sure you have properly defined shopping cart properties."
 "Payment methods have been successfully imported.","Payment methods have been successfully imported."
 "There are no payment configurations for this store.","There are no payment configurations for this store."
 "An error has occured during requesting payment methods from X-Payments. See log files for details.","An error has occured during requesting payment methods from X-Payments. See log files for details."
@@ -137,7 +136,7 @@
 "Return to checkout","Return to checkout"
 "Order incomplete.","Order incomplete."
 "Please specify billing address for this credit card.","Please specify billing address for this credit card."
-
+"X-Payments Pending Payment","Authorized"
 
 
 

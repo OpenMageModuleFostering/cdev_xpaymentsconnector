@@ -13,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -29,6 +29,7 @@ var XPC_IFRAME_CLEAR_INIT_DATA  = 2;
 var XPC_IFRAME_ALERT            = 3;
 var XPC_IFRAME_TOP_MESSAGE      = 4;
 
+var disabledButtons = [];
 
 /**
  * Submit payment in X-Payments
@@ -42,7 +43,7 @@ function sendSubmitMessage()
 
     message = JSON.stringify(message);
 
-    $('xp-iframe').contentWindow.postMessage(message, '*');
+    getXpcIframe().contentWindow.postMessage(message, '*');
 }
 
 /**
@@ -50,9 +51,29 @@ function sendSubmitMessage()
  */
 function isXpcMethod() 
 {
-    var block = $$('input:checked[type=radio][name=payment[method]][value=xpayments]');
+    var block = $$('input:checked[type=radio][name=payment[method]][value^=xpayments]');
 
     return Boolean(block.length);
+}
+
+function getCurrentXpcMethod()
+{
+    var code = '';
+
+    var block = $$('input:checked[type=radio][name=payment[method]][value^=xpayments]');
+
+    if (block.length) {
+        code = block[0].value;
+    }
+
+    return code;
+}
+
+function getXpcIframe()
+{
+    var iframeId = $('xp-iframe-' + getCurrentXpcMethod());
+
+    return $(iframeId);
 }
 
 document.observe('dom:loaded', function () {
@@ -60,11 +81,11 @@ document.observe('dom:loaded', function () {
     /**
      * Redirect or reload iframe
      */ 
-    document.observe('xpc:redirectIframe', function (event) {
+    document.observe('xpc:redirect', function (event) {
 
-        console.log('xpc:redirectIframe', event.memo);
+        console.log('xpc:redirect', event.memo);
 
-        var iframe = $('xp-iframe');
+        var iframe = getXpcIframe();
 
         if (typeof event.memo == 'string') {
             
@@ -80,29 +101,17 @@ document.observe('dom:loaded', function () {
         } else {
 
             // Redirect iframe to the payment page
-            var src = xpcData.url.redirectIframe;
+            var src = xpcData.url[getCurrentXpcMethod()].redirect;
         }
 
-        iframe.setStyle( {'height' : '0px'} );
+        document.fire('xpc:disableButtons');
+
+        $$('.xp-iframe').each( function(elm) { elm.setStyle( {'height' : '0'} )});
         $('paymentstep-ajax-loader').setStyle({'display' : 'block'});
 
-        if (!xpcData.displayOnReviewStep) {
-            $('payment_form_xpayments').setStyle( {'height' : 'auto'} );
-        }
+        $('payment-form-' + getCurrentXpcMethod()).setStyle( {'height' : 'auto'} );
 
         iframe.setAttribute('src', src);
-    });
-
-    /**
-     * Block with X-Payments iframe is loaded.
-     */
-    document.observe('xpc:iframeBlockLoaded', function (event) {
-
-        console.log('xpc:iframeBlockLoaded', event.memo);
-
-        if (isXpcMethod()) {
-            document.fire('xpc:redirectIframe');
-        }
     });
 
     /**
@@ -113,10 +122,20 @@ document.observe('dom:loaded', function () {
         console.log('xpc:checkoutChanged', event.memo);
 
         if (
-            $('xpayment-iframe-block')
+            $$('.xp-iframe').length
             && typeof xpcData != 'undefined'
         ) {
-            document.fire('xpc:iframeBlockLoaded');
+
+            if (isXpcMethod()) {
+
+                // Process redirect to the payment page
+                document.fire('xpc:redirect');
+
+            } else {
+
+                // Hide iframe with CC form for non X-Payments payment methods 
+                $$('.xp-iframe').each( function(elm) { elm.setStyle( {'height' : '0'} )});
+            }
         }
     });
 
@@ -145,7 +164,7 @@ document.observe('dom:loaded', function () {
                     }
 
                     new Ajax.Request(
-                        xpcData.url.checkAgreements,
+                        xpcData.url[getCurrentXpcMethod()].checkAgreements,
                         {
                             method: 'Post',
                             parameters: params,
@@ -163,7 +182,7 @@ document.observe('dom:loaded', function () {
                                     if (xpcData.useIframe) {
                                         sendSubmitMessage();
                                     } else {
-                                        window.location.href = xpcData.url.redirectIframeUnsetOrder;
+                                        window.location.href = xpcData.url[getCurrentXpcMethod()].dropTokenAndRedirect;
                                     }
 
                                 }
@@ -186,32 +205,6 @@ document.observe('dom:loaded', function () {
     });
 
     /**
-     * Place order via One Step Checkout.
-     */
-    document.observe('xpc:oneStepCheckoutPlaceOrder', function (event) {
-
-        console.log('xpc:oneStepCheckoutPlaceOrder', event.memo);
-
-        var data = $('onestepcheckout-form').serialize(true);
-
-        // Save checkout data
-        new Ajax.Request(
-            xpcData.url.saveCheckoutData, 
-            { 
-                method: 'Post', 
-                parameters: data,
-                  onComplete: function(response) {
-                    if (200 == response.status) {
-                        sendSubmitMessage();
-                    } else {
-                        document.fire('xpc:showMessage', {text: 'Error processing request'});
-                    }
-                  } 
-            }
-        );
-    });
-
-    /**
      * X-Payments iframe is ready.
      */
     document.observe('xpc:ready', function (event) {
@@ -220,7 +213,7 @@ document.observe('dom:loaded', function () {
 
         $('paymentstep-ajax-loader').hide();
 
-        var iframe = $('xp-iframe');
+        var iframe = getXpcIframe();
 
         if (
             event.memo.height
@@ -247,6 +240,8 @@ document.observe('dom:loaded', function () {
         }
 
         iframe.setStyle( {'height': height + 'px'} );
+
+        document.fire('xpc:enableButtons');
     });
 
     /**
@@ -256,24 +251,37 @@ document.observe('dom:loaded', function () {
 
         console.log('xpc:setCheckoutMethod', event.memo);
 
+        currentXpcMethod = getCurrentXpcMethod();
+        if (!currentXpcMethod) {
+            // For non X-Payments payment method use the first slot
+            currentXpcMethod = 'xpayments1';
+        }
+
+        if (typeof xpcData.url[currentXpcMethod] == 'undefined') {
+            // Just in case check the URL
+            return;
+        }
+
         if (typeof event.memo == 'boolean' && event.memo) {
-            var src = xpcData.url.setMethodRegister;
+            var src = xpcData.url[currentXpcMethod].setMethodRegister;
         } else {
-            var src = xpcData.url.setMethodGuest;
+            var src = xpcData.url[currentXpcMethod].setMethodGuest;
         }
 
         if (isXpcMethod()) {
 
             // Reload iframe
-            document.fire('xpc:redirectIframe', src);
+            document.fire('xpc:redirect', src);
 
         } else {
 
-            // Set checkout method in backgraud
+            // Set checkout method in background
             new Ajax.Request(src);
 
-            // Remove iframe srs, so it's reloaded when shown
-            $('xp-iframe').setAttribute('src', '');
+            // Remove iframes src, so they're reloaded when shown
+            $$('.xp-iframe').each( function(elm) { 
+                elm.setAttribute('src', '');
+            });
         }
     });
 
@@ -284,7 +292,6 @@ document.observe('dom:loaded', function () {
 
         console.log('xpc:showMessage', event.memo);
 
-        // TODO: This is better via some jQuery popup widget
         alert(event.memo.text);
     });
 
@@ -312,7 +319,7 @@ document.observe('dom:loaded', function () {
         }
 
         if (event.memo.height) {
-            $('xp-iframe').setStyle( {'height': event.memo.height + 'px'} );
+            getXpcIframe().setStyle( {'height': event.memo.height + 'px'} );
         }
 
         type = parseInt(event.memo.type);
@@ -325,10 +332,9 @@ document.observe('dom:loaded', function () {
 
         } else if (XPC_IFRAME_CHANGE_METHOD == type) {
 
-            document.fire('xpc:clearInitData');
             document.fire('xpc:goToPaymentSection');
-            document.fire('xpc:changeMethod');
             document.fire('xpc:enableCheckout');
+            document.fire('xpc:changeMethod');
 
         } else {
 
@@ -337,6 +343,8 @@ document.observe('dom:loaded', function () {
             document.fire('xpc:goToPaymentSection');
             document.fire('xpc:enableCheckout');
         }
+
+        document.fire('xpc:enableButtons');
     });
 
 
@@ -347,7 +355,7 @@ document.observe('dom:loaded', function () {
 
         console.log('xpc:clearInitData', event.memo);
 
-        document.fire('xpc:redirectIframe', xpcData.url.redirectIframeUnsetOrder);
+        document.fire('xpc:redirect', xpcData.url[getCurrentXpcMethod()].dropTokenAndRedirect);
     });
 
 
@@ -407,8 +415,51 @@ document.observe('dom:loaded', function () {
         if ($('co-payment-form')) {
             checkout.setLoadWaiting(false);
         }
+
+        $('paymentstep-ajax-loader').hide();
     });
 
+    /**
+     * Disable buttons at checkout while form is loading.
+     */
+    document.observe('xpc:disableButtons', function (event) {
+
+        console.log('xpc:disableButtons', event.memo);
+
+        // Continue button at Onepage Checkout
+        if ('undefined' != typeof $$('#payment-buttons-container button')[0]) {
+            disabledButtons.push($$('#payment-buttons-container button')[0]);
+        }
+
+        // Place order button
+        if ('undefined' != typeof $$('#review-buttons-container button')[0]) { 
+            disabledButtons.push($$('#review-buttons-container button')[0]);
+        }
+
+        if (disabledButtons.length) {
+            disabledButtons.each(function(e) { e.disable(); });
+        }
+    });
+
+    /**
+     * Enable disabled buttons at checkout after the form loaded.
+     */
+    document.observe('xpc:enableButtons', function (event) {
+
+        console.log('xpc:enableButtons', event.memo);
+
+        if (disabledButtons.length) {
+            disabledButtons.each(
+                function(e) { 
+                    if ('undefined' != typeof e) {
+                        e.enable(); 
+                    }
+                }
+            );
+        }
+
+        disabledButtons = [];
+    });
 
     /**
      * Change payment method.
@@ -417,8 +468,13 @@ document.observe('dom:loaded', function () {
 
         console.log('xpc:changeMethod', event.memo);
 
-        window.location.href = xpcData.url.changeMethod;
+        var pm = $$('input[type=radio][name=payment[method]]:not([value*=xpayments])');
 
+        if (pm.length) {
+            pm[0].click();
+        } else {
+            window.location.href = xpcData.url[getCurrentXpcMethod()].changeMethod;
+        }
     });
 
 
@@ -427,7 +483,17 @@ document.observe('dom:loaded', function () {
      */
     Event.observe(window, 'message', function (event) {
 
-        if (event.origin == xpcData.xpOrigin) {
+        var found = false;
+
+        for (var i in xpcData.origins) {
+            if (event.origin == xpcData.origins[i]) {
+                found = true;
+                break;
+            }
+        }
+
+        if (found) {
+            
             var data = JSON.parse(event.data)
 
             document.fire('xpc:' + data.message, data.params);
@@ -463,6 +529,69 @@ document.observe('dom:loaded', function () {
                 document.fire('xpc:setCheckoutMethod', elm.checked);
             });
         }
+
+        $('onestepcheckout-form').submit = $('onestepcheckout-form').submit.wrap(
+            function (parentMethod) {
+
+                if (isXpcMethod()) {
+
+                    var data = $('onestepcheckout-form').serialize(true);
+
+                    // Save checkout data
+                    new Ajax.Request(
+                        xpcData.url[getCurrentXpcMethod()].saveCheckoutData,
+                        {
+                            method: 'Post',
+                            parameters: data,
+                            onComplete: function(response) {
+                                if (200 == response.status) {
+                                    sendSubmitMessage();
+                                } else {
+                                    document.fire('xpc:showMessage', {text: 'Error processing request'});
+                                }
+                            }
+                        }
+                    );
+
+                } else {
+
+                    return parentMethod();
+                }
+
+            }
+        );
+    }
+
+    // This is for One Step Checkout by AheadWorks
+    if ($('aw-onestepcheckout-general-form')) {
+
+        // Checkout is loaded
+        document.fire('xpc:checkoutChanged', 'loaded');
+
+        $('aw-onestepcheckout-general-form').on('change', '.radio', function() {
+
+            // Shipping or payment method changed
+            document.fire('xpc:checkoutChanged', 'paymentOrShipping');
+        });
+
+        AWOnestepcheckoutForm.prototype._sendPlaceOrderRequest = AWOnestepcheckoutForm.prototype._sendPlaceOrderRequest.wrap(
+            function(parentMethod) {
+
+                if (isXpcMethod()) {
+
+                    if (xpcData.useIframe) {
+                        sendSubmitMessage();
+                    } else {
+                        window.location.href = xpcData.url[getCurrentXpcMethod()].dropTokenAndRedirect;
+                    }
+
+                } else {
+
+                    return parentMethod();
+                }
+            }
+        );
+
     }
 
     // This is for Firecheckout
@@ -492,10 +621,15 @@ document.observe('dom:loaded', function () {
                         return;
                     }
 
+                    // Validate form
+                    if (!this.validate()) {
+                        return;
+                    }
+
                     // Save original "save" URL
                     this.urls.savedSave = this.urls.save;
 
-                    this.urls.save = xpcData.url.saveCheckoutData;
+                    this.urls.save = xpcData.url[getCurrentXpcMethod()].saveCheckoutData;
 
                     parentMethod(urlSuffix, forceSave);
 
@@ -507,7 +641,7 @@ document.observe('dom:loaded', function () {
                     if (xpcData.useIframe) {
                         sendSubmitMessage();
                     } else {
-                        window.location.href = xpcData.url.redirectIframeUnsetOrder;
+                        window.location.href = xpcData.url[getCurrentXpcMethod()].dropTokenAndRedirect;
                     }
 
                 } else {

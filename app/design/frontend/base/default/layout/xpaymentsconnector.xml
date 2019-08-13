@@ -14,94 +14,119 @@ vim: set ts=4 sw=4 sts=4 et:
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 -->
-<layout version="1.0.0">
+<layout version="1.8.0">
 
     <checkout_cart_index translate="label">
         <reference name="head">
-            <action method="addItem">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
-                <params/>
             </action>
         </reference>
     </checkout_cart_index>
 
     <checkout_onepage_index translate="label">
+        <block type="core/template" name="xpc_data" template="xpaymentsconnector/checkout/xpc_data.phtml"/>
         <reference name="head">
-            <action method="addItem">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
-                <params/>
             </action>
-            <action method="addItem">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js</type>
                 <name>xpayment/checkout-submit.js</name>
-                <params/>
             </action>
-            <block type="core/template" name="xpc_data" template="xpaymentsconnector/xpc_data.phtml" />
+            <action method="append" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <block>xpc_data</block>
+            </action>
         </reference>
     </checkout_onepage_index>
 
-    <onestepcheckout_index_index>
+    <onestepcheckout_index_index translate="label">
+        <block type="core/template" name="xpc_data" template="xpaymentsconnector/checkout/xpc_data.phtml"/>
         <reference name="head">
-            <action method="addItem">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
-                <params/>
             </action>
-            <action method="addItem">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js</type>
                 <name>xpayment/checkout-submit.js</name>
-                <params/>
             </action>
-            <block type="core/template" name="xpc_data" template="xpaymentsconnector/xpc_data.phtml" />
+            <action method="append" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <block>xpc_data</block>
+            </action>
         </reference>
     </onestepcheckout_index_index>
 
-    <firecheckout_index_index>
+    <aw_onestepcheckout_index_index translate="label">
+        <block type="core/template" name="xpc_data" template="xpaymentsconnector/checkout/xpc_data.phtml"/>
         <reference name="head">
-            <action method="addItem">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
-                <params/>
             </action>
-            <action method="addItem">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js</type>
                 <name>xpayment/checkout-submit.js</name>
-                <params/>
             </action>
-            <block type="core/template" name="xpc_data" template="xpaymentsconnector/xpc_data.phtml" />
+            <action method="append" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <block>xpc_data</block>
+            </action>
+        </reference>
+    </aw_onestepcheckout_index_index>
+
+    <firecheckout_index_index translate="label">
+        <block type="core/template" name="xpc_data" template="xpaymentsconnector/checkout/xpc_data.phtml"/>
+        <block type="xpaymentsconnector/checkout_onepage_orderdetail" name="xpayment_recurring_detail" output="toHtml" after="checkout.onepage.review.button"
+                   template="xpaymentsconnector/checkout/onepage/order-detail.phtml"/>
+        <reference name="head">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <type>js_css</type>
+                <name>xpayment/settings.css</name>
+            </action>
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <type>js</type>
+                <name>xpayment/checkout-submit.js</name>
+            </action>
+            <action method="append" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <block>xpc_data</block>
+            </action>
         </reference>
         <reference name="checkout.onepage.review.info.items.after">
-            <block type="xpaymentsconnector/checkout_onepage_orderdetail" name="xpayment_recurring_detail" output="toHtml" after="checkout.onepage.review.button"
-                   template="xpaymentsconnector/checkout/onepage/order-detail.phtml"/>
+            <action method="append" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <block>xpayment_recurring_detail</block>
+            </action>
         </reference>
     </firecheckout_index_index>
 
     <checkout_onepage_review translate="label">
+        <block type="xpaymentsconnector/checkout_onepage_review_cc" name="xpc_review_cc" output="toHtml"
+               template="xpaymentsconnector/checkout/onepage/review/cc.phtml"/>
+        <block type="xpaymentsconnector/checkout_onepage_orderdetail" name="xpayment_recurring_detail" output="toHtml" after="checkout.onepage.review.button"
+               template="xpaymentsconnector/checkout/onepage/order-detail.phtml"/>
         <reference name="checkout.onepage.review.info.items.after">
-            <block type="xpaymentsconnector/checkout_onepage_settings" name="xpayment_settings" output="toHtml"
-                   template="xpaymentsconnector/checkout/onepage/xpayment-iframe.phtml"/>
-            <block type="xpaymentsconnector/checkout_onepage_orderdetail" name="xpayment_recurring_detail" output="toHtml" after="checkout.onepage.review.button"
-                   template="xpaymentsconnector/checkout/onepage/order-detail.phtml"/>
+            <action method="append" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <block>xpc_review_cc</block>
+            </action>
+            <action method="append" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <block>xpayment_recurring_detail</block>
+            </action>
         </reference>
     </checkout_onepage_review>
 
     <checkout_onepage_success>
         <reference name="content">
             <reference name="checkout.success">
-                <action method="setTemplate">
-                    <template helper="xpaymentsconnector/data/getCheckoutSuccessTemplate">
-                        <name>xpaymentsconnector/checkout/success.phtml</name>
-                        <block>checkout.success</block>
-                    </template>
+                <action method="setTemplate" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                    <template>xpaymentsconnector/checkout/success.phtml</template>
                 </action>
             </reference>
         </reference>
@@ -110,46 +135,37 @@ vim: set ts=4 sw=4 sts=4 et:
     <xpaymentsconnector_processing_redirect>
         <reference name="root">
             <action method="setTemplate">
-                <template>xpaymentsconnector/blank.phtml</template>
+                <template>xpaymentsconnector/checkout/blank.phtml</template>
             </action>
         </reference>
         <reference name="content">
-            <block type="xpaymentsconnector/redirect" name="xpaymentsconnector_redirect"
-                   template="xpaymentsconnector/redirect.phtml"/>
+            <block type="xpaymentsconnector/checkout_redirect" name="xpaymentsconnector_checkout_redirect"
+                   template="xpaymentsconnector/checkout/redirect.phtml"/>
         </reference>
     </xpaymentsconnector_processing_redirect>
-
-    <xpaymentsconnector_processing_redirectiframe>
-        <reference name="root">
-            <action method="setTemplate">
-                <template>xpaymentsconnector/blank.phtml</template>
-            </action>
-        </reference>
-        <reference name="content">
-            <block type="xpaymentsconnector/redirect" name="xpaymentsconnector_redirect"
-                   template="xpaymentsconnector/redirectiframe.phtml"/>
-        </reference>
-    </xpaymentsconnector_processing_redirectiframe>
 
     <xpaymentsconnector_processing_return>
         <reference name="root">
             <action method="setTemplate">
-                <template>xpaymentsconnector/blank.phtml</template>
+                <template>xpaymentsconnector/checkout/blank.phtml</template>
             </action>
         </reference>
         <reference name="content">
-            <block type="xpaymentsconnector/return" name="xpaymentsconnector_return"
-                   template="xpaymentsconnector/return.phtml"/>
+            <block type="xpaymentsconnector/checkout_return" name="xpaymentsconnector_checkout_return"
+                   template="xpaymentsconnector/checkout/return.phtml"/>
         </reference>
     </xpaymentsconnector_processing_return>
 
 
     <customer_account>
         <reference name="head">
-            <action method="addItem">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
-                <params/>
+            </action>
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <type>js</type>
+                <name>xpayment/add-new-card.js</name>
             </action>
         </reference>
         <reference name="customer_account_navigation">
@@ -165,7 +181,7 @@ vim: set ts=4 sw=4 sts=4 et:
         <label>Customer My Account credit cards list</label>
         <update handle="customer_account"/>
         <reference name="my.account.wrapper">
-            <block type="xpaymentsconnector/customer_usercards" name="xpaymentsconnector_customer_usercards" template="xpaymentsconnector/customer/usercards/list.phtml" />
+            <block type="xpaymentsconnector/customer_usercards_list" name="xpaymentsconnector_customer_usercards_list" template="xpaymentsconnector/customer/usercards/list.phtml" />
         </reference>
         <reference name="root">
             <action method="setHeaderTitle" translate="title" module="xpaymentsconnector"><title>My credit cards list</title></action>
@@ -176,7 +192,7 @@ vim: set ts=4 sw=4 sts=4 et:
         <label>Add new credit card to list (X-Payments)</label>
         <update handle="customer_account"/>
         <reference name="my.account.wrapper">
-            <block type="xpaymentsconnector/customer_cardadd" name="xpaymentsconnector_customer_cardadd" template="xpaymentsconnector/customer/usercards/cardadd.phtml" />
+            <block type="xpaymentsconnector/customer_usercards_add" name="xpaymentsconnector_customer_usercards_add" template="xpaymentsconnector/customer/usercards/add.phtml" />
         </reference>
     </xpaymentsconnector_customer_cardadd>
 

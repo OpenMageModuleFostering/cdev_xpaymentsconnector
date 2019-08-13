@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,24 +13,29 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
- * Grid column rendering for'Card Type'
+ * Grid column rendering for 'Card Type'
  */
-
-class Cdev_XPaymentsConnector_Block_Adminhtml_Customer_Edit_Renderer_Cardtype extends  Mage_Adminhtml_Block_Widget_Grid_Column_Renderer_Action
+class Cdev_XPaymentsConnector_Block_Adminhtml_Customer_Edit_Renderer_Cardtype extends Mage_Adminhtml_Block_Widget_Grid_Column_Renderer_Action
 {
-
-    public function render(Varien_Object $row){
-
+    /**
+     * Render row
+     *
+     * @param Varien_Object $row
+     *
+     * @return string
+     */
+    public function render(Varien_Object $row)
+    {
         $cardType = $row->getData($this->getColumn()->getIndex());
 
-        return '<span class="x-payment-card-logo-list '.strtolower($cardType).'"title="'.$cardType.'" ></span>';
+        return '<span class="xpc-card-logo-list ' . strtolower($cardType) . '" title="' . $cardType . '"></span>';
     }
 }

@@ -1,0 +1,86 @@
+<?php
+// vim: set ts=2 sw=2 sts=2 et:
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @author     Qualiteam Software <info@x-cart.com>
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php
+/**
+ * @see Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Tab_ZeroAuth
+ */
+?>
+
+<?php if (!Mage::helper('settings_xpc')->isCanSaveCards()): ?>
+  <ul class="messages">
+    <li class="error-msg">
+      <?php echo $this->__('X-Payments payment method is disabled, or saving credit cards is not activated'); ?>
+    </li>
+  </ul>
+<?php endif; ?>
+
+<div class="entry-edit">
+  <div class="entry-edit-head">
+    <h4><?php echo $this->__('Save credit card setup'); ?></h4>
+  </div>
+  <fieldset>
+    <form action="<?php echo $this->escapeUrl($this->getUrl('adminhtml/settings_xpc/zeroauth')); ?>" method="post" name="update_form" id="zero-auth-form">
+      <?php echo $this->getBlockHtml('formkey'); ?>
+      <table cellspacing="0" class="form-list">
+        <?php if (Mage::helper('settings_xpc')->isCanSaveCards()): ?>
+          <tr>
+            <td class="label">
+              <?php echo $this->__('Payment method'); ?>
+            </td>
+            <td class="value">
+              <select name="zero_auth_confid">
+                <?php foreach ($this->getPaymentMethodsList() as $confid => $name): ?>
+                  <option value="<?php echo $confid;?>" <?php if ($this->isZeroAuthConfId($confid)): ?>selected="selected"<?php endif; ?>><?php echo $this->__($name); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </td>
+          </tr>
+        <?php endif; ?>
+        <tr>
+          <td class="label">
+            <?php echo $this->__('Authorize amount for card setup'); ?>
+          </td>
+          <td class="value">
+            <input type="text" name="zero_auth_amount" value="<?php echo $this->getAmount(); ?>" class="input-text required-entry validate-float"/>
+              <p class="note">
+                <?php echo $this->__('Specify the amount to be used for credit cards authorization. Recommended 0.00, 0.01 or 1.00. Note: if you chose 0.00 make sure the payment gateway supports such authorization'); ?>
+              </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="label">
+            <?php echo $this->__('Description of the card setup payment'); ?>
+          </td>
+          <td class="value">
+            <input type="text" name="zero_auth_description" value="<?php echo Mage::helper('settings_xpc')->getXpcConfig('xpay_zero_auth_description'); ?>" class="input-text"/>
+            <p class="note">
+              <?php echo $this->__('Description of card setup authorization. Your store will send it to your payment gateway. You and your customers will see it on the bank receipt.'); ?>
+            </p> 
+          </td>
+        </tr>
+      </table>
+      <?php echo $this->getChildHtml('updateButton'); ?>
+    </form>
+  </fieldset>
+</div>
+

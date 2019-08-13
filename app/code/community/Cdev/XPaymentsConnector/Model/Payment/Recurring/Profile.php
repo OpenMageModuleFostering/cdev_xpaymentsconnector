@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -18,10 +19,11 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Mage
- * @package     Mage_Payment
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * @author     Qualiteam Software <info@x-cart.com>
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0) 
  */
 
 /**

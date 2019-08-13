@@ -1,0 +1,71 @@
+<?php
+// vim: set ts=2 sw=2 sts=2 et:
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @author     Qualiteam Software <info@x-cart.com>
+ * @category   Cdev
+ * @package    Cdev_XPaymentsConnector
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+?>
+<?php
+/**
+ * @see Cdev_XPaymentsConnector_Block_Customer_Usercards_Add
+ */
+?>
+
+<div class="page-title">
+  <h1><?php echo Mage::helper('xpaymentsconnector')->__('Payment cards') ?></h1>
+</div>
+
+<?php if (!$this->getError()): ?>
+
+  <div id="new-card-block">
+    <div id="xpayment-iframe-block">
+      <div class="iframe-block" id="iframe-container">
+        <iframe src="<?php echo $this->escapeUrl($this->getIframeUrl()); ?>" id="xpc-iframe" class="xp-iframe"></iframe>
+        <div id="loading-container"></div>
+      </div>
+      <div id="default-billing-addres">
+        <li class="item">
+          <h3><?php echo $this->__('Default Billing Address') ?></h3>
+          <address>
+            <?php echo $this->getDefaultAddressHtml(); ?>
+          </address>
+          <p><a href="<?php echo $this->escapeUrl($this->getEditAddressUrl()); ?>"><?php echo $this->__('Change Billing Address'); ?></a></p>
+        </li>
+      </div>
+      <div class="clearfix"></div>
+      <button type="submit" id="submit-button" class="button" /><?php echo $this->__('Save payment card'); ?></button>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+  //<![CDATA[
+    var xpcData = <?php echo $this->getXpcData(); ?>;
+  //]]>
+  </script>
+
+<?php else: ?>
+
+  <div class="error">
+    <?php echo $this->__($this->getError()); ?>
+  </div>
+
+<?php endif; ?>
+
+<div class="buttons-set">
+    <p class="back-link"><a href="<?php echo $this->escapeUrl($this->getBackUrl()); ?>"><small>&laquo; </small><?php echo $this->__('Back'); ?></a></p>
+</div>

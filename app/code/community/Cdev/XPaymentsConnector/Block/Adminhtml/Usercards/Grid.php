@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,35 +13,46 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Qualiteam Software info@qtmsoft.com
+ * @author     Qualiteam Software <info@x-cart.com>
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
+ * @copyright  (c) 2010-present Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
  * Adminhtml customer X-Payments 'Payment cards' tab
  */
-
 class Cdev_XPaymentsConnector_Block_Adminhtml_Usercards_Grid extends Mage_Adminhtml_Block_Widget_Grid
 {
-
+    /**
+     * Prepare collection
+     *
+     * @return Cdev_XPaymentsConnector_Block_Adminhtml_Customer_Edit_Tab_Usercards
+     */
     protected function _prepareCollection()
     {
         $collection = Mage::getResourceModel('xpaymentsconnector/usercards_collection')
             ->addFieldToFilter('user_id', $this->getRequest()->getParam('id'));
+
         $this->setCollection($collection);
+
         return parent::_prepareCollection();
     }
 
-    public function __construct(){
+    /**
+     * Constructor
+     *
+     * @return void
+     */
+    public function __construct()
+    {
         parent::__construct();
+
         $this->setId('xp_card_id');
         $this->setDefaultSort('xp_card_id', 'desc');
         $this->setUseAjax(true);
     }
-
 
     /**
      * Configure grid mass actions
@@ -54,12 +66,15 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Usercards_Grid extends Mage_Adminh
         $this->getMassactionBlock()->setUseAjax(true);
         $this->getMassactionBlock()->setHideFormElement(true);
 
-        $this->getMassactionBlock()->addItem('delete', array(
-            'label'=> Mage::helper('adminhtml')->__('Delete'),
-            'url'  => $this->getUrl('*/*/cardsMassDelete', array('_current' => true)),
-            'confirm' => Mage::helper('salesrule')->__('Are you sure you want to delete the selected card(s)?'),
-            'complete' => 'refreshUsercardsGrid'
-        ));
+        $this->getMassactionBlock()->addItem(
+            'delete', 
+            array(
+                'label'    => Mage::helper('adminhtml')->__('Delete'),
+                'url'      => $this->getUrl('*/*/cardsMassDelete', array('_current' => true)),
+                'confirm'  => Mage::helper('salesrule')->__('Are you sure you want to delete the selected card(s)?'),
+                'complete' => 'refreshUsercardsGrid'
+            )
+        );
 
         return $this;
     }
@@ -69,7 +84,6 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Usercards_Grid extends Mage_Adminh
      *
      * @return Mage_Adminhtml_Block_Widget_Grid
      */
-
     protected function _prepareColumns()
     {
         $collection = Mage::getModel('xpaymentsconnector/usercards')->getCollection()->addFieldToSelect('card_type')->distinct(true);
@@ -130,5 +144,40 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Usercards_Grid extends Mage_Adminh
         return parent::_prepareColumns();
     }
 
+    /**
+     * Prepare layout
+     *
+     * @return void
+     */
+    protected function _prepareLayout()
+    {
+        if (Mage::helper('settings_xpc')->isZeroAuthMethodConfigured()) {
 
+            $addNewButton = $this->getLayout()->createBlock('adminhtml/widget_button')->setData(
+                array(
+                    'label'   => Mage::helper('adminhtml')->__('Add new'),
+                    'onclick' => $this->getJsObjectName() . '.doAddNew()',
+                    'class'   => 'task'
+                )
+            );
+
+            $this->setChild('addnew_button', $addNewButton);
+        }
+        
+        return parent::_prepareLayout();
+    }
+
+    /**
+     * Get buttons HTML code
+     *
+     * @return string
+     */
+    public function getMainButtonsHtml()
+    {
+        $html = parent::getMainButtonsHtml();
+
+        $html .= $this->getChildHtml('addnew_button');
+
+        return $html;
+    }
 }
