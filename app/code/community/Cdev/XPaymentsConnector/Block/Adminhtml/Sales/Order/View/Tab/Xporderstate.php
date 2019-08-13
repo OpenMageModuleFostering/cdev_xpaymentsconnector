@@ -232,21 +232,31 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
         $amount = 0.00;
 
         if (
-            $data['capturedAmountAvail'] > 0 
-            && $data['refundedAmountAvail'] < 0.01
+            isset($data['capturedAmountAvail'])
+            && ($data['refundedAmountAvail'])
         ) {
 
-            $amount = $data['capturedAmountAvailGateway'];
+            if (
+                $data['capturedAmountAvail'] > 0 
+                && $data['refundedAmountAvail'] < 0.01
+            ) {
 
-        } elseif (
-            $data['refundedAmountAvail'] > 0 
-            && $data['capturedAmountAvail'] < 0.01
-        ) {
+                $amount = $data['capturedAmountAvailGateway'];
 
-            $amount = $data['refundedAmountAvail'];
+            } elseif (
+                $data['refundedAmountAvail'] > 0 
+                && $data['capturedAmountAvail'] < 0.01
+            ) {
+
+                $amount = $data['refundedAmountAvail'];
+            }
         }
 
-        if ($amount < 0.01 && $data['chargedAmount'] > 0) {
+        if (
+            isset($data['chargedAmount'])
+            && $amount < 0.01
+            && $data['chargedAmount'] > 0
+        ) {
 
             $amount = $data['chargedAmount'];
         }

@@ -21,11 +21,11 @@
  */
 
 /**
- * Create order controller
+ * Edit order controller
  */
-require_once 'Mage/Adminhtml/controllers/Sales/Order/CreateController.php';
+require_once 'Mage/Adminhtml/controllers/Sales/Order/EditController.php';
 
-class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_CreateController extends Mage_Adminhtml_Sales_Order_CreateController 
+class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_EditController extends Mage_Adminhtml_Sales_Order_EditController 
 {
     /**
      * Check if pay for order is allowed for user

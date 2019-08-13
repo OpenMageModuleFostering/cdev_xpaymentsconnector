@@ -61,6 +61,8 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
      */
     public function payAction()
     {
+        $order = null;
+
         try {
 
             $order = $this->getOrder();
@@ -77,7 +79,7 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
 
             // For some reason quote is empty here. But we actually need only its ID.
             // All the necessary data is taken from the quote XPC data
-            $quote->setEntityId($order->getQuoteId());
+            $quote->setEntityId($order->getQuoteId())->setStoreId($order->getStoreId());
 
             $quote->getXpcData()->setData('backend_orderid', $order->getIncrementId())->save();
 
@@ -94,11 +96,9 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
             echo $block->toHtml();
             exit;
 
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
 
-            $this->_getSession()->addError($this->__($e->getMessage()));
-
-            $this->_redirect('*/sales_order/view', array('order_id' => $this->getRequest()->getParam('order_id')));
+            $this->processExceptionAndRedirect($exception, $order);
         }
     }
 
@@ -122,9 +122,9 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
                 $this->_getSession()->addError('Order was not paid');
             }
 
-            $this->_redirect('*/sales_order/view', array('order_id' => $order->getId()));
+            $this->_redirect('*/sales_order/view', array('order_id' => $order->getEntityId()));
 
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
 
             $this->_getSession()->addError($this->__($e->getMessage()));
             $this->_redirect('*/*/');
@@ -155,7 +155,34 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
             throw new Exception($message);
         }
 
-        $this->_redirect('*/sales_order/view', array('order_id' => $this->getOrder()->getId()));
+        $this->_redirect('*/sales_order/view', array('order_id' => $this->getOrder()->getEntityId()));
+    }
+
+    /**
+     * Process X-Payments response and redirect
+     *
+     * @param Exception $exception
+     * @param Mage_Sales_Model_Order $order 
+     *
+     * @return void
+     */
+    private function processExceptionAndRedirect(Exception $exception, Mage_Sales_Model_Order $order = null)
+    {
+        $this->_getSession()->addError($this->__($exception->getMessage()));
+
+        if ($order) {
+
+            $this->_redirect('*/sales_order/view', array('order_id' => $order->getEntityId()));
+
+        } elseif ($this->getRequest()->getParam('order_id')) {
+
+            $this->_redirect('*/sales_order/view', array('order_id' => $this->getRequest()->getParam('order_id')));
+
+        } else {
+
+            $this->_redirect('*/sales_order/');
+            $this->setFlag('', self::FLAG_NO_DISPATCH, true);
+        }
     }
 
     /**
@@ -165,6 +192,8 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
      */
     public function secondaryAction()
     {
+        $order = null;
+
         try {
 
             // Model is not necessary to perform the action
@@ -202,16 +231,9 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
                 'Operation failed'
             );
 
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
 
-            $this->_getSession()->addError($this->__($e->getMessage()));
-
-            if ($order) {
-                $this->_redirect('*/sales_order/view', array('order_id' => $order->getId()));
-            } else {
-                $this->_redirect('*/*/');
-                $this->setFlag('', self::FLAG_NO_DISPATCH, true);
-            }
+            $this->processExceptionAndRedirect($exception, $order);
         }
     }
 
@@ -222,6 +244,8 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
      */
     public function acceptAction()
     {
+        $order = null;
+
         try {
 
             $order = $this->getOrder();
@@ -234,16 +258,9 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
                 'Transaction was not accepted'
             );
 
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
 
-            $this->_getSession()->addError($this->__($e->getMessage()));
-
-            if ($order) {
-                $this->_redirect('*/sales_order/view', array('order_id' => $order->getId()));
-            } else {
-                $this->_redirect('*/*/');
-                $this->setFlag('', self::FLAG_NO_DISPATCH, true);
-            }
+            $this->processExceptionAndRedirect($exception, $order);
         }
     }
 
@@ -254,6 +271,8 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
      */
     public function declineAction()
     {
+        $order = null;
+
         try {
 
             $order = $this->getOrder();
@@ -266,16 +285,9 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
                 'Transaction was not declined'
             );
 
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
 
-            $this->_getSession()->addError($this->__($e->getMessage()));
-
-            if ($order) {
-                $this->_redirect('*/sales_order/view', array('order_id' => $order->getId()));
-            } else {
-                $this->_redirect('*/*/');
-                $this->setFlag('', self::FLAG_NO_DISPATCH, true);
-            }
+            $this->processExceptionAndRedirect($exception, $order);
         }
     }
 
@@ -286,6 +298,8 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
      */
     public function rechargeAction()
     {
+        $order = null;
+
         try {
 
             $helper = Mage::helper('xpaymentsconnector');
@@ -318,16 +332,9 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_PaymentController extends Ma
                 'Order was not paid'
             );
 
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
 
-            $this->_getSession()->addError($this->__($e->getMessage()));
-
-            if ($order) {
-                $this->_redirect('*/sales_order/view', array('order_id' => $order->getId()));
-            } else {
-                $this->_redirect('*/*/');
-                $this->setFlag('', self::FLAG_NO_DISPATCH, true);
-            }
+            $this->processExceptionAndRedirect($exception, $order);
         }
     }
 

@@ -131,7 +131,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Cdev_XPaymentsCon
             'amount'      => $amount,
             'description' => $description,
             'cart'        => $preparedCart,
-            'callbackUrl' => Mage::helper('xpaymentsconnector')->getCallbackUrl($entityId, $this->getXpcSlot(), false),
+            'callbackUrl' => Mage::helper('xpaymentsconnector')->getCallbackUrl($entityId, $this->getXpcSlot(), $this->getStoreId(), false),
         );
 
         $response = Mage::helper('api_xpc')->requestPaymentRecharge($data);
@@ -148,23 +148,32 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Cdev_XPaymentsCon
      */
     public function isAvailable($quote = null)
     {
+        $result = false;
+
         if (
             parent::isAvailable($quote)
             && $quote
-            && $quote->getData('customer_id')
+            && !empty($quote->getCustomer()->getEmail())
         ) {
 
-            $cardsCount = Mage::getModel('xpaymentsconnector/usercards')
+            $email = $quote->getCustomer()->getEmail();
+            $list = Mage::getModel('customer/customer')
                 ->getCollection()
-                ->addFieldToFilter('user_id', $quote->getData('customer_id'))
-                ->addFieldToFilter('usage_type', Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD)
-                ->count();
+                ->addFieldToFilter('email', $email);
 
-            $result = (bool)$cardsCount;
+            foreach ($list as $customer) {
 
-        } else {
+                $cardsCount = Mage::getModel('xpaymentsconnector/usercards')
+                    ->getCollection()
+                    ->addFieldToFilter('user_id', $customer->getEntityId())
+                    ->addFieldToFilter('usage_type', Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD)
+                    ->count();
 
-            $result = false;
+                if ($cardsCount) {
+                    $result = true;
+                    break;
+                }
+            } 
         }
 
         return $result;
@@ -191,6 +200,14 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Cdev_XPaymentsCon
             $cardId = $request['xp_payment_card'];
             $customerId = $session->getQuote()->getCustomerId();
 
+            if (empty($customerId)) {
+
+                // Occasionally customer can be undefined at checkout session.
+                // Try taking it from the customer session.
+                $customer = Mage::getSingleton('customer/session')->getCustomer();
+                $customerId = $customer->getEntityId();
+            }
+
             $card = Mage::getModel('xpaymentsconnector/usercards')->load($cardId);
 
             // Make sure this card belongs to the current customer
@@ -203,7 +220,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Cdev_XPaymentsCon
         } catch (Exception $exception) {
 
             // Save error to display
-            $session->addError($e->getMessage());
+            $session->addError($exception->getMessage());
 
             // And throw it further
             throw $exception;

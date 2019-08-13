@@ -120,6 +120,8 @@ abstract class Cdev_XPaymentsConnector_Model_Payment_Cc extends Cdev_XPaymentsCo
             $refId = 'authorization';
             $entityId = $customer->getId();
 
+            $storeId = 0; // TODO. Consider this later. 
+
             $preparedCart = Mage::helper('cart_xpc')->prepareFakeCart($customer, $this->getXpcSlot());
 
             $isBackend = (bool)$customer->getXpBufer();
@@ -127,6 +129,8 @@ abstract class Cdev_XPaymentsConnector_Model_Payment_Cc extends Cdev_XPaymentsCo
         } else {
 
             $entityId = $quote->getEntityId();
+
+            $storeId = $quote->getStoreId();
 
             if ($quote->isBackendOrderQuote()) {
                 $refId = $quote->getXpcData()->getData('backend_orderid');
@@ -145,7 +149,7 @@ abstract class Cdev_XPaymentsConnector_Model_Payment_Cc extends Cdev_XPaymentsCo
             'refId'       => $refId,
             'cart'        => $preparedCart,
             'returnUrl'   => $helper->getReturnUrl($entityId, $this->getXpcSlot(), $isZeroAuth, $isBackend),
-            'callbackUrl' => $helper->getCallbackUrl($entityId, $this->getXpcSlot(), $isZeroAuth),
+            'callbackUrl' => $helper->getCallbackUrl($entityId, $this->getXpcSlot(), $storeId, $isZeroAuth),
         );
 
         $response = Mage::helper('api_xpc')->initPayment($data);

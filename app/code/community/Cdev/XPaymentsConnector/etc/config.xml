@@ -24,7 +24,7 @@
 <config>
     <modules>
         <Cdev_XPaymentsConnector>
-            <version>1.8.0</version>
+            <version>1.8.1</version>
         </Cdev_XPaymentsConnector>
     </modules>
     <global>
@@ -294,7 +294,7 @@
                 <xpay_api_version>1.7</xpay_api_version>
                 <xpay_use_iframe>1</xpay_use_iframe>
                 <xpay_iframe_place>payment</xpay_iframe_place>
-                <xpay_zero_auth_amount>0.5</xpay_zero_auth_amount>
+                <xpay_zero_auth_amount>1.0</xpay_zero_auth_amount>
                 <xpay_zero_auth_description>Card setup</xpay_zero_auth_description>
             </settings>
         </xpaymentsconnector>

@@ -122,6 +122,23 @@ vim: set ts=4 sw=4 sts=4 et:
         </reference>
     </checkout_onepage_review>
 
+    <onepagecheckout_index_index translate="label">
+        <block type="core/template" name="xpc_data" template="xpaymentsconnector/checkout/xpc_data.phtml"/>
+        <reference name="head">
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <type>js_css</type>
+                <name>xpayment/settings.css</name>
+            </action>
+            <action method="addItem" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <type>js</type>
+                <name>xpayment/checkout-submit.js</name>
+            </action>
+            <action method="append" module="xpaymentsconnector" ifconfig="xpaymentsconnector/settings/xpay_is_configured">
+                <block>xpc_data</block>
+            </action>
+        </reference>
+    </onepagecheckout_index_index>
+
     <checkout_onepage_success>
         <reference name="content">
             <reference name="checkout.success">

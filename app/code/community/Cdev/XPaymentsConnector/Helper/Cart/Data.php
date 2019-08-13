@@ -41,7 +41,7 @@ class Cdev_XPaymentsConnector_Helper_Cart_Data extends Cdev_XPaymentsConnector_H
         if (
             isset($totals[$key])
             && is_object($totals[$key])
-            && method_exists($totals[$key], 'getValue')
+            && is_callable(array($totals[$key], 'getValue')) 
         ) {
             $value = abs($totals[$key]->getValue());
         }
@@ -70,7 +70,18 @@ class Cdev_XPaymentsConnector_Helper_Cart_Data extends Cdev_XPaymentsConnector_H
         
         } else {
 
-            $quote->collectTotals();
+            try {
+
+                if ('savedcards' != $quote->getPayment()->getMethodInstance()->getCode()) {
+                    // Re-collecting totals erases single-use coupon from the "recharge" quote
+                    $quote->collectTotals();
+                }
+
+            } catch (Exception $e) {
+
+                // Method is not set in the quote model yet. Do nothing.
+            }
+
             $totals = $quote->getTotals();
 
             $result['totalCost'] = $this->preparePrice($quote->getGrandTotal());

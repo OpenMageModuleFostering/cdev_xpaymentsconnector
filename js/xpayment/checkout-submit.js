@@ -51,9 +51,20 @@ function sendSubmitMessage()
  */
 function isXpcMethod() 
 {
-    var block = $$('input:checked[type=radio][name=payment[method]][value^=xpayments]');
+    var result = false;
 
-    return Boolean(block.length);
+    if ($$('input:checked[type=radio][name=payment[method]][value^=xpayments]').length) {
+
+        // This is for other checkout modules
+        result = true;
+
+    } else if (null != $('iwd_opc_payment_method_select')) {
+
+        // This is for IWD Checkout suite
+        result = $('iwd_opc_payment_method_select').value.match(/xpayments/);
+    }
+
+    return result;
 }
 
 function getCurrentXpcMethod()
@@ -64,6 +75,8 @@ function getCurrentXpcMethod()
 
     if (block.length) {
         code = block[0].value;
+    } else if (null != $('iwd_opc_payment_method_select')) {
+        code = $('iwd_opc_payment_method_select').value;
     }
 
     return code;
@@ -405,7 +418,11 @@ document.observe('dom:loaded', function () {
         }
 
         // This is for Firecheckout
-        if ($('firecheckout-form')) {
+        // And Venedor Theme 1.6.3
+        if (
+            $('firecheckout-form')
+            || $('onepagecheckout_orderform') 
+        ) {
 
             checkout.setLoadWaiting(false);
             $('review-please-wait').hide();
@@ -672,6 +689,56 @@ document.observe('dom:loaded', function () {
   
                 // Shipping method changed
                 document.fire('xpc:checkoutChanged', 'shipping');
+            }
+        );
+    }
+
+    // This is for Venedor Theme (1.6.3) and Onepagecheckout
+    if ($('onepagecheckout_orderform')) {
+
+        // Checkout is loaded
+        document.fire('xpc:checkoutChanged', 'loaded');
+
+        payment.switchMethod = payment.switchMethod.wrap(
+            function(parentMethod) {
+                parentMethod();
+
+                // Payment method changed
+                document.fire('xpc:checkoutChanged', 'payment');
+            }
+        );
+
+        OPC.prototype.save = OPC.prototype.save.wrap(
+            function(parentMethod) {
+
+                if (isXpcMethod()) {
+
+                    if (this.loadWaiting != false) {
+                        return;
+                    }
+
+                    // Save original "save" URL
+                    this.savedSaveUrl = this.saveUrl;
+
+                    this.saveUrl = xpcData.url[getCurrentXpcMethod()].saveCheckoutData;
+
+                    parentMethod();
+
+                    checkout.setLoadWaiting(true);
+                    $('review-please-wait').show();
+
+                    this.saveUrl = this.savedSaveUrl;
+
+                    if (xpcData.useIframe) {
+                        sendSubmitMessage();
+                    } else {
+                        window.location.href = xpcData.url[getCurrentXpcMethod()].dropTokenAndRedirect;
+                    }
+
+                } else {
+
+                    return parentMethod();
+                }
             }
         );
     }

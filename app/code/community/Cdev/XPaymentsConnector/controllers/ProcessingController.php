@@ -557,15 +557,24 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
      *
      * @param string $quoteId
      * @param int    $xpcSlot Slot index of the XPC payment method
+     * @param int    $storeId Store ID
      *
      * @return array
      */
-    protected function getQuoteCheckCartResponse($quoteId, $xpcSlot)
+    protected function getQuoteCheckCartResponse($quoteId, $xpcSlot, $storeId = 0)
     {
         $helper = Mage::helper('xpaymentsconnector');
 
-        $quote = Mage::getModel('xpaymentsconnector/quote')->load($quoteId)
-            ->setXpcSlot($xpcSlot);
+        $quote = Mage::getModel('xpaymentsconnector/quote');
+
+        if (!empty($storeId)) {
+
+            // Set current store (if passed)
+            $store = Mage::getSingleton('core/store')->load($storeId);
+            $quote->setStore($store);
+        }
+
+        $quote->load($quoteId)->setXpcSlot($xpcSlot);
 
         if ($quote->isBackendOrderQuote()) {
 
@@ -655,9 +664,16 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
         $size = ob_get_length();
 
         header('Content-Length: ' . $size);
+        header('Content-Encoding: none');
 
         ob_end_flush();
         flush();
+
+        if (is_callable('fastcgi_finish_request')) {
+            // Required for nginx
+            session_write_close();
+            fastcgi_finish_request();
+        }
 
         exit;
     }
@@ -695,6 +711,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
         $quoteId = Mage::app()->getRequest()->getParam('quote_id');
         $customerId = Mage::app()->getRequest()->getParam('customer_id');
         $xpcSlot = Mage::app()->getRequest()->getParam('xpc_slot');
+        $storeId = Mage::app()->getRequest()->getParam('store_id');
         $confId = Mage::helper('settings_xpc')->getConfidByXpcSlot($xpcSlot);
 
         if (
@@ -709,7 +726,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             // Process check-cart callback request
             
             $data = $quoteId
-                ? $this->getQuoteCheckCartResponse($quoteId, $xpcSlot)
+                ? $this->getQuoteCheckCartResponse($quoteId, $xpcSlot, $storeId)
                 : $this->getCustomerCheckCartResponse($customerId, $request['txnId']);
 
             $helper->writeLog('Response for check-cart request', $data);
@@ -820,13 +837,25 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
      */
     private function saveAddress($data, $customerId)
     {
-        $newAddress = Mage::getModel('customer/address');
+        if (!is_numeric($customerId)) {
+            return;
+        }
 
-        $newAddress->setData($data)
-            ->setCustomerId($customerId)
-            ->setSaveInAddressBook(true);
+        try {
 
-        $newAddress->save();
+            $newAddress = Mage::getModel('customer/address');
+
+            $newAddress->setData($data)
+                ->setCustomerId($customerId)
+                ->setSaveInAddressBook(true);
+
+            $newAddress->save();
+
+        } catch (Exception $e) {
+
+            // Unable to save address for some reason
+            Mage::helper('xpaymentsconnector')->writeLog('Error saving address in address book', $e->getMessage());            
+        }
     }
 
     /**
@@ -1032,14 +1061,14 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
                 // Process return after successful payment
                 $this->processReturnSuccess($quote, $order);
 
+                // Send confirmation email
+                $this->processConfirmationEmail($order);
+
             } else {
 
                 // Process return after declined payment
                 $this->processReturnDecline($quote, $order);
             }
-
-            // Send confirmation email
-            $this->processConfirmationEmail($order);
 
             $order->save();
 
@@ -1174,6 +1203,9 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
 
             // Auto create invoice if necessary
             Mage::helper('xpaymentsconnector')->processCreateInvoice($order);
+
+            // Send confirmation email
+            $this->processConfirmationEmail($order);
 
             $this->_redirect('checkout/onepage/success');
         }

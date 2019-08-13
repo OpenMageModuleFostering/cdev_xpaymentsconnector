@@ -712,16 +712,18 @@ class Cdev_XPaymentsConnector_Helper_Data extends Cdev_XPaymentsConnector_Helper
      *
      * @param string $entityId   Quote ID or Cutomer ID
      * @param int    $xpcSlot    Slot index of the XPC payment method
+     * @param int    $storeId    Store ID
      * @param bool   $isZeroAuth Is it zero auth request
      *
      * @return array
      */
-    public function getCallbackUrl($entityId, $xpcSlot, $isZeroAuth = false)
+    public function getCallbackUrl($entityId, $xpcSlot, $storeId = 0, $isZeroAuth = false)
     {
         $params = array(
             '_secure'  => !Mage::helper('settings_xpc')->getXpcConfig('xpay_force_http'),
             '_nosid'   => true,
             'xpc_slot' => $xpcSlot,
+            'store_id' => $storeId, 
         );
 
         if ($isZeroAuth) {
@@ -873,6 +875,7 @@ class Cdev_XPaymentsConnector_Helper_Data extends Cdev_XPaymentsConnector_Helper
         // Check if external checkout module is enabled
         $isOscModuleEnabled = Mage::helper('settings_xpc')->checkOscModuleEnabled();
         $isFirecheckoutModuleEnabled = Mage::helper('settings_xpc')->checkFirecheckoutModuleEnabled();
+        $isIwdModuleEnabled = Mage::helper('settings_xpc')->checkIwdModuleEnabled();
 
         // Grab data saved at checkout
         $data = unserialize($quote->getXpcData()->getData('checkout_data'));
@@ -913,9 +916,13 @@ class Cdev_XPaymentsConnector_Helper_Data extends Cdev_XPaymentsConnector_Helper
             // Save shipping method
             if (!empty($data['shipping_method'])) {
 
-                if ($isFirecheckoutModuleEnabled) {
+                if (
+                    $isFirecheckoutModuleEnabled
+                    || $isIwdModuleEnabled
+                ) {
                     // Necessary for the FC. 
                     // See TM_FireCheckout_IndexController::saveShippingAction()
+                    // And for the IWD checkout module/Venedor theme
                     $quote->collectTotals();
                 }
 
@@ -1028,7 +1035,10 @@ class Cdev_XPaymentsConnector_Helper_Data extends Cdev_XPaymentsConnector_Helper
             $result = isset($data['create_account']) 
                 && (bool)$data['create_account'];
 
-        } elseif ($settings->checkFirecheckoutModuleEnabled()) {
+        } elseif (
+            $settings->checkFirecheckoutModuleEnabled()
+            || $settings->checkIwdModuleEnabled()
+        ) {
 
             // For Firecheckout module
             $data = unserialize($quote->getXpcData()->getData('checkout_data'));

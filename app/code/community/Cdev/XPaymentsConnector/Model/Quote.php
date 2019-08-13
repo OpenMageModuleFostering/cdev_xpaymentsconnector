@@ -245,11 +245,15 @@ class Cdev_XPaymentsConnector_Model_Quote extends Mage_Sales_Model_Quote
 
         if (
             count($addresses) > 2
-            && Mage::helper('settings_xpc')->checkFirecheckoutModuleEnabled()
+            && (
+                Mage::helper('settings_xpc')->checkFirecheckoutModuleEnabled()
+                || Mage::helper('settings_xpc')->checkIwdModuleEnabled()
+            )
         ) {
 
             // Remove "extra" addresses for the Firecheckout module
             // See XP-659
+            // And for the IWD checkout module/Venedor theme
 
             $shippingFound = $billingFound = false;
 

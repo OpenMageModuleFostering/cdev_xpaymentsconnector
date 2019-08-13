@@ -281,7 +281,7 @@ class Cdev_XPaymentsConnector_Helper_Settings_Data extends Cdev_XPaymentsConnect
     }
 
     /**
-     * Check if some external checkout module is enablled and activated
+     * Check if some external checkout module is enabled and activated
      *
      * @param string $name Module name
      * @param string $configPath Configuration path to activate the module
@@ -308,7 +308,7 @@ class Cdev_XPaymentsConnector_Helper_Settings_Data extends Cdev_XPaymentsConnect
     }
 
     /**
-     * Check if Idev OneStepCheckout module is enablled and activated
+     * Check if Idev OneStepCheckout module is enabled and activated
      *
      * @return bool
      */
@@ -321,7 +321,7 @@ class Cdev_XPaymentsConnector_Helper_Settings_Data extends Cdev_XPaymentsConnect
     }
 
     /**
-     * Check if Firecheckout module is enablled and activated
+     * Check if Firecheckout module is enabled and activated
      *
      * @return bool
      */
@@ -330,6 +330,19 @@ class Cdev_XPaymentsConnector_Helper_Settings_Data extends Cdev_XPaymentsConnect
         return $this->checkExternalCheckoutModuleEnabled(
             'TM_FireCheckout',
             'firecheckout/general/enabled'
+        );
+    }
+
+    /**
+     * Check IWD One Page Checkout is enabled and activated 
+     *
+     * @return bool
+     */
+    public function checkIwdModuleEnabled()
+    {
+        return $this->checkExternalCheckoutModuleEnabled(
+            'IWD_OnepageCheckout',
+            'onepagecheckout/general/enabled'
         );
     }
 
