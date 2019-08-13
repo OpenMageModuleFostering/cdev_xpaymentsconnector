@@ -424,48 +424,16 @@ iframe .buttonRow {
 }
 
 /*add new credit card block style*/
-
-
-#new-card-block #default-billing-addres {
-    overflow: hidden;
-    width: 45%;
-    padding: 30px 10% 10px;
-    box-sizing: border-box;
-}
-
-#new-card-block #default-billing-addres li {
-    list-style-type: none;
-}
-
 #new-card-block #xpayment-iframe-block {
     background-color: rgb(251, 250, 246);
     border: 1px solid rgb(196, 193, 188);
-    padding: 30px;
-}
-#new-card-block #xpayment-iframe-block:after {
-    display: block;
-    clear: both;
-    content: '';
-}
-#new-card-block #xpayment-iframe-block .iframe-block {
-    float: left;
-    width: 55%;
-}
-
-@media screen and (max-width: 768px){
-    #new-card-block #xpayment-iframe-block .iframe-block {
-        float: none;
-        width: 100%;
-    }
-    #new-card-block #default-billing-addres {
-        width: 100%;
-    }
+    padding-bottom: 40px;
+    padding-top: 10px;
 }
 
 #new-card-block #xpayment-iframe-block #create-card-button{
-    clear: both;
     float: right;
-    margin: 25px;
+    padding-right: 25px;
 }
 
 /* xp transaction form */

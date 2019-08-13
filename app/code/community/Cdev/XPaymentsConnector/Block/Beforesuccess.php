@@ -28,7 +28,6 @@
  */
 class Cdev_XPaymentsConnector_Block_Beforesuccess extends Mage_Core_Block_Template
 {
-    protected $_agreements = array();
     /**
      * Get block contecnt as HTML
      *
@@ -55,18 +54,6 @@ class Cdev_XPaymentsConnector_Block_Beforesuccess extends Mage_Core_Block_Templa
     public function getXpaymentsCode(){
         $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
         return $xpaymentPaymentCode;
-    }
-
-    public function getAgreements(){
-        if(empty($this->_agreements)){
-            if (Mage::getStoreConfigFlag('checkout/options/enable_agreements')) {
-                $agreements = Mage::getModel('checkout/agreement')->getCollection()
-                    ->addStoreFilter(Mage::app()->getStore()->getId())
-                    ->addFieldToFilter('is_active', 1);
-                $this->_agreements = $agreements;
-            }
-        }
-        return $this->_agreements;
     }
 
 }

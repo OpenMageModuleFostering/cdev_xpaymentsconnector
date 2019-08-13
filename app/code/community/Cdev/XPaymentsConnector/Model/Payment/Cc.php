@@ -763,6 +763,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         $body = curl_exec($ch);
         $errno = curl_errno($ch);
         $error = curl_error($ch);
+
         // Check raw data
         if (substr($body, 0, 3) !== 'API') {
 
@@ -771,7 +772,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
                 return $this->getAPIError(
                     'Response is not valid.' . "\n"
                     //. 'Response headers: ' . var_export($headers, true) . "\n"
-                    . 'Response: ' . $body . $error . "\n"
+                    . 'Response: ' . $body . "\n"
                 );
 
             } else {
@@ -1559,10 +1560,8 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         $refId = $xpHelper->getOrderKey();
         $customerEmail = '';
 
-        $billingAddress = ($isCardAuthorizePayment) ? $customer->getDefaultBillingAddress()
-                                                    : $checkoutData->getQuote()->getBillingAddress();
-        $shippingAddress = ($isCardAuthorizePayment) ? $customer->getDefaultShippingAddress()
-                                                    : $checkoutData->getQuote()->getShippingAddress();
+        $billingAddress = $checkoutData->getQuote()->getBillingAddress();
+        $shippingAddress = $checkoutData->getQuote()->getShippingAddress();
         $quote = $checkoutData->getQuote();
         $result = array();
         /*initial fee check*/
@@ -1681,7 +1680,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
             $addressIndex = $prefix . 'Address';
             foreach ($addressFields as $field => $fn) {
-                $result[$addressIndex][$field] = ($data) ? $data->getData($fn) : $data;
+                $result[$addressIndex][$field] = $data->getData($fn);
                 if(($field == 'firstname' || $field == 'lastname') && $isCardAuthorizePayment){
                     $result[$addressIndex][$field] = $customer->getData($field);
                 }
@@ -1698,11 +1697,10 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
                     $result[$addressIndex][$field] = 'n/a';
                 }
             }
-            if($data){
-                $result[$addressIndex]['name'] = trim(
-                    $data->getData('firstname') . ' ' . $data->getData('lastname')
-                );
-            }
+
+            $result[$addressIndex]['name'] = trim(
+                $data->getData('firstname') . ' ' . $data->getData('lastname')
+            );
         }
 
         if($shippingIsEmpty){
@@ -1858,25 +1856,14 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $order->save();
 
             $result['success'] = false;
-
-            if (!empty($response['error_message'])) {
-                $result['error_message'] = $xpaymentsHelper->__('%s. The order has been canceled.', $response['error_message']);
-            } elseif (!empty($response['payment']['advinfo']['Message'])) {
-                $result['error_message'] = $xpaymentsHelper->__('%s. The order has been canceled.', $response['payment']['advinfo']['Message']);
-            } else {
-                $transactionStatusLabel = $this->getTransactionStatusLabels();
-                if (
-                    isset($response['payment'])
-                    && is_array($response['payment'])
-                    && isset($response['payment']['status'])
-                    && isset($transactionStatusLabel[$response['payment']['status']])
-                ) {
-                    $status = $transactionStatusLabel[$response['payment']['status']];
-                } else {
-                    $status = 'unknown';
-                }
-
-                $result['error_message'] = $xpaymentsHelper->__('Transaction status is "%s". The order has been canceled.', $status);
+            if(!empty($response['payment']['error_message'])){
+                $result['error_message'] = $xpaymentsHelper->__('%s. The order has been canceled.',$response['payment']['error_message']);
+            } elseif (!empty($response['error_message'])) {
+                $result['error_message'] = $xpaymentsHelper->__('%s. The order has been canceled.',$response['error_message']);
+            }
+            else{
+                $transactionStatusLabel =  $this->getTransactionStatusLabels();
+                $result['error_message'] = $xpaymentsHelper->__('Transaction status is "%s". The order has been canceled.',$transactionStatusLabel[$response['payment']['status']]);
             }
 
             return $result;

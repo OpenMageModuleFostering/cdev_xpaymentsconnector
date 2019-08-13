@@ -25,23 +25,6 @@
 
 class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Template
 {
-    protected $_customerSession = null;
-    protected $_defaultBillingAddress = null;
-
-
-
-    /**
-     * Internal constructor, that is called from real constructor
-     *
-     */
-    protected function _construct()
-    {
-        parent::_construct();
-        $this->_customerSession = Mage::getSingleton('customer/session');
-        $customer = $this->_customerSession->getCustomer();
-        $this->_defaultBillingAddress = $customer->getDefaultBillingAddress();
-
-    }
 
     /**
      * Enter description here...
@@ -65,7 +48,8 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
         $refId =  'authorization';
         $updateSendData = array();
 
-        $customerId = $this->_customerSession->getId();
+        $customerSession = Mage::getSingleton('customer/session');
+        $customerId = $customerSession->getId();
 
         $updateSendData['returnUrl'] = Mage::getUrl('xpaymentsconnector/customer/cardadd',
             array('order_refid' => $refId,'customer_id' => $customerId,'_secure' => true));
@@ -95,18 +79,6 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
         $xpayUrlMas =  parse_url(Mage::getModel('xpaymentsconnector/payment_cc')->getConfig('xpay_url'));
         $xpayUrl =  $xpayUrlMas["scheme"]."://".$xpayUrlMas["host"];
         return $xpayUrl;
-    }
-
-    public function getDefaultAddressHtml(){
-        return ($this->_defaultBillingAddress) ? $this->_defaultBillingAddress->format('html') : "";
-    }
-
-    public function getAddressEditUrl()
-    {
-        if (!empty($this->getDefaultAddressHtml())) {
-            return $this->getUrl('customer/address/edit', array('_secure' => true, 'id' => $this->_defaultBillingAddress->getId()));
-        }
-        return $this->getUrl('customer/address/edit');
     }
 
 

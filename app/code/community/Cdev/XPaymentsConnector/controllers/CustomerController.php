@@ -91,12 +91,6 @@ class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Fr
 
     public function cardaddAction(){
 
-        $customer = Mage::getSingleton('customer/session')->getCustomer();
-        if ($customer) {
-            if (empty($customer->getDefaultBillingAddress()))
-                Mage::getSingleton("core/session")->addError("Please specify billing address for this credit card.");
-        }
-
         $isPostResponse = $this->getRequest()->isPost();
         if($isPostResponse){
             // Check request data
@@ -122,18 +116,18 @@ class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Fr
                 !$status
                 || !in_array($response['status'], array($CCPaymentModel::AUTH_STATUS, $CCPaymentModel::CHARGED_STATUS))
             ) {
-                if (!empty($response['advinfo']['Message'])) {
-                    $errorMessage = $this->__('%s New card has not been saved.', $response['advinfo']['Message']);
-                } elseif (isset($transactionStatusLabel[$response['status']])) {
-                    $errorMessage = $this->__("Transaction status is '%s'. New card has not been saved.", $transactionStatusLabel[$response['status']]);
+                if (isset($transactionStatusLabel[$response['status']])) {
+                    $errorMessage = $this->__("Transaction status is '%s'. Card authorization has been cancelled.",$transactionStatusLabel[$response['status']]);
                 } else {
-                    $errorMessage = $this->__('%s New card has not been saved.', $response['error_message']);
+                    $errorMessage = $this->__('%s. Card authorization has been cancelled.',$response['error_message']);
                 }
 
                 Mage::getSingleton('customer/session')->addError($errorMessage);
                 $resultMessage = 'Card authorization has been cancelled.';
             }else{
+                $customer = Mage::getSingleton('customer/session')->getCustomer();
                 $cardData = unserialize($customer->getData('xp_buffer'));
+
                 // save user card
                 Mage::getSingleton('checkout/session')->setData('user_card_save',true);
                 $newCardData = $CCPaymentModel->saveUserCard($cardData);

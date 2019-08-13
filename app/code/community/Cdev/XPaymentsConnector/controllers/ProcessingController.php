@@ -102,7 +102,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
         }
 
         // add request to log
-        if (isset($request['updateData'])) {
+        if ($request['updateData']) {
             $request['updateData'] = $api->decryptXML($request['updateData']);
         }
 

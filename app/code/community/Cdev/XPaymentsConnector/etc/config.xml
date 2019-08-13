@@ -384,6 +384,36 @@
 				</Cdev_XPaymentsConnector>
 			</modules>
 		</translate>
+		<acl>
+			<resources>
+				<admin>
+					<children>
+						<system>
+							<children>
+								<config>
+									<children>
+										<xpaymentsconnector>
+											<title>X-Payments connector Settings</title>
+										</xpaymentsconnector>
+									</children>
+								</config>
+							</children>
+						</system>
+					</children>
+				</admin>
+			</resources>
+		</acl>
+		<menu>
+			<system>
+				<children>
+		        	<control translate="title" module="xpaymentsconnector">
+    	    	        <title>X-Payments connector</title>
+	            	    <sort_order>300</sort_order>
+                		<action>xpaymentsconnector/control</action>
+		        	</control>
+				</children>
+			</system>
+		</menu>
 	</adminhtml>
 	<default>
 		<payment>		

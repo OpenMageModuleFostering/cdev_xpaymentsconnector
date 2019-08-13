@@ -52,14 +52,7 @@
             jQuery("#checkout-agreements input", window.parent.document).each(function (obj, item) {
                 dataObj[item.name] = item.value;
             });
-        } else {
-            <?php if ($this->getAgreements()): ?>
-                <?php foreach($this->getAgreements() as $_a):?>
-                    dataObj['agreement[<?php echo $_a->getId()?>]'] = 1;
-                <?php endforeach;?>
-            <?php endif; ?>
         }
-
         dataObj["payment[method]"] = "<?php echo $this->getXpaymentsCode();?>";
         dataObj["form_key"] = "<?php echo $formKey;?>";
 

@@ -38,22 +38,8 @@ $xpayUrl =  $this->getXpayUrl();
     <div id="new-card-block">
         <?php if($result['success']):?>
             <div id="xpayment-iframe-block">
-                <div class="iframe-block">
-                    <?php if (!empty($this->getDefaultAddressHtml())): ?>
-                        <iframe id="xp-iframe" class="xp-iframe" data-src="<?php echo $result['iframe_url'];?>"
-                                src="<?php echo $result['iframe_url'];?>" name="xp-iframe">
-                        </iframe>
-                    <?php endif; ?>
-                </div>
-                <div id="default-billing-addres">
-                    <li class="item">
-                        <h3><?php echo $this->__('Default Billing Address') ?></h3>
-                        <address>
-                            <?php echo $this->getDefaultAddressHtml() ?>
-                        </address>
-                        <p><a href="<?php echo $this->getAddressEditUrl() ?>"><?php echo $this->__('Change Billing Address') ?></a></p>
-                    </li>
-                </div>
+                <iframe id="xp-iframe" class="xp-iframe" data-src="<?php echo $result['iframe_url'];?>" src="<?php echo $result['iframe_url'];?>" name="xp-iframe">
+                </iframe>
                 <button onclick="cardAuthorizeSubmit();" id="create-card-button" class="button" title="Add new card" type="button"><span><span>Create card</span></span></button>
                 <span style="display:none;" id="card-add-please-wait" class="please-wait">
                 <img class="v-middle" title="<?php echo $this->__("Submit card information...");?>" alt="<?php echo $this->__("Submit card information...");?>"
