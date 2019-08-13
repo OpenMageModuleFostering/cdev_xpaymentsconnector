@@ -322,7 +322,11 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         return false;
     }
 
-
+    /**
+     * @param $name
+     * @param $block
+     * @return string
+     */
     public function getReviewButtonTemplate($name, $block)
     {
         $quote = Mage::getSingleton('checkout/session')->getQuote();
@@ -342,6 +346,9 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         return '';
     }
 
+    /**
+     * @return bool
+     */
     public function isNeedToSaveUserCard()
     {
         $result = (bool)Mage::getSingleton('checkout/session')->getData('user_card_save');
@@ -352,6 +359,9 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         Mage::getSingleton('checkout/session')->setData('user_card_save',false);
     }
 
+    /**
+     * @return bool
+     */
     public function isRegisteredUser()
     {
         $currentCustomerState = Mage::getSingleton('checkout/type_onepage')->getCheckoutMethod();
@@ -364,6 +374,10 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         }
     }
 
+    /**
+     * @param $currentPaymentCode
+     * @return bool
+     */
     public function isXpaymentsMethod($currentPaymentCode)
     {
         $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
@@ -608,6 +622,9 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         return $result;
     }
 
+    /**
+     * @return bool
+     */
     public function checkIssetSimpleOrder()
     {
         $checkoutSession = Mage::getSingleton('checkout/session');
@@ -750,6 +767,9 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         }
     }
 
+    /**
+     * @return array
+     */
     public function checkStartDateData()
     {
         $result = array();
@@ -856,6 +876,9 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         }
     }
 
+    /**
+     * @return string
+     */
     public function getIframeUrl()
     {
 
@@ -1062,6 +1085,22 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         }
 
         return $xpCardDataStr;
+    }
+
+    /**
+     * @param $name
+     * @param $block
+     * @return mixed
+     */
+    public function getCheckoutSuccessTemplate($name, $block)
+    {
+        if (Mage::helper('core')->isModuleEnabled('Vsourz_Ordersuccess')) {
+            if ($blockObject = Mage::getSingleton('core/layout')->getBlock($block)) {
+                return $blockObject->getTemplate();
+            }
+        } else {
+            return $name;
+        }
     }
 
 }

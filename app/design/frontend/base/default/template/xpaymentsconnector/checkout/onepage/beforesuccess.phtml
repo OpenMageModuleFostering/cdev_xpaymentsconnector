@@ -46,28 +46,43 @@
 <?php $formKey = Mage::getSingleton('core/session')->getFormKey();?>
 
 <script type="text/javascript">
-    jQuery(document).ready(function(){
+    jQuery(document).ready(function () {
+        var dataObj = {};
+        if (jQuery("#checkout-agreements", window.parent.document).length) {
+            jQuery("#checkout-agreements input", window.parent.document).each(function (obj, item) {
+                dataObj[item.name] = item.value;
+            });
+        } else {
+            <?php if ($this->getAgreements()): ?>
+                <?php foreach($this->getAgreements() as $_a):?>
+                    dataObj['agreement[<?php echo $_a->getId()?>]'] = 1;
+                <?php endforeach;?>
+            <?php endif; ?>
+        }
+
+        dataObj["payment[method]"] = "<?php echo $this->getXpaymentsCode();?>";
+        dataObj["form_key"] = "<?php echo $formKey;?>";
+
         jQuery.ajax({
             url: "<?php echo $this->getSaveOrderUrl();?>",
             type: "post",
-            data: {"payment[method]": "<?php echo $this->getXpaymentsCode();?>","form_key":"<?php echo $formKey;?>"},
-            datatype: 'json',
-            success: function(data){
+            data: jQuery.param(dataObj),
+            success: function (data) {
                 var response = jQuery.parseJSON(data);
-                if(response.success == true){
+                if (response.success == true) {
                     window.parent.location = "<?php echo $this->getCheckoutSuccessUrl();?>";
-                }else if(response.success == false){
-                    if(response['error_messages']){
+                } else if (response.success == false) {
+                    if (response['error_messages']) {
                         alert(response['error_messages']);
                     }
-                    if(response['redirect'] != undefined){
+                    if (response['redirect'] != undefined) {
                         window.parent.location = response['redirect'];
-                    }else{
+                    } else {
                         window.parent.location = "<?php echo Mage::getUrl();?>";
                     }
                 }
             },
-            error:function(){
+            error: function () {
             }
         });
     });

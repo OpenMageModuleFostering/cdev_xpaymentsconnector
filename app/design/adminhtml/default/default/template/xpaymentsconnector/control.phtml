@@ -26,95 +26,174 @@
 ?>
 <?php if ($this->getRequiremenetsErrors()) { ?>
 
-<h4><?php echo $this->helper('adminhtml')->__('Failed to meet environment requirements'); ?></h4>
-<ul>
-<?php foreach ($this->getRequiremenetsErrors() as $err) { ?>
-<li class="error"><?php echo $this->helper('adminhtml')->__($err); ?></li>
-<?php } ?>
-</ul>
-<br />
-<hr />
-<br />
-
+    <h4><?php echo $this->__('Failed to meet environment requirements'); ?></h4>
+    <ul>
+        <?php foreach ($this->getRequiremenetsErrors() as $err) { ?>
+            <li class="error"><?php echo $this->__($err); ?></li>
+        <?php } ?>
+    </ul>
+    <br/>
 <?php } ?>
 
-<?php if ($this->getConfigurationErrors()) { ?>
+<div class="xpayment-info">
+    <div class="content-header">
+        <table cellspacing="0">
+            <tbody>
+            <tr>
+                <td>
+                    <h3>
+                        <?php echo $this->__('X-Payments connector'); ?>
+                    </h3>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 
-<h4><?php echo Mage::helper('xpaymentsconnector')->__('Configuration problems'); ?></h4>
-<ul>
-<?php foreach ($this->getConfigurationErrors() as $err) { ?>
-<li class="error">* <?php echo Mage::helper('xpaymentsconnector')->__($err); ?></li>
-<?php } ?>
-</ul>
-    <p><strong>
-            <?php echo $this->__('Please, check x-payment settings '); ?>
-            <a href="<?php echo $this->getUrl('adminhtml/system_config/edit/section/xpaymentsconnector/'); ?>">
-                <?php echo $this->__('here'); ?>.
-            </a>
-        </strong>
-    </p>
-<br />
-<hr />
-<br />
-<?php } ?>
+    <?php if ($this->getConfigurationErrors()) { ?>
+        <p><strong>
+                <h4 class="sub-heading">
+                    <?php echo $this->__('X-Payments not configured yet. Please, check x-payment'); ?>
+                    <a href="<?php echo $this->getUrl('adminhtml/system_config/edit/section/xpaymentsconnector/'); ?>"
+                       target="_blank">
+                        <strong>
+                            <?php echo $this->__('settings') ?>
+                        </strong>
+                    </a>
+                </h4>
+            </strong>
+        </p>
 
-<h4><?php echo Mage::helper('xpaymentsconnector')->__('Test module'); ?></h4>
+        <div class="payment-description">
+            <div class="payment-logo">
+                <img src="<?php echo Mage::getBaseUrl('js') . 'xpayment/images/xpayment-logo.png'; ?>"
+                     alt="xpayments connector"/>
+            </div>
+            <div class="description-block">
+                <p>
 
-<p><?php echo Mage::helper('xpaymentsconnector')->__("To test the module settings and connection with X-Payments click the button below. If the module is configured properly, a 'Test transaction completed successfully' message will be displayed at the top of the page."); ?></p>
+                    <?php
+                    $xpDescr = "Give your customers – and yourself – peace of mind with this payment processing module "
+                        . "that guarantees compliance with PCI security mandates, significantly reduces the risk of "
+                        . "data breaches and ensures you won’t be hit with a fine of up to $500,000 for non-compliance. "
+                        . "Safely and conveniently store customers credit card information to use for new orders, reorders "
+                        . "or recurring payments.";
+                    echo $this->__($xpDescr); ?>
+                </p>
+            </div>
+        </div>
+
+        <h4>
+            <?php echo $this->__('Connect to X-Payments in 3 easy steps:'); ?>
+        </h4>
+        <div class="payment-step">
+            <div class="step">
+                <span class="step-number">1</span>
+                <p><?php echo $this->__('Open your'); ?>
+                    <a href="http://www.x-payments.com/trial-demo.html?utm_source=mage_shop&utm_medium=link&utm_campaign=mage_shop_link"
+                       target="_blank">
+                        <?php echo $this->__('X-Payments'); ?>
+                    </a>
+                    <?php echo $this->__('back-end (if you do not have it)'); ?>
+                </p>
+                <button onclick="window.open('http://www.x-payments.com/trial-demo.html?utm_source=mage_shop&utm_medium=link&utm_campaign=mage_shop_link');">
+                    <span>
+                        <span>
+                            <span>
+                                <?php echo $this->__('Start free Trial'); ?>
+                            </span>
+                        </span>
+                    </span>
+                </button>
+            </div>
+            <img src="<?php echo Mage::getBaseUrl('js') . 'xpayment/images/atep-arrow.png' ?>" class=" step-arrow">
+            <div class="step">
+                <span class="step-number">2</span>
+
+                <p>
+                    <?php echo $this->__('Configure payment methods at'); ?>
+                    <strong>
+                        <?php echo $this->__('X-Payments'); ?>
+                    </strong>
+                </p>
+                <a href="http://help.x-cart.com/index.php?title=X-Payments:User_manual#Online_Stores" target="_blank">
+                    <?php echo $this->__('Read how to do that'); ?>
+                </a>
+            </div>
+            <img src="<?php echo Mage::getBaseUrl('js') . 'xpayment/images/atep-arrow.png' ?>" class=" step-arrow">
+            <div class="step">
+                <span class="step-number">3</span>
+                <p>
+                    <?php echo $this->__('Connect'); ?>
+                    <strong>
+                        <?php echo $this->__('X-Payments'); ?>
+                    </strong>
+                    <?php echo $this->__('with'); ?>
+                    <strong>
+                        <?php echo $this->__('Magento'); ?>
+                    </strong>
+                </p>
+                <a href="https://www.youtube.com/embed/2VRR0JW23qc" target="_blank">See how to do that</a>
+            </div>
+        </div>
+    <?php } ?>
+</div>
+<?php if ($this->getConfigurationErrors()): ?>
+    <hr/>
+<?php endif; ?>
+<br/>
+
+<h4><?php echo $this->__('Test module'); ?></h4>
+
+<p><?php echo $this->__("To test the module settings and connection with X-Payments click the button below. If the module is configured properly, a 'Test transaction completed successfully' message will be displayed at the top of the page."); ?></p>
 
 <form action="<?php echo $this->getUrl('xpaymentsconnector/control/test'); ?>" method="post" name="testmodule_form">
- 	<?php echo $this->getBlockHtml('formkey'); ?>
-	<?php echo $this->getChildHtml('testButton'); ?>
+    <?php echo $this->getBlockHtml('formkey'); ?>
+    <?php echo $this->getChildHtml('testButton'); ?>
 </form>
 
-<br />
-<br />
+<br/>
+<br/>
 
-<h4><?php echo Mage::helper('xpaymentsconnector')->__('Import payment methods'); ?></h4>
+<h4><?php echo $this->__('Import payment methods'); ?></h4>
 
-<p><?php echo Mage::helper('xpaymentsconnector')->__('To be able to use X-Payments payment methods you need to import them from X-Payments first.'); ?></p>
+<p><?php echo $this->__('To be able to use X-Payments payment methods you need to import them from X-Payments first.'); ?></p>
 
 <?php if ($this->isMethodsRequested()) { ?>
 
-<?php echo Mage::helper('xpaymentsconnector')->__('The list of payment configurations imported from X-Payments'); ?>:<br />
+    <?php echo $this->__('The list of payment configurations imported from X-Payments'); ?>:<br/>
 
-<div class="grid">
-<table cellpadding="5" cellspacing="1">
-	<tr class="headings">
-    	<th><?php echo Mage::helper('xpaymentsconnector')->__('Payment method'); ?></th>
-        <th><?php echo Mage::helper('xpaymentsconnector')->__('Payment method ID'); ?></th>
-        <th><?php echo Mage::helper('xpaymentsconnector')->__('Auth'); ?></th>
-        <!--th><?php echo Mage::helper('xpaymentsconnector')->__('Capture'); ?></th>
-        <th><?php echo Mage::helper('xpaymentsconnector')->__('Void'); ?></th>
-        <th class="last"><?php echo Mage::helper('xpaymentsconnector')->__('Refund'); ?></th-->
-	</tr>
+    <div class="grid">
+        <table cellpadding="5" cellspacing="1">
+            <tr class="headings">
+                <th><?php echo $this->__('Payment method'); ?></th>
+                <th><?php echo $this->__('Payment method ID'); ?></th>
+                <th><?php echo $this->__('Auth'); ?></th>
+            </tr>
 
-<?php foreach($this->getPaymentMethods() as $pm) { ?>
+            <?php foreach ($this->getPaymentMethods() as $pm) { ?>
 
-	<tr>
-		<td><?php echo $pm['name']; ?></td>
-        <td><?php echo $pm['confid']; ?></td>
-        <td><?php if ($pm['is_auth']) { ?><?php echo $this->__('Yes'); ?><?php } else { ?><?php echo $this->__('No'); ?><?php } ?></td>
-        <!--td><?php if ($pm['is_capture']) { ?><?php echo $this->helper('adminhtml')->__('Yes'); ?><?php } else { ?><?php echo $this->helper('adminhtml')->__('No'); ?><?php } ?></td>
-        <td><?php if ($pm['is_void']) { ?><?php echo $this->__('Yes'); ?><?php } else { ?><?php echo $this->__('No'); ?><?php } ?></td>
-        <td class="last"><?php if ($pm['is_refund']) { ?><?php echo $this->__('Yes'); ?><?php } else { ?><?php echo $this->__('No'); ?><?php } ?></td-->
-  	</tr>
+                <tr>
+                    <td><?php echo $pm['name']; ?></td>
+                    <td><?php echo $pm['confid']; ?></td>
+                    <td><?php if ($pm['is_auth']) { ?><?php echo $this->__('Yes'); ?><?php } else { ?><?php echo $this->__('No'); ?><?php } ?></td>
+                </tr>
 
-<?php } ?>
+            <?php } ?>
 
-</table>
-</div>
+        </table>
+    </div>
 
-<form action="<?php echo $this->getUrl('xpaymentsconnector/control/clear'); ?>" method="post" name="clear_form">
-    <?php echo $this->getBlockHtml('formkey'); ?>
-    <?php echo $this->getChildHtml('clearButton'); ?>
-</form>
+    <form action="<?php echo $this->getUrl('xpaymentsconnector/control/clear'); ?>" method="post" name="clear_form">
+        <?php echo $this->getBlockHtml('formkey'); ?>
+        <?php echo $this->getChildHtml('clearButton'); ?>
+    </form>
 
-<?php if ($this->isMethodsAlreadyImported()) { ?>
-	<br />
-	<br />
-	<p><?php echo $this->__('Warning! Importing payment configurations from X-Payments will disable the X-Payments connector payment method!'); ?></p>
-<?php } ?>
+    <?php if ($this->isMethodsAlreadyImported()) { ?>
+        <br/>
+        <br/>
+        <p><?php echo $this->__('Warning! Importing payment configurations from X-Payments will disable the X-Payments connector payment method!'); ?></p>
+    <?php } ?>
 
 <?php } ?>
 
@@ -123,4 +202,11 @@
     <?php echo $this->getChildHtml('requestButton'); ?>
 </form>
 
-
+<br/>
+<br/>
+<h4>
+    <?php echo $this->__('Need help in settings of x-payments?'); ?>
+    <a href="http://www.x-payments.com/contact-us.html?utm_source=mage_shop&utm_medium=link&utm_campaign=mage_shop_link" target="_blank">
+        <?php echo $this->__('Contact us!'); ?>
+    </a>
+</h4>

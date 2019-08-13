@@ -191,4 +191,9 @@ class Cdev_XPaymentsConnector_ControlController extends Mage_Adminhtml_Controlle
             );
         }
     }
+
+    protected function _isAllowed()
+    {
+        return Mage::getSingleton('admin/session')->isAllowed('system/control');
+    }
 }

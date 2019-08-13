@@ -1,0 +1,73 @@
+.xpayment-info .payment-step {
+    padding-bottom: 64px;
+}
+
+.sub-heading {
+    margin: 0 0 15px;
+}
+
+.payment-description {
+    margin: 0 0 28px;
+    padding: 19px 31px 24px;
+    border: 2px dashed #d6d6d6;
+    border-radius: 7px;
+    overflow: hidden;
+    max-width: 1321px;
+}
+
+.payment-description .payment-logo {
+    float: left;
+    margin: 0 46px 0 0;
+    max-width: 130px;
+}
+
+.payment-description .payment-logo img {
+    display: inline-block;
+    vertical-align: top;
+    max-width: 100%;
+}
+
+.payment-description .description-block {
+    padding: 10px 0 0;
+    overflow: hidden;
+}
+
+.payment-step {
+    padding: 28px 0 0;
+}
+
+.payment-step .step {
+    position: relative;
+    max-width: 186px;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+}
+
+.payment-step .step-arrow {
+    width: 30px;
+    height: 11px;
+    display: inline-block;
+    margin: 1px -2px;
+    vertical-align: top;
+    padding-top: 16px;
+
+}
+
+.payment-step .step:last-child:before {
+    display: none;
+}
+
+.payment-step .step-number {
+    display: inline-block;
+    margin: 0 0 13px;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #cccccc;
+    border-radius: 50%;
+    font: bold 20px/43px Arial, Helvetica, sans-serif;
+}
+
+.payment-step p {
+    margin: 0 0 20px;
+}

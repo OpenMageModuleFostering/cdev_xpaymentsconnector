@@ -29,6 +29,11 @@
 class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Template
 {
     /**
+     * @var array
+     */
+    private $_configurationErrorList = array();
+
+    /**
      * Constructor
      * 
      * @return void
@@ -174,33 +179,37 @@ class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Templat
      */
     public function getConfigurationErrors()
     {
-        $api = Mage::getModel('xpaymentsconnector/payment_cc');
+        if(empty($this->_configurationErrorList)){
+            $api = Mage::getModel('xpaymentsconnector/payment_cc');
 
-        $result = $api->getConfigurationErrors();
+            $result = $api->getConfigurationErrors();
 
-        $list = array();
+            $list = array();
 
-        if ($result & $api::CONF_CART_ID) {
-            $list[] = 'Store ID is empty or has an incorrect value';
+            if ($result & $api::CONF_CART_ID) {
+                $list[] = 'Store ID is empty or has an incorrect value';
+            }
+
+            if ($result & $api::CONF_URL) {
+                $list[] = 'X-Payments URL is empty or has an incorrect value';
+            }
+
+            if ($result & $api::CONF_PUBLIC_KEY) {
+                $list[] = 'Public key is empty';
+            }
+
+            if ($result & $api::CONF_PRIVATE_KEY) {
+                $list[] = 'Private key is empty';
+            }
+
+            if ($result & $api::CONF_PRIVATE_KEY_PASS) {
+                $list[] = 'Private key password is empty';
+            }
+
+            $this->_configurationErrorList = $list;
         }
 
-        if ($result & $api::CONF_URL) {
-            $list[] = 'X-Payments URL is empty or has an incorrect value';
-        }
-
-        if ($result & $api::CONF_PUBLIC_KEY) {
-            $list[] = 'Public key is empty';
-        }
-
-        if ($result & $api::CONF_PRIVATE_KEY) {
-            $list[] = 'Private key is empty';
-        }
-
-        if ($result & $api::CONF_PRIVATE_KEY_PASS) {
-            $list[] = 'Private key password is empty';
-        }
-
-        return $list;
+        return $this->_configurationErrorList;
     }
 
 }

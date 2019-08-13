@@ -58,6 +58,21 @@ $checkIframeUrl = Mage::getUrl('xpaymentsconnector/processing/istokenactual', ar
             }
         }
     });
+
+    //add 'validate-agreement' class into 'terms and conditions' form
+    if ($("checkout-agreements") != null) {
+        $$("#checkout-agreements input").each(function (obj, item) {
+            if (!$(obj).hasClassName("validate-agreement")) {
+                $(obj).addClassName('validate-agreement');
+            }
+        });
+    }
+
+    Validation.add('validate-agreement',
+        '<?php echo $this->__('Please agree to all the terms and conditions before placing the order.'); ?>',
+        function (v) {
+            return !Validation.get('IsEmpty').test(v);
+        });
 </script>
 
 

@@ -75,10 +75,16 @@
         </reference>
     </checkout_onepage_review>
 
-    <checkout_onepage_success translate="label">
+    <checkout_onepage_success>
         <reference name="content">
-            <remove name="checkout.success"/>
-            <block type="checkout/onepage_success" name="xp.checkout.success" template="xpaymentsconnector/checkout/success.phtml"/>
+            <reference name="checkout.success">
+                <action method="setTemplate">
+                    <template helper="xpaymentsconnector/data/getCheckoutSuccessTemplate">
+                        <name>xpaymentsconnector/checkout/success.phtml</name>
+                        <block>checkout.success</block>
+                    </template>
+                </action>
+            </reference>
         </reference>
     </checkout_onepage_success>
 

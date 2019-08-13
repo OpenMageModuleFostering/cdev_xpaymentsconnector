@@ -24,9 +24,14 @@ var displayIframeOnPaymentStep = 0;
 var iframe;
 
 function submitXpaymentIframe(iframeCheckUrl) {
-
-    var currentIframeUrl =  jQuery("#xp-iframe").attr("src");
-    var currentToken = getUrlParameterByName("token",currentIframeUrl);
+    var agreementsForm = new VarienForm('checkout-agreements', true);
+    if (agreementsForm.form != null) {
+        if (!agreementsForm.validator.validate()) {
+            return false;
+        }
+    }
+    var currentIframeUrl = jQuery("#xp-iframe").attr("src");
+    var currentToken = getUrlParameterByName("token", currentIframeUrl);
     var postData = {"token": currentToken};
     jQuery("#review-buttons-container .btn-checkout").hide();
     jQuery("#review-please-wait").show();
@@ -35,10 +40,9 @@ function submitXpaymentIframe(iframeCheckUrl) {
         url: iframeCheckUrl,
         type: 'post',
         data: postData,
-        success: function(data){
-
+        success: function (data) {
             var respnse = jQuery.parseJSON(data);
-            if(respnse.is_actual == false){
+            if (respnse.is_actual == false) {
                 alert(respnse.error_message)
                 window.location.replace(respnse.redirect);
                 return false;
@@ -48,9 +52,9 @@ function submitXpaymentIframe(iframeCheckUrl) {
                 if (typeof checkout != "undefined") {
                     var message = {
                         message: 'submitPaymentForm',
-                        params:  postData
+                        params: postData
                     };
-                    var messageJson =  JSON.stringify(message);
+                    var messageJson = JSON.stringify(message);
                     var xpcShown = jQuery('.xp-iframe').get(0);
                     xpcShown.contentWindow.postMessage(messageJson, '*');
                     window.addEventListener("message", receiveMessage, false);
@@ -58,10 +62,11 @@ function submitXpaymentIframe(iframeCheckUrl) {
                 }
             }
         },
-        error: function(){
+        error: function () {
             alert("Can't check token state!");
         }
     });
+
 }
 
 

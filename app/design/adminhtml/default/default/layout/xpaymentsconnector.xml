@@ -84,4 +84,22 @@
         </reference>
     </adminhtml_sales_recurring_profile_view>
 
+    <adminhtml_system_config_edit>
+        <reference name="head">
+            <action method="addItem">
+                <type>js_css</type>
+                <name>xpayment/settings.css</name>
+            </action>
+        </reference>
+    </adminhtml_system_config_edit>
+
+    <xpaymentsconnector_control_index>
+        <reference name="head">
+            <action method="addItem">
+                <type>js_css</type>
+                <name>xpayment/xp-contorl.css</name>
+            </action>
+        </reference>
+    </xpaymentsconnector_control_index>
+
 </layout>
