@@ -92,15 +92,6 @@
 			</xpaymentsconnector>
 		</blocks>
         <events>
-            <sales_order_save_before>
-                <observers>
-                    <xpaymentsconnector>
-                        <type>singleton</type>
-                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
-                        <method>salesOrderSaveBefore</method>
-                    </xpaymentsconnector>
-                </observers>
-            </sales_order_save_before>
             <sales_order_payment_cancel_invoice>
                 <observers>
                     <xpaymentsconnector>

@@ -25,6 +25,7 @@ class Cdev_XPaymentsConnector_Model_Quote extends Mage_Sales_Model_Quote
     public function getReservedOrderId()
     {
             $reservedOrderId = Mage::helper("xpaymentsconnector")->getOrderKey();
+
             if ($reservedOrderId) {
                 return $reservedOrderId;
             }

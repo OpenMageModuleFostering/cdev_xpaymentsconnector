@@ -111,6 +111,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $saveCardsPaymentCode = Mage::getModel("xpaymentsconnector/payment_savedcards")->getCode();
 
         if ($paymentMethod == $xpaymentPaymentCode) {
+            $order->setCanSendNewEmailFlag(false);
             $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
 
             $request = Mage::helper("xpaymentsconnector")->getXpaymentResponse();
@@ -134,6 +135,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
             }
 
         } elseif ($paymentMethod == $saveCardsPaymentCode) {
+            $order->setCanSendNewEmailFlag(false);
             $response = Mage::getModel("xpaymentsconnector/payment_cc")->sendAgainTransactionRequest($order->getId());
             if ($response["success"]) {
                 $result = Mage::getModel("xpaymentsconnector/payment_cc")->updateOrderByXpaymentResponse($order->getId(), $response["response"]['transaction_id']);
@@ -151,25 +153,6 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
     public function orderSuccessAction($observer)
     {
         Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder();
-    }
-
-    /**
-     * Set custom 'IncrementId' for x-payments order.
-     * @param $observer
-     */
-    public function salesOrderSaveBefore($observer){
-        $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
-        if($useIframe){
-            $orderModel = $observer->getData("data_object");
-            if(!$orderModel->getIncrementId()){
-                $paymentCode = $orderModel->getPayment()->getMethodInstance()->getCode();
-                if(Mage::helper("xpaymentsconnector")->isXpaymentsMethod($paymentCode)){
-                    $orderModel->setCanSendNewEmailFlag(false);
-                    $incrementId = Mage::helper("xpaymentsconnector")->getOrderKey();
-                    $orderModel->setIncrementId($incrementId);
-                }
-            }
-        }
     }
 
     public function postdispatchAdminhtmlSalesOrderCreateSave($observer){

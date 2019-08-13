@@ -503,6 +503,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             'cart'        => $cart,
             'returnUrl'   => Mage::getUrl('xpaymentsconnector/processing/return', array('order_id' => $refId,'_secure' => true)),
             'callbackUrl' => Mage::getUrl('xpaymentsconnector/processing/callback', array('order_id' => $refId,'_secure' => true)),
+            'template'    => 'default',
             'saveCard'    => 'Y',
             'api_version' => self::XP_API_NEW
         );
@@ -1850,7 +1851,10 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             }
 
         }else{
-            $xpaymentResponse = $this->sendIframeHandshakeRequest();
+            $updateSendData = array();
+            $updateSendData['template'] = 'default';
+            $xpaymentResponse = $this->sendIframeHandshakeRequest($updateSendData);
+
             if(isset($xpaymentResponse["success"]) && !$xpaymentResponse["success"]){
                 $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
             }
