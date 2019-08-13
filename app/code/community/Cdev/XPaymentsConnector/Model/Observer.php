@@ -361,11 +361,13 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
                             if(!empty($orderAmountData)){
                                 $xpaymentsHelper->resendPayDeferredRecurringTransaction($profile, $orderAmountData, $cardData);
                                 $userTransactionHasBeenSend = true;
+                                continue;
                             }else{
                                 $profile->activate();
                             }
-                        continue;
-                    } elseif ($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE) {
+                    }
+
+                    if ($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE) {
                         $startDateTime = strtotime($profile->getStartDatetime());
                         $lastSuccessTransactionDate = strtotime($profile->getXpSuccessTransactionDate());
                         $lastActionDate = ($startDateTime > $lastSuccessTransactionDate) ? $startDateTime : $lastSuccessTransactionDate;
@@ -375,6 +377,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
                         $currentDateObj = new Zend_Date(time());
                         $currentDateStamp = $currentDateObj->getTimestamp();
+
                         /*
                         var_dump('period_stamp ='.$profilePeriodValue / 3600 ."(h)",
                                  "current = ".date("Y-m-d H:m:s",$currentDateStamp),
@@ -385,10 +388,13 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
                         */
 
                         $timePassed = $currentDateStamp - $lastActionDate;
+                        $currentSuccessCycles = $profile->getXpCountSuccessTransaction();
 
-                        if ($timePassed >= $profilePeriodValue) {
+                        $isFirstRecurringProfileProcess = (($currentSuccessCycles == 0) && ($startDateTime < $currentDateStamp))
+                            ? true : false;
+
+                        if (($timePassed >= $profilePeriodValue) || $isFirstRecurringProfileProcess) {
                             // check by count of success transaction
-                            $currentSuccessCycles = $profile->getXpCountSuccessTransaction();
                             $periodMaxCycles = $profile->getPeriodMaxCycles();
 
                             if (($periodMaxCycles > $currentSuccessCycles) || is_null($periodMaxCycles)) {
@@ -398,8 +404,6 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
                                 }
 
                                 $initialFeeAmount = $orderItemInfo['recurring_initial_fee'];
-
-
 
                                 $isFirstRecurringOrder = false;
 
