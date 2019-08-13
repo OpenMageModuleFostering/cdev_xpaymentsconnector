@@ -31,7 +31,7 @@ class Cdev_XPaymentsConnector_Block__Customer_Account_Navigation extends Mage_Cu
     {
         $IsSaveCardsPaymentActive = (bool)Mage::getStoreConfig('payment/savedcards/active');
         if (!$IsSaveCardsPaymentActive) {
-            unset($this->_links["customer_usercards"]);
+            unset($this->_links['customer_usercards']);
         }
         return $this;
     }

@@ -79,7 +79,7 @@ class Cdev_XPaymentsConnector_Block_Redirect extends Mage_Core_Block_Template
     public function getFormAction()
     {
         if(is_null($this->paymentMethod)){
-            $this->paymentMethod = Mage::getModel("xpaymentsconnector/payment_cc");
+            $this->paymentMethod = Mage::getModel('xpaymentsconnector/payment_cc');
         }
 
         return $this->paymentMethod->getUrl();
@@ -96,7 +96,7 @@ class Cdev_XPaymentsConnector_Block_Redirect extends Mage_Core_Block_Template
     public function getFormData()
     {
         if(is_null($this->paymentMethod)){
-            $this->paymentMethod = Mage::getModel("xpaymentsconnector/payment_cc");
+            $this->paymentMethod = Mage::getModel('xpaymentsconnector/payment_cc');
         }
         return $this->paymentMethod->getFormFields();
     }

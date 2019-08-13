@@ -36,7 +36,7 @@ class Cdev_XPaymentsConnector_Block_Form_Savedcards extends Mage_Payment_Block_F
         if($customer = Mage::getSingleton('customer/session')->isLoggedIn()) {
             $customerData = Mage::getSingleton('customer/session')->getCustomer();
             $customerId =  $customerData->getId();
-            $userCardsCollection = Mage::getModel("xpaymentsconnector/usercards")
+            $userCardsCollection = Mage::getModel('xpaymentsconnector/usercards')
                 ->getCollection()
                 ->addFilter('user_id',$customerId)
                 ->addFilter('usage_type',Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD);
@@ -50,10 +50,10 @@ class Cdev_XPaymentsConnector_Block_Form_Savedcards extends Mage_Payment_Block_F
 
     public function getAdminhtmlUserCreditCardsList(){
         $quote = Mage::getSingleton('adminhtml/session_quote')->getQuote();
-        $customerId = $quote->getData("customer_id");
+        $customerId = $quote->getData('customer_id');
 
         if($customerId){
-            $userCardsCollection = Mage::getModel("xpaymentsconnector/usercards")
+            $userCardsCollection = Mage::getModel('xpaymentsconnector/usercards')
                 ->getCollection()
                 ->addFilter('user_id',$customerId)
                 ->addFilter('usage_type',Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD);

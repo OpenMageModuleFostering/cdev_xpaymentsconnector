@@ -22,6 +22,16 @@
 -->
 <layout version="1.0.0">
 
+    <checkout_cart_index translate="label">
+        <reference name="head">
+            <action method="addItem">
+                <type>js_css</type>
+                <name>xpayment/settings.css</name>
+                <params/>
+            </action>
+        </reference>
+    </checkout_cart_index>
+
     <checkout_onepage_index translate="label">
         <reference name="head">
             <block type="core/text" name="google.jquery">

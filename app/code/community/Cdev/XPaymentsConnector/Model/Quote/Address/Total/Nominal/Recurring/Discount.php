@@ -42,4 +42,18 @@ class Cdev_XPaymentsConnector_Model_Quote_Address_Total_Nominal_Recurring_Discou
     {
         return Mage::helper('sales')->__('Discount');
     }
+
+    /**
+     * Getter for row default total
+     *
+     * @param Mage_Sales_Model_Quote_Item_Abstract $item
+     * @return float
+     */
+    public function getItemRowTotal(Mage_Sales_Model_Quote_Item_Abstract $item)
+    {
+        $discountAmount = $item->getDiscountAmount();
+        if (!is_null($discountAmount) && !empty($discountAmount)) {
+            return $discountAmount;
+        }
+    }
 }

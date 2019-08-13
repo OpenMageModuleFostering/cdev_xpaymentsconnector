@@ -25,7 +25,7 @@ class Cdev_XPaymentsConnector_Block_Form_Container extends Mage_Checkout_Block_O
     public function getMethods()
     {
         $methods = parent::getMethods();
-        Mage::helper("xpaymentsconnector")->setAllowedPaymentsMethods($methods);
+        Mage::helper('xpaymentsconnector')->setAllowedPaymentsMethods($methods);
         return $methods;
 
     }

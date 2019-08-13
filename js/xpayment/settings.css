@@ -411,9 +411,7 @@ iframe .buttonRow {
 
 }
 
-
-
-/*admin cards list*/
+/* admin cards list */
 
 #customer_edit_tab_usercards_table td{
     text-align: center;
@@ -442,7 +440,7 @@ iframe .buttonRow {
     height: 260px;
 }
 
-/*end (xp transaction form)*/
+/* xp transaction form */
 .xp_fast_transactions input {
     max-width: 170px;
     margin: 5px;
@@ -462,3 +460,9 @@ iframe .buttonRow {
 #recurring-detail-block li {
     margin-left: 15px;
 }
+
+/* checkout cart page */
+#shopping-cart-totals-table tr td:last-child {
+    white-space: nowrap
+}
+/* end (checkout cart page) */

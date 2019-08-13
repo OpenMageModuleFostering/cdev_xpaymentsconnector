@@ -44,15 +44,15 @@ class Cdev_XPaymentsConnector_Block_Beforesuccess extends Mage_Core_Block_Templa
     }
 
     public function getSaveOrderUrl(){
-        return Mage::getUrl("checkout/onepage/saveorder");
+        return Mage::getUrl('checkout/onepage/saveorder');
     }
 
     public function getCheckoutSuccessUrl(){
-        return Mage::getUrl("checkout/onepage/success");
+        return Mage::getUrl('checkout/onepage/success');
     }
 
     public function getXpaymentsCode(){
-        $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
+        $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
         return $xpaymentPaymentCode;
     }
 

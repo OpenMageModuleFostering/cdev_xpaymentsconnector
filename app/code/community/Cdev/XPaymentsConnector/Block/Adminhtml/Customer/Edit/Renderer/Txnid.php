@@ -29,7 +29,7 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Customer_Edit_Renderer_Txnid exten
     public function render(Varien_Object $row){
 
         $txnid = $row->getData($this->getColumn()->getIndex());
-        $xpayUrl =  Mage::getModel("xpaymentsconnector/payment_cc")->getConfig("xpay_url")."admin.php?";
+        $xpayUrl =  Mage::getModel('xpaymentsconnector/payment_cc')->getConfig('xpay_url').'admin.php?';
         $data = array('target'=>'payment', 'txnid'=>$txnid);
         $xpayQueryParam =  http_build_query($data);
         $xpayQueryUrl = $xpayUrl.$xpayQueryParam;

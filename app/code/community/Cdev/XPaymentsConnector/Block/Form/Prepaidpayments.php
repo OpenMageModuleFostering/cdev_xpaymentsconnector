@@ -34,9 +34,9 @@ class Cdev_XPaymentsConnector_Block_Form_Prepaidpayments extends Mage_Payment_Bl
 
     public function getAdminhtmlUserPrepaidCardsList(){
         $quote = Mage::getSingleton('adminhtml/session_quote')->getQuote();
-        $customerId = $quote->getData("customer_id");
+        $customerId = $quote->getData('customer_id');
         if($customerId){
-            $userBalanceCardsCollection = Mage::getModel("xpaymentsconnector/usercards")
+            $userBalanceCardsCollection = Mage::getModel('xpaymentsconnector/usercards')
                 ->getCollection()
                 ->addFilter('user_id',$customerId)
                 ->addFilter('usage_type',Cdev_XPaymentsConnector_Model_Usercards::BALANCE_CARD);

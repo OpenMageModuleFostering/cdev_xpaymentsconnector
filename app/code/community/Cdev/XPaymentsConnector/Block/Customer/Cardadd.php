@@ -45,22 +45,22 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
     public function getAuthorizeIframeUrl(){
 
         // update standart iframe handshake request
-        $refId =  "authorization";
+        $refId =  'authorization';
         $updateSendData = array();
 
-        $updateSendData["returnUrl"] = Mage::getUrl('xpaymentsconnector/customer/cardadd', array('order_refid' => $refId,'_secure' => true));
-        $updateSendData["callbackUrl"] =  Mage::getUrl('xpaymentsconnector/customer/cardadd', array('order_refid' => $refId, '_secure' => true));
-        $updateSendData["refId"] = $refId;
+        $updateSendData['returnUrl'] = Mage::getUrl('xpaymentsconnector/customer/cardadd', array('order_refid' => $refId,'_secure' => true));
+        $updateSendData['callbackUrl'] =  Mage::getUrl('xpaymentsconnector/customer/cardadd', array('order_refid' => $refId, '_secure' => true));
+        $updateSendData['refId'] = $refId;
         $updateSendData['template'] = 'magento_iframe';
 
-        $xpaymentFormData = Mage::helper('payment')->getMethodInstance("xpayments")->getFormFields();
-        $xpaymentFormUrl = Mage::helper('payment')->getMethodInstance("xpayments")->getUrl();
+        $xpaymentFormData = Mage::helper('payment')->getMethodInstance('xpayments')->getFormFields();
+        $xpaymentFormUrl = Mage::helper('payment')->getMethodInstance('xpayments')->getUrl();
         $api = Mage::getModel('xpaymentsconnector/payment_cc');
 
         $result = $api->sendIframeHandshakeRequest($updateSendData,$isCardAuthorizePayment = true);
 
         $iframeUrlDataArray = array('target' => $xpaymentFormData['target'], 'token' => $result['response']['token']);
-        $iframeUrl = $xpaymentFormUrl . "?" . http_build_query($iframeUrlDataArray);
+        $iframeUrl = $xpaymentFormUrl . '?' . http_build_query($iframeUrlDataArray);
         return $iframeUrl;
     }
 

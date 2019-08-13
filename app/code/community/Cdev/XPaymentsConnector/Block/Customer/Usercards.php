@@ -30,7 +30,7 @@ class Cdev_XPaymentsConnector_Block_Customer_Usercards extends Mage_Core_Block_T
         if($customer = Mage::getSingleton('customer/session')->isLoggedIn()) {
             $customerData = Mage::getSingleton('customer/session')->getCustomer();
             $customerId =  $customerData->getId();
-            $userCardsCollection = Mage::getModel("xpaymentsconnector/usercards")
+            $userCardsCollection = Mage::getModel('xpaymentsconnector/usercards')
                 ->getCollection()
                 ->addFilter('user_id',$customerId)
                 ->addFilter('usage_type',Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD);

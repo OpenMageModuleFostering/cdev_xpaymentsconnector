@@ -29,7 +29,7 @@ class Cdev_XPaymentsConnector_Block_Checkout_Onepage_Settings extends Mage_Core_
     public function isXpaymentMethod(){
 
         $paymentCode = Mage::getSingleton('checkout/session')->getQuote()->getPayment()->getMethodInstance()->getCode();
-        $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
+        $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
 
         if($paymentCode == $xpaymentPaymentCode){
             return true;

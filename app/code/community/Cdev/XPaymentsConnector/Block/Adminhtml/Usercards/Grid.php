@@ -29,7 +29,7 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Usercards_Grid extends Mage_Adminh
     protected function _prepareCollection()
     {
         $collection = Mage::getResourceModel('xpaymentsconnector/usercards_collection')
-            ->addFieldToFilter('user_id', $this->getRequest()->getParam("id"));
+            ->addFieldToFilter('user_id', $this->getRequest()->getParam('id'));
         $this->setCollection($collection);
         return parent::_prepareCollection();
     }
@@ -72,11 +72,11 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Usercards_Grid extends Mage_Adminh
 
     protected function _prepareColumns()
     {
-        $collection = Mage::getModel("xpaymentsconnector/usercards")->getCollection()->addFieldToSelect('card_type')->distinct(true);
+        $collection = Mage::getModel('xpaymentsconnector/usercards')->getCollection()->addFieldToSelect('card_type')->distinct(true);
         $cardTypes = $collection->getColumnValues('card_type');
         $cardsTypeOptions = array_combine($cardTypes,$cardTypes);
 
-        $cardUsageOptions = Mage::getModel("xpaymentsconnector/usercards")->getCardsUsageOptions();
+        $cardUsageOptions = Mage::getModel('xpaymentsconnector/usercards')->getCardsUsageOptions();
 
         $this->addColumn('xp_card_id', array(
             'header'            => Mage::helper('xpaymentsconnector')->__('Card id'),
