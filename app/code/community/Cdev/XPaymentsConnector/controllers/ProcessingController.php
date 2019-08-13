@@ -573,5 +573,9 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
 
     }
 
-
+    public function getcheckoutiframeurlAction(){
+        $xpUrlPath = array();
+        $xpUrlPath["iframe_url"] = Mage::helper("xpaymentsconnector")->getIframeUrl();
+        $this->getResponse()->setBody(Mage::helper('core')->jsonEncode($xpUrlPath));
+    }
 }

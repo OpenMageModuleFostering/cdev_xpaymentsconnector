@@ -30,6 +30,10 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
         Mage::getSingleton("checkout/session")->unsetData("user_card_save");
 
+        //unset x-payment form place settings
+        $unsetParams = array("place_display");
+        Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+
         //set recurring product discount
         $isRecurrnigProduct = Mage::helper("xpaymentsconnector")->checkIsRecurringOrder();
         if ($isRecurrnigProduct) {
@@ -78,23 +82,6 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         }
     }
 
-    public function postDispatchSavePayment($observer){
-        $quote = Mage::getSingleton('checkout/session')->getQuote();
-        $paymentMethodCode = $quote->getPayment()->getMethodInstance()->getCode();
-
-        $isXpayments = Mage::helper("xpaymentsconnector")->isXpaymentsMethod($paymentMethodCode);
-        if ($isXpayments) {
-            Mage::helper("xpaymentsconnector")->prepareOrderKey();
-        }
-        if ($paymentMethodCode == "xpayments"){
-            $saveCard = Mage::app()->getRequest()->getPost("savecard");
-            if($saveCard){
-                Mage::getSingleton("checkout/session")->setData("user_card_save",$saveCard);
-            }
-        }else{
-            Mage::getSingleton("checkout/session")->unsetData("user_card_save");
-        }
-    }
 
     /**
      * Dispatch: checkout_type_onepage_save_order_after
@@ -395,13 +382,45 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
     }
 
+
+    /**
+     * Set 'place_display' flag for feature x-payment form.
+     * @param $observer
+     */
+    public function predispatchSaveShippingMethod(){
+        Mage::helper("xpaymentsconnector")->setIframePlaceDisplaySettings();
+    }
+
     /**
      * Remove X-Payments token after update shipping method
      * @param $observer
      */
-    public function postdispatchSaveShippingMethod($observer){
-        $unsetParams = array("token");
-        Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+    public function postdispatchSaveShippingMethod($observer)
+    {
+        $isPaymentPlaceDisplayFlag = Mage::helper("xpaymentsconnector")->isIframePaymentPlaceDisplay();
+        if (!$isPaymentPlaceDisplayFlag) {
+            $unsetParams = array("token");
+            Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+        }
+    }
+
+    public function postDispatchSavePayment($observer){
+        $quote = Mage::getSingleton('checkout/session')->getQuote();
+        $paymentMethodCode = $quote->getPayment()->getMethodInstance()->getCode();
+        $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
+
+        $isXpayments = Mage::helper("xpaymentsconnector")->isXpaymentsMethod($paymentMethodCode);
+        if ($isXpayments) {
+            Mage::helper("xpaymentsconnector")->prepareOrderKey();
+        }
+        if ($paymentMethodCode == $xpaymentPaymentCode){
+            $saveCard = Mage::app()->getRequest()->getPost("savecard");
+            if($saveCard){
+                Mage::getSingleton("checkout/session")->setData("user_card_save",$saveCard);
+            }
+        }else{
+            Mage::getSingleton("checkout/session")->unsetData("user_card_save");
+        }
     }
 
     /**

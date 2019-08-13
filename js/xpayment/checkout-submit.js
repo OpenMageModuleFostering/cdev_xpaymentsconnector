@@ -18,6 +18,11 @@
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
+var xpaymentMethodCode;
+var getIfameUrl;
+var displayIframeOnPaymentStep = 0;
+var iframe;
+
 function submitXpaymentIframe(iframeCheckUrl) {
 
     var currentIframeUrl =  jQuery("#xp-iframe").attr("src");
@@ -62,6 +67,7 @@ function submitXpaymentIframe(iframeCheckUrl) {
 
 function receiveMessage(event)
 {
+    jQuery("#opc-payment .step-title").click();
     jQuery("#review-buttons-container .btn-checkout").show();
     jQuery("#review-please-wait").hide();
 }
@@ -73,5 +79,33 @@ function getUrlParameterByName(name,url) {
         results = regex.exec(url);
     return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
+
+
+document.observe("dom:loaded", function () {
+    $('checkoutSteps').observe('change',
+        function () {
+            if (displayIframeOnPaymentStep) {
+                var activePaymentName = $$('input:checked[type=radio][name=payment[method]]')[0].value;
+                if (xpaymentMethodCode == activePaymentName) {
+                    var iframe = $('xp-iframe');
+                    var currentIframeUrl = iframe.getAttribute("src");
+                    if (currentIframeUrl == "#") {
+                        new Ajax.Request(getIfameUrl,
+                            {
+                                method: "post",
+                                onSuccess: function (response) {
+                                    var jsonResponse = response.responseText.evalJSON();
+                                    iframe.setAttribute('src', jsonResponse.iframe_url);
+                                },
+                                onFailure: function () {
+                                    alert("Can't connect to Xpayment server...")
+                                }
+                            });
+                    }
+                }
+            }
+        });
+
+});
 
 

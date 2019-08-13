@@ -31,11 +31,12 @@
 $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
 $isRecuringProduct = Mage::helper("xpaymentsconnector")->checkIsRecurringOrder();
 $IsSaveCardsPaymentActive = (bool)Mage::getStoreConfig('payment/savedcards/active');
+$displayOnPaymentStep = (bool)(Mage::getStoreConfig('payment/xpayments/placedisplay') == "review");
 ?>
 
-<?php if($this->isXpaymentMethod() && $useIframe):?>
+<?php if($this->isXpaymentMethod() && $useIframe && $displayOnPaymentStep):?>
     <?php
-    $iFrameUrl  = $this->getIframeUrl();
+    $iFrameUrl  = Mage::helper("xpaymentsconnector")->getIframeUrl();
     $isNeedToSaveUserCard = Mage::helper("xpaymentsconnector")->isNeedToSaveUserCard();
     $customerRegistered = Mage::helper("xpaymentsconnector")->isRegisteredUser();
     ?>

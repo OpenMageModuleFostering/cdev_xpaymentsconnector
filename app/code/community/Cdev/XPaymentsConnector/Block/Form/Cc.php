@@ -32,4 +32,38 @@ class Cdev_XPaymentsConnector_Block_Form_Cc extends Mage_Payment_Block_Form
         $this->setTemplate('xpaymentsconnector/form/cc.phtml');
     }
 
+    public function getIframeUrl()
+    {
+
+        $quotePayment = Mage::getSingleton('checkout/session')->getQuote()->getPayment();
+        $isPaymentPlaceDisplayFlag = Mage::helper("xpaymentsconnector")->isIframePaymentPlaceDisplay();
+        $methods = Mage::helper("xpaymentsconnector")->getAllowedPaymentsMethods();
+        if ($quotePayment->getMethod()) {
+            $currentPaymentMethodCode = $quotePayment->getMethodInstance()->getCode();
+            $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
+            if ($isPaymentPlaceDisplayFlag) {
+                if ($currentPaymentMethodCode == $xpaymentPaymentCode) {
+                    $unsetParams = array("token");
+                    Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+                    return Mage::helper("xpaymentsconnector")->getIframeUrl();
+                }
+            }
+        }
+
+        if($methods && $isPaymentPlaceDisplayFlag){
+            if(count($methods) == 1){
+                $currentMethod = current($methods);
+                $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
+                if($currentMethod["method_code"] == $xpaymentPaymentCode){
+                    $unsetParams = array("token");
+                    Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+                    return Mage::helper("xpaymentsconnector")->getIframeUrl();
+                }
+            }
+        }
+
+
+        return "#";
+    }
+
 }

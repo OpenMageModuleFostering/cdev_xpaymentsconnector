@@ -110,7 +110,7 @@
 "Transaction status is '%s'","Transaction status is '%s'"
 "You created card number '%s'. Transaction status is '%s'.","You created card number '%s'. Transaction status is '%s'."
 "Your order state has been changed during checkout. You will be redirected to the cart contents page.","Your order state has been changed during checkout. You will be redirected to the cart contents page."
-
+"Show credit card form at","Show credit card form at"
 
 
 

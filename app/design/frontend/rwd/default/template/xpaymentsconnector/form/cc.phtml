@@ -29,7 +29,14 @@
     $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
     $isRecuringProduct = Mage::helper("xpaymentsconnector")->checkIsRecurringOrder();
     $IsSaveCardsPaymentActive = (bool)Mage::getStoreConfig('payment/savedcards/active');
+
+    // iframe display settings on the current page
+    $displayOnPaymentStep = (bool)(Mage::getStoreConfig('payment/xpayments/placedisplay') == "payment");
+
+    $isNeedToSaveUserCard = Mage::helper("xpaymentsconnector")->isNeedToSaveUserCard();
+    $customerRegistered = Mage::helper("xpaymentsconnector")->isRegisteredUser();
 ?>
+
 <?php if (!$useIframe): ?>
     <?php if (!$isRecuringProduct): ?>
         <?php if ($IsSaveCardsPaymentActive): ?>
@@ -55,6 +62,60 @@
             </li>
         </ul>
     <?php endif; ?>
+<?php elseif($displayOnPaymentStep): ?>
+    <?php $iframeUrl = $this->getIframeUrl();?>
+    <ul id="payment_form_<?php echo $_code ?>" style="display:none;">
+        <li>
+            <div id="xpayment-iframe-block">
+                <iframe id="xp-iframe" class="xp-iframe" data-src="<?php echo $iframeUrl; ?>" src="<?php echo $iframeUrl;?>" name="xp-iframe" style="display: none">
+                </iframe>
+                <div id="paymentstep-ajax-loader"></div>
+                <?php if($customerRegistered):?>
+                    <?php if(!$isRecuringProduct): ?>
+                        <?php if ($IsSaveCardsPaymentActive): ?>
+                            <span id="iframe-save-card-switcher" >
+                                <input type="checkbox" <?php echo ($isNeedToSaveUserCard)?"checked":"";?> title="<?php echo $this->__("Use this credit card"); ?>" class="checkbox x-payment-card " id="iframe_savecard" name="iframe_savecard" value="1" />
+                                <label for="iframe_savecard"><?php echo $this->__("I want to use this credit card for my future orders in this shop."); ?></label>
+                    </span>
+                            <script type="text/javascript">
+                                var url = "<?php echo Mage::getUrl("xpaymentsconnector/processing/saveusercard");?>";
+                                $('iframe_savecard').observe('change',
+                                    function() {
+                                        if($('iframe_savecard').checked === true) {
+                                            new Ajax.Request(url, {
+                                                parameters: "user_card_save=1"
+                                            });
+                                        }else{
+                                            new Ajax.Request(url, {
+                                                parameters: "user_card_save=0"
+                                            });
+                                        }
+                                    });
+                            </script>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span id="iframe-save-card-switcher" >
+                  <?php echo $this->__("Your credit card will be saved for this subscription."); ?>
+              </span>
+                    <?php endif;?>
+                <?php endif;?>
+            </div>
+        </li>
+    </ul>
+
+    <script type="text/javascript">
+        xpaymentMethodCode = '<?php echo $_code; ?>';
+        getIfameUrl = "<?php echo Mage::getUrl("xpaymentsconnector/processing/getcheckoutiframeurl", array('_nosid' => true, '_secure' => true));?>";
+        displayIframeOnPaymentStep = '<?php echo $displayOnPaymentStep ?>';
+        iframe = $('xp-iframe');
+
+        Event.observe(iframe, "load", function () {
+            $('paymentstep-ajax-loader').hide();
+            iframe.show();
+        });
+    </script>
+
 <?php endif; ?>
+
 
 

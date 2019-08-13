@@ -42,7 +42,7 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
     /**
      * @return string (url)
      */
-    public function getIframeUrl(){
+    public function getAuthorizeIframeUrl(){
 
         // update standart iframe handshake request
         $refId =  "authorization";

@@ -89,7 +89,12 @@
             </customer>
             <xpaymentsconnector>
 				<class>Cdev_XPaymentsConnector_Block</class>
-			</xpaymentsconnector>
+            </xpaymentsconnector>
+            <checkout>
+                <rewrite>
+                    <onepage_payment_methods>Cdev_XPaymentsConnector_Block_Form_Container</onepage_payment_methods>
+                </rewrite>
+            </checkout>
 		</blocks>
         <events>
             <sales_order_payment_cancel_invoice>
@@ -252,6 +257,16 @@
                     </web4procheckout>
                 </observers>
             </controller_action_postdispatch_checkout_onepage_saveShippingMethod>
+            <!--Remove X-Payments token after update shipping method -->
+            <controller_action_predispatch_checkout_onepage_saveShippingMethod>
+                <observers>
+                    <web4procheckout>
+                        <type>singleton</type>
+                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
+                        <method>predispatchSaveShippingMethod</method>
+                    </web4procheckout>
+                </observers>
+            </controller_action_predispatch_checkout_onepage_saveShippingMethod>
         </events>
         <sales>
             <quote>

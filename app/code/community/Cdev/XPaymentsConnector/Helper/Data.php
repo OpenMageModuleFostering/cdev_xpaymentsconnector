@@ -92,6 +92,38 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     }
 
     /**
+     * This function set 'place_display' flag for feature x-payment form.
+     * Xpayment Prepare Order Mas(xpayment_prepare_order):
+     * - prepare_order_id (int)
+     * - xpayment_response
+     * - token
+     * - place_display
+     * return
+     * @return bool or int
+     */
+    public function setIframePlaceDisplaySettings()
+    {
+        $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
+        if($useIframe){
+            $xpaymentPrepareOrder = Mage::getSingleton("checkout/session")->getData("xpayment_prepare_order");
+            $xpaymentPrepareOrder["place_display"] = Mage::getStoreConfig('payment/xpayments/placedisplay');
+            Mage::getSingleton("checkout/session")->setData("xpayment_prepare_order", $xpaymentPrepareOrder);
+        }
+    }
+
+    /**
+     * check  'xpayment' config settigs
+     * @return bool
+     */
+    public function isIframePaymentPlaceDisplay(){
+        $xpaymentPrepareOrder = Mage::getSingleton("checkout/session")->getData("xpayment_prepare_order");
+        if(isset($xpaymentPrepareOrder["place_display"]) && ($xpaymentPrepareOrder["place_display"] == "payment" )){
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * This function return saved X-Payments response data.
      * Xpayment Prepare Order Mas(xpayment_prepare_order):
      * - prepare_order_id (int)
@@ -133,6 +165,7 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     }
 
     /**
+     * Unset prepare order params
      * @param array $unsetParams
      */
     public function unsetXpaymentPrepareOrder($unsetParams = array()){
@@ -146,19 +179,52 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
             Mage::getSingleton("checkout/session")->setData("xpayment_prepare_order",$xpaymentPrepareOrder);
             return;
         }
+
         Mage::getSingleton("checkout/session")->unsetData("xpayment_prepare_order");
     }
 
     /**
      * Save X-Payments response data after card data send.
+     * - xpayment_response
      * @param array $responseData
      */
-    public function savePaymentResponse($responseData = array())
+    public function savePaymentResponse($responseData)
     {
         $xpaymentPrepareOrder = Mage::getSingleton("checkout/session")->getData("xpayment_prepare_order");
         $xpaymentPrepareOrder["xpayment_response"] = $responseData;
         Mage::getSingleton("checkout/session")->setData("xpayment_prepare_order", $xpaymentPrepareOrder);
     }
+
+    /**
+     * Save all allowed payments for current checkout session in store.
+     * - allowed_payments
+     *  @param array $methods
+     */
+    public function setAllowedPaymentsMethods($methodsInstances)
+    {
+        $xpaymentPrepareOrder = Mage::getSingleton("checkout/session")->getData("xpayment_prepare_order");
+        $xpaymentPrepareOrder["allowed_payments"] = $methodsInstances;
+        $methods = array();
+        foreach($methodsInstances as $methodInstance){
+            $methods[]["method_code"] = $methodInstance->getCode();
+        }
+        $xpaymentPrepareOrder["allowed_payments"] = $methods;
+        Mage::getSingleton("checkout/session")->setData("xpayment_prepare_order", $xpaymentPrepareOrder);
+    }
+
+    /**
+     * get all allowed payments for current checkout session in store.
+     * - allowed_payments
+     */
+    public function getAllowedPaymentsMethods()
+    {
+        $xpaymentPrepareOrder = Mage::getSingleton("checkout/session")->getData("xpayment_prepare_order");
+        if ($xpaymentPrepareOrder && isset($xpaymentPrepareOrder["allowed_payments"]) && !empty($xpaymentPrepareOrder["allowed_payments"])) {
+            return $xpaymentPrepareOrder["allowed_payments"];
+        }
+        return false;
+    }
+
 
     public function getReviewButtonTemplate($name, $block)
     {
@@ -515,6 +581,17 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
             $profile["discount_amount"] = $discount;
             $item->getProduct()->setRecurringProfile($profile)->save();
         }
+    }
+
+    public function getIframeUrl(){
+        $xpaymentFormData = Mage::helper('payment')->getMethodInstance("xpayments")->getFormFields();
+        $xpaymentFormUrl = Mage::helper('payment')->getMethodInstance("xpayments")->getUrl();
+
+        $this->prepareOrderKey();
+        $token = $this->getIframeToken();
+        $iframeUrlDataArray = array('target' => $xpaymentFormData['target'], 'token' => $token);
+        $iframeUrl = $xpaymentFormUrl . "?" . http_build_query($iframeUrlDataArray);
+        return $iframeUrl;
     }
 
 }

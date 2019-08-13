@@ -19,25 +19,14 @@
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
-/**
- * Additional settings for "IFrame" variant of payment method (frontend)
- */
 
-class Cdev_XPaymentsConnector_Block_Checkout_Onepage_Settings extends Mage_Core_Block_Template
+class Cdev_XPaymentsConnector_Block_Form_Container extends Mage_Checkout_Block_Onepage_Payment_Methods
 {
+    public function getMethods()
+    {
+        $methods = parent::getMethods();
+        Mage::helper("xpaymentsconnector")->setAllowedPaymentsMethods($methods);
+        return $methods;
 
-    public function isXpaymentMethod(){
-
-        $paymentCode = Mage::getSingleton('checkout/session')->getQuote()->getPayment()->getMethodInstance()->getCode();
-        $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
-
-        if($paymentCode == $xpaymentPaymentCode){
-            return true;
-        }
-        else{
-            return false;
-        }
     }
-
-
 }

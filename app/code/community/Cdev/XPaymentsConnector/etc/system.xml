@@ -75,19 +75,10 @@
 							<show_in_website>1</show_in_website>
 							<show_in_store>0</show_in_store>
 						</specificcountry>
-                        <order_status translate="label">
-                            <label>New order status</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_order_status</source_model>
-                            <sort_order>6</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>0</show_in_store>
-                        </order_status>
                         <confid translate="label">
                             <label>Payment configuration</label>
                             <frontend_type>select</frontend_type>
-                            <sort_order>7</sort_order>
+                            <sort_order>6</sort_order>
                             <source_model>xpaymentsconnector/source_paymentconfiguration</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
@@ -97,16 +88,26 @@
                             <label>Use iFrame</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>8</sort_order>
+                            <frontend_model>xpaymentsconnector/adminhtml_system_config_form_subselect</frontend_model>
+                            <sort_order>7</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </use_iframe>
+                        <placedisplay translate="label">
+                            <label>Show credit card form at</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>xpaymentsconnector/adminhtml_system_config_source_placedisplay</source_model>
+                            <sort_order>8</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </placedisplay>
                         <use_authorize translate="label">
                             <label>Use forced Authorize operation</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>8</sort_order>
+                            <sort_order>9</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
@@ -115,7 +116,7 @@
                             <label>Use forced Authorize operation for initial fee</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>8</sort_order>
+                            <sort_order>10</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>

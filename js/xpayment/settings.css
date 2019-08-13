@@ -36,6 +36,16 @@
     border-right: 1px solid #d9dde3;
 }
 
+#checkout-payment-method-load #xpayment-iframe-block {
+    padding-bottom: 10px;
+    border: 0px;
+}
+
+#checkout-payment-method-load #xpayment-iframe-block iframe{
+    border: 1px solid #d9dde3;
+    margin-left: 0%;
+}
+
 iframe .buttonRow {
     display: none;
 }
@@ -63,6 +73,15 @@ iframe .buttonRow {
     text-align: center;
     top: 50%;
     width: 400px;
+    z-index: 100000;
+}
+
+#paymentstep-ajax-loader {
+    background: url("images/loader.gif") 50% 50% no-repeat;
+    height: 213px;
+    margin-bottom: 0;
+    margin-right: 0;
+    text-align: center;
     z-index: 100000;
 }
 
