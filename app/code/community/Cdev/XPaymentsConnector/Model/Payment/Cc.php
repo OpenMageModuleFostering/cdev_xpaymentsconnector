@@ -1370,8 +1370,6 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
     public function sendIframeHandshakeRequest($updateSendData = array(),$isCardAuthorizePayment = false)
     {
         $xPaymentDataResponse = array();
-        $xPaymentDataResponse['success'] = true;
-
         $checkoutData = Mage::getSingleton('checkout/session');
         $xpHelper = Mage::helper('xpaymentsconnector');
         $refId = $xpHelper->getOrderKey();

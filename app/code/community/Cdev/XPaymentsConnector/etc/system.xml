@@ -210,26 +210,6 @@
 				<settings translate="label">
 					<label>X-Payments Connector Settings</label>
 					<frontend_type>text</frontend_type>
-                    <comment>
-                    <![CDATA[
-                    <div id="xp-connector-settings" style="display:none">
-                        Connect to X-Payments in 3 easy steps:<ol>
-                        <li>1 - Open your X-Payments back-end (if you do not have it - <a href="http://www.x-payments.com/trial-demo.html?utm_source=mage_shop&utm_medium=link&utm_campaign=mage_shop_link">get a free trial</a>!)</li>
-                        <li>2 - Configure payment methods at X-Payments (<a href="http://help.x-cart.com/index.php?title=X-Payments:User_manual#Online_Stores">Read how to do that</a>)</li>
-                        <li>3 - Connect X-Payments with Magento (see how to do that below).</li>
-                        <li><iframe width="560" height="315" frameborder="0" allowfullscreen="" src="https://www.youtube.com/embed/2VRR0JW23qc"></iframe></li>
-                        </ol>
-                    </div>
-                    <script>
-                    document.observe('dom:loaded', function(){
-                        var bundleKey = $('xpaymentsconnector_settings_xpay_conf_bundle').getValue();
-                        if(bundleKey.trim() == ''){
-                            $('xp-connector-settings').show();
-                        }
-                    });
-                    </script>
-                    ]]>
-                    </comment>
 					<sort_order>1</sort_order>
 					<show_in_default>1</show_in_default>
 					<show_in_website>0</show_in_website>

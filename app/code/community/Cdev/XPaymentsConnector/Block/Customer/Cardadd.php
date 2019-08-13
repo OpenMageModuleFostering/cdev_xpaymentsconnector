@@ -58,13 +58,10 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
         $api = Mage::getModel('xpaymentsconnector/payment_cc');
 
         $result = $api->sendIframeHandshakeRequest($updateSendData,$isCardAuthorizePayment = true);
-        if($result['success']){
-            $iframeUrlDataArray = array('target' => $xpaymentFormData['target'], 'token' => $result['response']['token']);
-            $iframeUrl = $xpaymentFormUrl . '?' . http_build_query($iframeUrlDataArray);
-            $result['iframe_url'] = $iframeUrl;
-        }
 
-        return $result;
+        $iframeUrlDataArray = array('target' => $xpaymentFormData['target'], 'token' => $result['response']['token']);
+        $iframeUrl = $xpaymentFormUrl . '?' . http_build_query($iframeUrlDataArray);
+        return $iframeUrl;
     }
 
     /**

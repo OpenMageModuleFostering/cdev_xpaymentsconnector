@@ -43,16 +43,9 @@
 <h4><?php echo Mage::helper('xpaymentsconnector')->__('Configuration problems'); ?></h4>
 <ul>
 <?php foreach ($this->getConfigurationErrors() as $err) { ?>
-<li class="error">* <?php echo Mage::helper('xpaymentsconnector')->__($err); ?></li>
+<li class="error"><?php echo Mage::helper('xpaymentsconnector')->__($err); ?></li>
 <?php } ?>
 </ul>
-    <p><strong>
-            <?php echo $this->__('Please, check x-payment settings '); ?>
-            <a href="<?php echo $this->getUrl('adminhtml/system_config/edit/section/xpaymentsconnector/'); ?>">
-                <?php echo $this->__('here'); ?>.
-            </a>
-        </strong>
-    </p>
 <br />
 <hr />
 <br />
