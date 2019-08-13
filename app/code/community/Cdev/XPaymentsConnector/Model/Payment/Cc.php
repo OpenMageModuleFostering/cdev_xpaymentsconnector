@@ -499,6 +499,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
         // Prepare cart
         $cart = $this->prepareCart($order, $refId);
+        $xpHelper = Mage::helper('xpaymentsconnector');
 
         // Data to send to X-Payments
         $data = array(
@@ -507,7 +508,6 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             'cart'        => $cart,
             'returnUrl'   => Mage::getUrl('xpaymentsconnector/processing/iframereturn', array('order_id' => $refId,'_secure' => true)),
             'callbackUrl' => Mage::getUrl('xpaymentsconnector/processing/callback', array('order_id' => $refId,'_secure' => true)),
-            'template'    => 'default',
             'saveCard'    => 'Y',
             'api_version' => self::XP_API_NEW
         );
@@ -516,9 +516,16 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
         if ($status && (!isset($response['token']) || !is_string($response['token']))) {
 
-            Mage::log(serialize($response), null, Cdev_XPaymentsConnector_Helper_Data::XPAYMENTS_LOG_FILE,true);
+            $errorMessage  = $xpHelper->__('Transaction token can not be found or has wrong type. ');
+            if (isset($response['error_message']) && !empty($response['error_message'])) {
+                $errorMessage .= $xpHelper->__('X-Payments response was - %s. ', $response['error_message']);
+            }
 
-            $this->getAPIError('Transaction token can not be found or has wrong type');
+            if (isset($response['error']) && !empty($response['error'])) {
+                $errorMessage .= $xpHelper->__('(error: %s)', $response['error']);
+            }
+
+            $this->getAPIError($errorMessage);
             $status = false;
         }
 
@@ -849,9 +856,12 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      */
     protected function getAPIError($msg)
     {
+        $xpHelper = Mage::helper('xpaymentsconnector');
         Mage::log(
             sprintf('XPayments connector error: %s', $msg),
-            Zend_Log::ERR
+            null,
+            $xpHelper::XPAYMENTS_LOG_FILE,
+            true
         );
 
         return array(false, $msg);
@@ -1349,7 +1359,8 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
     {
         $xPaymentDataResponse = array();
         $checkoutData = Mage::getSingleton('checkout/session');
-        $refId = Mage::helper('xpaymentsconnector')->getOrderKey();
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $refId = $xpHelper->getOrderKey();
 
         $xPaymentDataResponse['order_refid'] = $refId;
         $result = array();
@@ -1388,7 +1399,17 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
         if (!$status || (!isset($response['token']) || !is_string($response['token']))) {
             $result['success'] = false;
-            $result['error_message'] = Mage::helper('core')->__('Transaction token can not be found or has wrong type');
+            $errorMessage = $xpHelper->__('Transaction token can not be found or has wrong type. ');
+            if (isset($response['error_message']) && !empty($response['error_message'])) {
+                $errorMessage .= $xpHelper->__('X-Payments response was - %s. ', $response['error_message']);
+            }
+
+            if (isset($response['error']) && !empty($response['error'])) {
+                $errorMessage .= $xpHelper->__('(error: %s)', $response['error']);
+            }
+            $this->getAPIError($errorMessage);
+
+            $result['error_message'] = $errorMessage;
             return $result;
         }
 
@@ -1423,7 +1444,8 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
         $data = array(
             'txnId'       => $cardData['txnId'],
-            'amount'      => number_format($grandTotal, 2, '.','')
+            'amount'      => number_format($grandTotal, 2, '.',''),
+            'callbackUrl' => Mage::getUrl('xpaymentsconnector/processing/callback', array('_secure' => true))
         );
         $order = NULL;
 
@@ -1452,7 +1474,17 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             if ($status && (!isset($response['transaction_id']) || !is_string($response['transaction_id']))) {
                 $xpHelper->unsetXpaymentPrepareOrder();
                 $order->cancel();
-                $errorMessage = $xpHelper->__('Transaction token can not found or has wrong type. The order has been canceled.');
+
+                $errorMessage = $xpHelper->__('Failed to place a transaction using token %s. ', $cardData['txnId']);
+                if (isset($response['error_message']) && !empty($response['error_message'])) {
+                    $errorMessage .= $xpHelper->__('X-Payments response was - %s. ', $response['error_message']);
+                }
+
+                if (isset($response['error']) && !empty($response['error'])) {
+                    $errorMessage .= $xpHelper->__('(error: %s)', $response['error']);
+                }
+
+                $this->getAPIError($errorMessage);
                 $order->addStatusToHistory(
                     $order::STATE_CANCELED,
                     $errorMessage
@@ -1714,11 +1746,9 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
                 $order->save();
 
                 // Total wrong
-                Mage::log('Order total amount doesn\'t match: Order total = ' . number_format($order->getGrandTotal(), 2, '.','').
-                        ', X-Payments amount = ' . $response['payment']['amount'],
-                        null,
-                        $xpaymentsHelper::XPAYMENTS_LOG_FILE,
-                        true);
+                $errorMessage = 'Order total amount doesn\'t match: Order total = ' . number_format($order->getGrandTotal(), 2, '.','').
+                    ', X-Payments amount = ' . $response['payment']['amount'];
+                $this->getAPIError($errorMessage);
 
                 $result['success'] = false;
                 return $result;
@@ -1728,11 +1758,9 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
                 $order->save();
 
                 // Currency wrong
-                Mage::log('Order currency doesn\'t match: Order currency = ' . $this->getCurrency()
-                    . ', X-Payments currency = ' . $response['payment']['currency'],
-                    null,
-                    $xpaymentsHelper::XPAYMENTS_LOG_FILE,
-                    true);
+                $errorMessage = 'Order currency doesn\'t match: Order currency = ' . $this->getCurrency()
+                    . ', X-Payments currency = ' . $response['payment']['currency'];
+                $this->getAPIError($errorMessage);
 
                 $result['success'] = false;
                 return $result;
@@ -1943,9 +1971,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
                 $xpHelper->prepareOrderKeyByRecurringProfile($profile);
             } else {
                 if (is_null($this->_currentProfileId)) {
-                    $updateSendData = array();
-                    $updateSendData['template'] = 'default';
-                    $xpaymentResponse = $this->sendIframeHandshakeRequest($updateSendData);
+                    $xpaymentResponse = $this->sendIframeHandshakeRequest();
 
                     if (isset($xpaymentResponse['success']) && !$xpaymentResponse['success']) {
                         $this->firstTransactionSuccess = false;

@@ -103,7 +103,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             $request['updateData'] = $api->decryptXML($request['updateData']);
         }
 
-        Mage::log(serialize($request), null, $xpaymentsHelper::XPAYMENTS_LOG_FILE,true);
+        $api->getAPIError(serialize($request));
 
         // Check order
         $order = Mage::getModel('sales/order')->loadByAttribute('xpc_txnid', $request['txnId']);
@@ -166,9 +166,8 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
                     $userCardModel->save();
                 } else {
 
-                    Mage::log("Unable to create 'prepaid cart' because there is no corresponding order with the number of tokens -".$request['txnId'],
-                        null,
-                        $xpaymentsHelper::XPAYMENTS_LOG_FILE,true);
+                    $errorMessage = "Unable to create 'prepaid cart' because there is no corresponding order with the number of tokens -".$request['txnId'];
+                    $api->getAPIError($errorMessage);
 
                 }
             }
