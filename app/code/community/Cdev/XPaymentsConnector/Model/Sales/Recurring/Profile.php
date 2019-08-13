@@ -21,6 +21,8 @@
 
 class Cdev_XPaymentsConnector_Model_Sales_Recurring_Profile extends Mage_Sales_Model_Recurring_Profile {
 
+    const STATE_FINISHED    = 'finished';
+
     /**
      * Determine nearest possible profile start date
      *
@@ -253,7 +255,76 @@ class Cdev_XPaymentsConnector_Model_Sales_Recurring_Profile extends Mage_Sales_M
         return false;
     }
 
+    /**
+     * Set state finished for current profile
+     */
+    public function finished()
+    {
+        $this->_checkWorkflow(self::STATE_FINISHED, false);
+        $this->setNewState(self::STATE_FINISHED);
+        $this->getMethodInstance()->updateRecurringProfileStatus($this);
+        $this->setState(self::STATE_FINISHED)
+            ->save();
+    }
 
+    /**
+     * Initialize the workflow reference
+     */
+    protected function _initWorkflow()
+    {
+        if (null === $this->_workflow) {
+            $this->_workflow = array(
+                'unknown'   => array('pending', 'active', 'suspended', 'canceled'),
+                'pending'   => array('active', 'canceled'),
+                'active'    => array('suspended', 'canceled', 'finished'),
+                'suspended' => array('active', 'canceled'),
+                'canceled'  => array(),
+                'expired'   => array(),
+                'finished'  => array()
+            );
+        }
+    }
+
+    /**
+     * Get state label based on the code
+     *
+     * @param string $state
+     * @return string
+     */
+    public function getStateLabel($state)
+    {
+        switch ($state) {
+            case self::STATE_UNKNOWN:   return Mage::helper('sales')->__('Not Initialized');
+            case self::STATE_PENDING:   return Mage::helper('sales')->__('Pending');
+            case self::STATE_ACTIVE:    return Mage::helper('sales')->__('Active');
+            case self::STATE_SUSPENDED: return Mage::helper('sales')->__('Suspended');
+            case self::STATE_FINISHED:  return Mage::helper('xpaymentsconnector')->__('Finished');
+            case self::STATE_CANCELED:  return Mage::helper('sales')->__('Canceled');
+            case self::STATE_EXPIRED:   return Mage::helper('sales')->__('Expired');
+            default: return $state;
+        }
+    }
+
+    /**
+     * Getter for all available states
+     *
+     * @param bool $withLabels
+     * @return array
+     */
+    public function getAllStates($withLabels = true)
+    {
+        $states = array(self::STATE_UNKNOWN, self::STATE_PENDING, self::STATE_ACTIVE,
+            self::STATE_SUSPENDED, self::STATE_CANCELED, self::STATE_EXPIRED, self::STATE_FINISHED
+        );
+        if ($withLabels) {
+            $result = array();
+            foreach ($states as $state) {
+                $result[$state] = $this->getStateLabel($state);
+            }
+            return $result;
+        }
+        return $states;
+    }
 
 
 }

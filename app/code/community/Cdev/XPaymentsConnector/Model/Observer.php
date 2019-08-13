@@ -355,7 +355,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
                 }
 
                 if(!$userTransactionHasBeenSend){
-                    if ($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_UNKNOWN) {
+                    if ($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_PENDING) {
                             $cardData = $xpaymentsHelper->getProfileOrderCardData($profile);
                             $orderAmountData = $xpaymentsHelper->preparePayDeferredOrderAmountData($profile);
                             if(!empty($orderAmountData)){
@@ -438,7 +438,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
                             } else {
                                 // Subscription is completed
-                                $profile->cancel();
+                                $profile->finished();
 
                             }
                         }

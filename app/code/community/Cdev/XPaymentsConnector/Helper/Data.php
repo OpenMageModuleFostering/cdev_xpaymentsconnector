@@ -922,6 +922,9 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
      * @param Mage_Payment_Model_Recurring_Profile $profile
      */
     public function addXpDefaultRecurringSettings(Mage_Payment_Model_Recurring_Profile $profile){
+        // set primary 'recurring profile' state
+        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_PENDING);
+
         $quote = $profile->getQuote();
         $customerId = $quote->getCustomer()->getId();
         if (is_null($customerId)) {

@@ -121,7 +121,7 @@
 " (initial fee only, 1st recurring fee will be charged on %s)"," (initial fee only, 1st recurring fee will be charged on %s)"
 "%s%s for recurring product '%s' in your cart.","%s%s for recurring product '%s' in your cart."
 "%s%s for all non-recurring products in your cart.","%s%s for all non-recurring products in your cart."
-
+"Finished","Finished"
 
 
 
