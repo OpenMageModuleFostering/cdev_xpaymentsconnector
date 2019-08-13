@@ -161,11 +161,13 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
         if($useIframe){
             $orderModel = $observer->getData("data_object");
-            $paymentCode = $orderModel->getPayment()->getMethodInstance()->getCode();
-            if(Mage::helper("xpaymentsconnector")->isXpaymentsMethod($paymentCode)){
-                $orderModel->setCanSendNewEmailFlag(false);
-                $incrementId = Mage::helper("xpaymentsconnector")->getOrderKey();
-                $orderModel->setIncrementId($incrementId);
+            if(!$orderModel->getIncrementId()){
+                $paymentCode = $orderModel->getPayment()->getMethodInstance()->getCode();
+                if(Mage::helper("xpaymentsconnector")->isXpaymentsMethod($paymentCode)){
+                    $orderModel->setCanSendNewEmailFlag(false);
+                    $incrementId = Mage::helper("xpaymentsconnector")->getOrderKey();
+                    $orderModel->setIncrementId($incrementId);
+                }
             }
         }
     }
