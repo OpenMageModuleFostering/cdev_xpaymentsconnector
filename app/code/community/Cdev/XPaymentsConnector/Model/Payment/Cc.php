@@ -737,7 +737,6 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
         curl_setopt($ch, CURLOPT_HEADERFUNCTION, 'xpc_curl_headers_collector');
-        curl_setopt($ch, CURLOPT_SSLVERSION, 3);
 
         $body = curl_exec($ch);
         $errno = curl_errno($ch);
