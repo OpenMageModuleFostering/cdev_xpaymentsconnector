@@ -161,6 +161,17 @@
                     </paymentfilter_payment_method_is_active>
                 </observers>
             </payment_method_is_active>
+            <!--send xp transaction from 'XP Order State tab'-->
+            <controller_action_predispatch_adminhtml_sales_order_view>
+                <observers>
+                    <xpaymentsconnector>
+                        <type>singleton</type>
+                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
+                        <method>adminhtmlSalesOrderView</method>
+                    </xpaymentsconnector>
+                </observers>
+            </controller_action_predispatch_adminhtml_sales_order_view>
+
             <controller_action_postdispatch_adminhtml_sales_order_create_save>
                 <observers>
                     <xpaymentsconnector>
@@ -179,6 +190,16 @@
                     </xpaymentsconnector>
                 </observers>
             </controller_action_predispatch_adminhtml_sales_order_create_save>
+            <!--add x-payments transaction for 'admin order edit' event   -->
+            <controller_action_postdispatch_adminhtml_sales_order_edit_save>
+                <observers>
+                    <xpaymentsconnector>
+                        <type>singleton</type>
+                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
+                        <method>postdispatchAdminhtmlSalesOrderEditSave</method>
+                    </xpaymentsconnector>
+                </observers>
+            </controller_action_postdispatch_adminhtml_sales_order_edit_save>
             <controller_action_predispatch_adminhtml_sales_order_create_index>
                 <observers>
                     <xpaymentsconnector>
@@ -188,6 +209,16 @@
                     </xpaymentsconnector>
                 </observers>
             </controller_action_predispatch_adminhtml_sales_order_create_index>
+            <!--save selected x-payment card on admin side -->
+            <controller_action_postdispatch_adminhtml_sales_order_edit_loadBlock>
+                <observers>
+                    <xpaymentsconnector>
+                        <type>singleton</type>
+                        <class>Cdev_XPaymentsConnector_Model_Observer</class>
+                        <method>adminhtmlSavePaymentCard</method>
+                    </xpaymentsconnector>
+                </observers>
+            </controller_action_postdispatch_adminhtml_sales_order_edit_loadBlock>
             <controller_action_postdispatch_adminhtml_sales_order_create_loadBlock>
                 <observers>
                     <xpaymentsconnector>

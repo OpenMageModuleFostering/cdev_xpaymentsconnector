@@ -52,6 +52,18 @@
     </adminhtml_sales_order_create_index>
 
     <adminhtml_sales_order_view>
+        <reference name="head">
+            <action method="addItem">
+                <type>js</type>
+                <name>xpayment/backend-xpayment.js</name>
+                <params/>
+            </action>
+            <action method="addItem">
+                <type>js_css</type>
+                <name>xpayment/settings.css</name>
+                <params/>
+            </action>
+        </reference>
         <reference name="sales_order_tabs">
             <action method="addTab">
                 <name>xp_order_state</name>

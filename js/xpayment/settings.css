@@ -441,5 +441,16 @@ iframe .buttonRow {
 #new-card-block #xpayment-iframe-block #xp-iframe{
     height: 260px;
 }
-xp-iframe
-/*end (add new credit card block style)*/
+
+/*end (xp transaction form)*/
+.xp_fast_transactions input {
+    max-width: 170px;
+    margin: 5px;
+}
+
+
+.transaction-accordion {
+    float: right;
+}
+
+/*end(xp transaction form)*/

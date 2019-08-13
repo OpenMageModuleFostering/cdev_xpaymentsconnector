@@ -79,24 +79,20 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
     public function getXpaymentsOrderInfo(){
         $result = array();
 
-        if (empty($this->txnid)) {
+        if (empty($this->txnid) && empty($this->transactionInfo)) {
             $orderBroken = Mage::helper("xpaymentsconnector")->__("This order has been broken. Parameter 'xpayments transaction id' is not available.");
             $result["success"] = false;
             $result["error_message"] = $orderBroken;
             return $result;
         }
 
-
-        if(!$this->transactionStatus){
+        if (!$this->transactionStatus && empty($this->transactionInfo)) {
             $xpaymentsConnect = Mage::helper("xpaymentsconnector")->__("Can't get information about the order from X-Payments server. More information is available in log files.");
             $result["success"] = false;
             $result["error_message"] = $xpaymentsConnect;
-        }else{
-            if(!$this->isHidden()){
-                $result["success"] = true;
-                $result["info"] = $this->transactionInfo;
-            }
-
+        } else {
+            $result["success"] = true;
+            $result["info"] = $this->transactionInfo;
         }
 
         return $result;
@@ -105,14 +101,52 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
 
     public function isHidden()
     {
-        $currentPaymentCode = $this->getOrder()->getPayment()->getMethodInstance()->getCode();
+
+        $currentOrder = $this->getOrder();
+        $currentPaymentCode = $currentOrder->getPayment()->getMethodInstance()->getCode();
         $isXpaymentsMethod  = Mage::helper("xpaymentsconnector")->isXpaymentsMethod($currentPaymentCode);
         if($isXpaymentsMethod){
-            list($this->transactionStatus, $this->transactionInfo)
-                =  Mage::getModel("xpaymentsconnector/payment_cc")->requestPaymentInfo($this->txnid,false,true);
+            if($this->txnid){
+                list($this->transactionStatus, $this->transactionInfo[$currentOrder->getIncrementId()])
+                    = Mage::getModel("xpaymentsconnector/payment_cc")->requestPaymentInfo($this->txnid,false,true);
+                $this->transactionInfo[$currentOrder->getIncrementId()]["payment"]["xpc_txnid"] = $this->txnid;
+            }
+
+            while(!is_null($parentOrder = $currentOrder->getRelationParentId())){
+                $currentOrder = Mage::getModel('sales/order')->load($parentOrder);
+                if ($currentOrder) {
+                    $txnid = $currentOrder->getData("xpc_txnid");
+                    if($txnid){
+                        list($transactionStatus, $transactionInfo)
+                            = Mage::getModel("xpaymentsconnector/payment_cc")->requestPaymentInfo($txnid, false, true);
+                        if ($transactionStatus) {
+                            $this->transactionInfo[$currentOrder->getIncrementId()] = $transactionInfo;
+                            $this->transactionInfo[$currentOrder->getIncrementId()]["payment"]["xpc_txnid"] = $txnid;
+                        }
+                    }
+                }
+            }
         }
 
         return !$isXpaymentsMethod;
 
+    }
+
+    /**
+     * Calculate order action available amount
+     * @param array $xpOrderStateData
+     * @return float
+     */
+    public function getCurrentActionAmount($xpOrderStateData){
+        $actionAmount = 0.00;
+        switch (true) {
+            case ($xpOrderStateData["capturedAmountAvailGateway"] > 0 && $xpOrderStateData["refundedAmountAvailGateway"] < 0.01):
+                $actionAmount = $xpOrderStateData["capturedAmountAvailGateway"];
+                break;
+            case ($xpOrderStateData["refundedAmountAvailGateway"] > 0 && $xpOrderStateData["capturedAmountAvailGateway"] < 0.01):
+                $actionAmount = $xpOrderStateData["refundedAmountAvailGateway"];
+                break;
+        }
+        return $actionAmount;
     }
 }

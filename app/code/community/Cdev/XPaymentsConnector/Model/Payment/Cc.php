@@ -1636,8 +1636,14 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         return $result;
     }
 
-
-    public function updateOrderByXpaymentResponse($orderId,$txnid){
+    /**
+     * Update order data by xpayment response data
+     * @param int $orderId
+     * @param string $txnid
+     * @param bool $checkOrderAmount
+     * @return array
+     */
+    public function updateOrderByXpaymentResponse($orderId,$txnid,$checkOrderAmount = true){
         $result = array();
         $order = Mage::getModel('sales/order')->load($orderId);
         $order->setData('xpc_txnid', $txnid);
@@ -1655,7 +1661,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             }
             */
             /**/
-            if ($response['amount'] != number_format($order->getGrandTotal(), 2, '.','')) {
+            if ($response['amount'] != number_format($order->getGrandTotal(), 2, '.','') && $checkOrderAmount) {
 
                 // Total wrong
                 Mage::log(
@@ -1762,9 +1768,10 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         list($status, $response) = $this->request('payment', $action, $data);
 
         //****************stop*****************//
-        if ( $status && (!empty($response['error_message']))) {
+        /*if ( $status && (!empty($response['error_message']))) {
             Mage::throwException(Mage::helper('sales')->__($response['error_message']));
-        }
+        }*/
+        return $response;
 
     }
 

@@ -29,156 +29,238 @@
 
 <?php $xpaymentsOrderInfo = $this->getXpaymentsOrderInfo(); ?>
 <?php if($xpaymentsOrderInfo["success"]): ?>
-    <?php $xpaymentOrderState  = $xpaymentsOrderInfo["info"]["payment"];?>
-    <?php $xpaymentOrdertransactionsList  = $xpaymentsOrderInfo["info"]["transactions"]; ?>
-    <div class="entry-edit">
-        <div class="entry-edit-head">
-            <h4><?php echo $this->__('Transaction list'); ?></h4>
-        </div>
+    <?php $xpaymentOrdersInfoList  = $xpaymentsOrderInfo["info"];?>
+    <?php foreach($xpaymentOrdersInfoList as $orderIncrementId => $xpaymentOrderInfoData): ?>
+            <?php $xpaymentOrdersState[$orderIncrementId]  = $xpaymentOrderInfoData["payment"];?>
+            <?php $xpaymentOrdertransactionsList  = $xpaymentOrderInfoData["transactions"]; ?>
+            <div class="entry-edit">
+                <div class="entry-edit-head xp-transaction-head-block">
+                    <h4><?php echo $this->__("Transaction list for order %s",$orderIncrementId);?></h4>
+                    <span class="transaction-accordion">
+                        <span class="transaction-down" >
+                            <img src="<?php echo Mage::getBaseUrl('js') . "xpayment/images/arrow-down.png" ?>">
+                        </span>
+                        <span class="transaction-up" style="display: none">
+                            <img src="<?php echo Mage::getBaseUrl('js') . "xpayment/images/arrow-up.png" ?>">
+                        </span>
+                    </span>
+                </div>
 
-            <div class="grid np">
-                <div class="hor-scroll">
-                    <table cellspacing="0" id="xpayment-transaction-list" class="data order-tables">
-                        <colgroup>
-                            <col />
-                            <col />
-                            <col width="1">
-                            <col width="1">
-                            <col width="1">
-                            <col width="1">
-                            <col width="1">
-                        </colgroup><thead>
-                        <tr class="headings">
-                            <th><span class="nobr"><?php echo $this->__('Additional info'); ?></span></th>
-                            <th><span class="nobr"><?php echo $this->__('Date, time'); ?></span></th>
-                            <th><span class="nobr"><?php echo $this->__('Type'); ?></span></th>
-                            <th><span class="nobr"><?php echo $this->__('Result payment status'); ?></span></th>
-                            <th class="last"><span class="nobr"><?php echo $this->__('Transaction result'); ?></span></th>
-                            <th class="last"><span class="nobr"><?php echo $this->__('Total'); ?></span></th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                            <?php $rowClass = "odd";?>
-                            <?php foreach($xpaymentOrdertransactionsList as $key => $transaction):?>
-                                <?php $rowClass = ($key%2==0)?"even":"odd"; ?>
-                                <tr class="border pointer <?php echo $rowClass?>">
-                                    <td>
-                                        <div class="item-container" >
-                                            <table cellspacing="0" class="form-list">
-                                                <tbody>
-                                                <?php foreach($transaction["fields"] as $field): ?>
-                                                    <tr>
-                                                        <td class="label"><label><?php echo $field["name"]?></label></td>
-                                                        <td class="value"><strong><?php echo $field["value"]?></strong></td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="item-container">
-                                            <div class="item-text">
-                                                <strong>
-                                                    <?php echo date("M d,Y  H:i:s",$transaction["date"]);?>
-                                                </strong>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="a-center">
-                                        <span class="price">
-                                            <strong>
-                                                <?php echo $transaction["action"];?>
-                                            </strong>
-                                        </span></td>
-                                    <td class="a-center">
-                                        <span class="price">
-                                            <?php echo $transaction["payment_status"];?>
-                                        </span>
-                                    </td>
-                                    <td class="a-center">
-                                        <span class="price">
-                                            <?php echo $transaction["status"];?>
-                                        </span>
-                                    </td>
-                                    <td class="a-center">
-                                        <span class="price">
-                                            <strong>
-                                                <?php echo $transaction["total"];?>
-                                            </strong>
-                                        </span>
-                                    </td>
+                    <div class="grid np" style="display: none">
+                        <div class="hor-scroll">
+                            <table cellspacing="0" id="xpayment-transaction-list" class="data order-tables">
+                                <colgroup>
+                                    <col />
+                                    <col />
+                                    <col width="1">
+                                    <col width="1">
+                                    <col width="1">
+                                    <col width="1">
+                                    <col width="1">
+                                </colgroup><thead>
+                                <tr class="headings">
+                                    <th><span class="nobr"><?php echo $this->__('Additional info'); ?></span></th>
+                                    <th><span class="nobr"><?php echo $this->__('Date, time'); ?></span></th>
+                                    <th><span class="nobr"><?php echo $this->__('Type'); ?></span></th>
+                                    <th><span class="nobr"><?php echo $this->__('Result payment status'); ?></span></th>
+                                    <th class="last"><span class="nobr"><?php echo $this->__('Transaction result'); ?></span></th>
+                                    <th class="last"><span class="nobr"><?php echo $this->__('Total'); ?></span></th>
                                 </tr>
-                            <?php endforeach;?>
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody>
+                                    <?php $rowClass = "odd";?>
+                                    <?php foreach($xpaymentOrdertransactionsList as $key => $transaction):?>
+                                        <?php $rowClass = ($key%2==0)?"even":"odd"; ?>
+                                        <tr class="border pointer <?php echo $rowClass?>">
+                                            <td>
+                                                <div class="item-container" >
+                                                    <table cellspacing="0" class="form-list">
+                                                        <tbody>
+                                                        <?php foreach($transaction["fields"] as $field): ?>
+                                                            <tr>
+                                                                <td class="label"><label><?php echo $field["name"]?></label></td>
+                                                                <td class="value"><strong><?php echo $field["value"]?></strong></td>
+                                                            </tr>
+                                                        <?php endforeach; ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="item-container">
+                                                    <div class="item-text">
+                                                        <strong>
+                                                            <?php echo date("M d,Y  H:i:s",$transaction["date"]);?>
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="a-center">
+                                                <span class="price">
+                                                    <strong>
+                                                        <?php echo $transaction["action"];?>
+                                                    </strong>
+                                                </span></td>
+                                            <td class="a-center">
+                                                <span class="price">
+                                                    <?php echo $transaction["payment_status"];?>
+                                                </span>
+                                            </td>
+                                            <td class="a-center">
+                                                <span class="price">
+                                                    <?php echo $transaction["status"];?>
+                                                </span>
+                                            </td>
+                                            <td class="a-center">
+                                                <span class="price">
+                                                    <strong>
+                                                        <?php echo $transaction["total"];?>
+                                                    </strong>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach;?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+            </div>
+        <br/>
+        <?php endforeach;?>
+    <?php if (!empty($xpaymentOrdersState)): ?>
+        <p>
+            <div class="entry-edit">
+                <div class="entry-edit-head">
+                    <h4><?php echo $this->__('Order(s) state'); ?></h4>
+                </div>
+
+                <div class="grid">
+                    <div class="hor-scroll">
+                        <table cellspacing="0" class="data order-tables">
+                            <colgroup>
+                                <col>
+                                <col width="1">
+                                <col width="1">
+                                <col width="1">
+                                <col width="1">
+                            </colgroup>
+                            <thead>
+                            <tr class="headings">
+                                <th><span class="nobr"><?php echo $this->__('Order ID'); ?></span></th>
+                                <th><span class="nobr"><?php echo $this->__('Amount'); ?></span></th>
+                                <th><span class="nobr"><?php echo $this->__('Authorized'); ?></span></th>
+                                <th><span class="nobr"><?php echo $this->__('Captured'); ?></span></th>
+                                <th class="last"><span class="nobr"><?php echo $this->__('Refunds'); ?></span></th>
+                                <th class="last"><span class="nobr"><?php echo $this->__('Actions'); ?></span></th>
+                            </tr>
+                            </thead>
+                            <tbody class="even">
+                                <?php foreach ($xpaymentOrdersState as $orderIncrementId  => $orderStateData): ?>
+                                    <tr class="border">
+                                        <td>
+                                            <div class="item-text">
+                                                <?php echo $orderIncrementId;?>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="item-container" id="order_item_446">
+                                                <div class="item-text">
+                                                    <?php if (!empty($orderStateData["message"])): ?>
+                                                        <h5 class="title">
+                                                                <span id="order_title">
+                                                                    <?php echo $this->__($orderStateData["message"]); ?>
+                                                                </span></h5>
+                                                    <?php endif; ?>
+                                                    <span class="price">
+                                                            <?php echo Mage::helper('core')->currency($orderStateData["amount"], true, false); ?>
+                                                        </span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="a-center">
+                                                <span class="price">
+                                                    <?php echo Mage::helper('core')->currency($orderStateData["authorized"], true, false); ?>
+                                                </span></td>
+                                        <td class="a-center">
+                                                <span class="price">
+                                                    <?php echo Mage::helper('core')->currency($orderStateData["capturedAmount"], true, false); ?>
+                                                </span>
+                                        </td>
+                                        <td class="a-center">
+                                                <span class="price">
+                                                    <?php echo Mage::helper('core')->currency($orderStateData["refundedAmount"], true, false); ?>
+                                                </span>
+                                        </td>
+                                        <td>
+                                            <div class="item-text">
+                                                <?php
+                                                   $actionAmount = $this->getCurrentActionAmount($orderStateData);
+                                                   $cssFormId = "xp_fast_transactions_".$orderIncrementId;
+                                                   $amountValidatorName = "validate-transaction-amount_".$orderIncrementId;
+                                                   $requiredValidatorName = "required-entry_".$orderIncrementId;
+                                                   $currentUrl = Mage::helper('core/url')->getCurrentUrl();
+                                                   $formKey = Mage::getSingleton('core/session')->getFormKey();
+                                                ?>
+
+                                                <form  method="post" id="<?php echo $cssFormId?>" class="xp_fast_transactions" action="<?php echo $currentUrl;?>" >
+                                                    <input type="hidden" name="form_key" value="<?php echo $formKey; ?>" />
+                                                    <input type="text"
+                                                           class="<?php echo $amountValidatorName." ".$requiredValidatorName;?>  input-text transaction-amount"
+                                                           name="transaction_amount"
+                                                           value="<?php echo $actionAmount?>">
+
+                                                    <input type="hidden" name="orderid" value="<?php echo $orderIncrementId;?>">
+                                                    <input type="hidden" name="xpc_txnid" value="<?php echo $orderStateData['xpc_txnid'];?>">
+                                                    <input type="hidden" name="xpaction" class="xpaction" value="">
+                                                    <?php if($orderStateData["capturedAmountAvailGateway"] > 0): ?>
+                                                        <input type="button"
+                                                               class="form-button xp-transaction-submit"
+                                                               name="capture"
+                                                               onclick="submitXpTransaction(
+                                                                   'capture',
+                                                                   '<?php echo $cssFormId?>',
+                                                                   '<?php echo $amountValidatorName?>',
+                                                                   '<?php echo $requiredValidatorName?>')"
+                                                               value="Capture">
+                                                        </br>
+                                                    <?endif;?>
+                                                    <?php if($orderStateData["voidedAmountAvailGateway"] > 0): ?>
+                                                        <input type="button"
+                                                               class="form-button xp-transaction-submit"
+                                                               name="void"
+                                                               onclick="submitXpTransaction(
+                                                                   'void',
+                                                                   '<?php echo $cssFormId?>',
+                                                                   '<?php echo $amountValidatorName?>',
+                                                                   '<?php echo $requiredValidatorName?>',
+                                                                   '<?php echo $orderStateData["voidedAmountAvailGateway"]?>')"
+                                                               class="form-button "
+                                                               value="Void (<?php echo Mage::helper('core')->currency($orderStateData["voidedAmountAvailGateway"], true, false);?>)">
+                                                    <?endif;?>
+                                                    <?php if($orderStateData["refundedAmountAvailGateway"] > 0): ?>
+                                                        <input
+                                                            type="button"
+                                                            name="refund"
+                                                            class="form-button"
+                                                            onclick="submitXpTransaction(
+                                                                'refund',
+                                                                '<?php echo $cssFormId?>',
+                                                                '<?php echo $amountValidatorName?>',
+                                                                '<?php echo $requiredValidatorName?>')"
+                                                            value="Refund">
+                                                    <?endif;?>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?endforeach?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-    </div>
-
-    <p>
-    <br />
-    <br />
-    <div class="entry-edit">
-        <div class="entry-edit-head">
-            <h4><?php echo $this->__('Order state'); ?></h4>
-        </div>
-
-        <div class="grid">
-            <div class="hor-scroll">
-                <table cellspacing="0" class="data order-tables">
-                    <colgroup><col>
-                        <col width="1">
-                        <col width="1">
-                        <col width="1">
-                        <col width="1">
-                    </colgroup><thead>
-                    <tr class="headings">
-                        <th><span class="nobr"><?php echo $this->__('Amount'); ?></span></th>
-                        <th><span class="nobr"><?php echo $this->__('Authorized'); ?></span></th>
-                        <th><span class="nobr"><?php echo $this->__('Captured'); ?></span></th>
-                        <th class="last"><span class="nobr"><?php echo $this->__('Refunds'); ?></span></th>
-                    </tr>
-                    </thead>
-                    <tbody class="even">
-                    <tr class="border">
-                        <td>
-                            <div class="item-container" id="order_item_446">
-                                <div class="item-text">
-                                    <?php if(!empty($xpaymentOrderState["message"])): ?>
-                                        <h5 class="title">
-                                                <span id="order_title">
-                                                    <?php echo $this->__($xpaymentOrderState["message"]);?>
-                                                </span></h5>
-                                    <?php endif;?>
-                                    <span class="price">
-                                            <?php echo Mage::helper('core')->currency($xpaymentOrderState["amount"], true, false);?>
-                                        </span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="a-center">
-                                <span class="price">
-                                    <?php echo Mage::helper('core')->currency($xpaymentOrderState["authorized"], true, false);?>
-                                </span></td>
-                        <td class="a-center">
-                                <span class="price">
-                                    <?php echo Mage::helper('core')->currency($xpaymentOrderState["capturedAmount"], true, false);?>
-                                </span>
-                        </td>
-                        <td class="a-center">
-                                <span class="price">
-                                    <?php echo Mage::helper('core')->currency($xpaymentOrderState["refundedAmount"], true, false);?>
-                                </span>
-                        </td>
-                    </tr>
-
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    </p>
+        </p>
+    <?php endif?>
 
 <?php  else: ?>
     <?php echo $xpaymentsOrderInfo["error_message"];?>
