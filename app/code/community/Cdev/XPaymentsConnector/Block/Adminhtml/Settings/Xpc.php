@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -20,13 +21,13 @@
  */
 
 /**
- * X-Payments connector control page block
+ * X-Payments Connector settings page block
  * 
  * @package Cdev_XPaymentsConnector
  * @see     ____class_see____
  * @since   1.0.0
  */
-class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Template
+class Cdev_XPaymentsConnector_Block_Adminhtml_Settings_Xpc extends Mage_Adminhtml_Block_Template
 {
     /**
      * @var array
@@ -37,39 +38,21 @@ class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Templat
      * Constructor
      * 
      * @return void
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
     public function __construct()
     {
         parent::__construct();
-        $this->setTemplate('xpaymentsconnector/control.phtml');
+        $this->setTemplate('xpaymentsconnector/settings/xpc.phtml');
     }
 
     /**
      * Prepare layout
      * 
      * @return void
-     * @access protected
-     * @see    ____func_see____
-     * @since  1.0.0
      */
     protected function _prepareLayout()
     {
         parent::_prepareLayout();
-
-        $this->setChild(
-            'testButton',
-            $this->getLayout()->createBlock('adminhtml/widget_button')
-                ->setData(
-                    array(
-                        'type'  => 'submit',
-                        'label' => Mage::helper('adminhtml')->__('Test module'),
-                        'class' => 'task'
-                       )
-                )
-        );
 
         $this->setChild(
             'requestButton',
@@ -94,17 +77,12 @@ class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Templat
                     )
                 )
         );
-        
-
     }
 
     /**
      * Check - payment configuration is requested or not
      * 
      * @return boolean
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
     public function isMethodsRequested()
     {
@@ -115,27 +93,22 @@ class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Templat
      * Get requested payment configurations
      * 
      * @return array 
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
     public function getPaymentMethods()
     {
         $list = Mage::getModel('xpaymentsconnector/paymentconfiguration')->getCollection();
 
-        return ($list && count($list)) ? $list : array();
+        return !empty($list) ? $list : array();
     }
 
     /**
-     * Check - is payment configurations is already imported into DB or not
+     * Check - is payment configurations are already imported into DB or not
      * 
      * @return boolean
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
     public function isMethodsAlreadyImported()
     {
+        // TODO: Same as isMethodsRequested()
         return 0 < count($this->getPaymentMethods());
     }
 
@@ -143,9 +116,6 @@ class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Templat
      * Get system requiremenets errors list
      * 
      * @return array
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
     public function getRequiremenetsErrors()
     {
@@ -173,13 +143,10 @@ class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Templat
      * Get module configuration errors list
      * 
      * @return array
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
     public function getConfigurationErrors()
     {
-        if(empty($this->_configurationErrorList)){
+        if (empty($this->_configurationErrorList)) {
             $api = Mage::getModel('xpaymentsconnector/payment_cc');
 
             $result = $api->getConfigurationErrors();
@@ -212,5 +179,71 @@ class Cdev_XPaymentsConnector_Block_Control extends Mage_Adminhtml_Block_Templat
         return $this->_configurationErrorList;
     }
 
-}
+    /**
+     * Get System/X-Payments connector link
+     *
+     * @return string
+     */
+    public function getSystemConfigXpcUrl()
+    {
+        return $this->getUrl('adminhtml/system_config/edit/section/xpaymentsconnector/');
+    }
 
+    /**
+     * Get System/X-Payments connector link
+     *
+     * @return string
+     */
+    public function getTrialDemoUrl()
+    {
+        return 'http://www.x-payments.com/trial-demo.html?utm_source=mage_shop&utm_medium=link&utm_campaign=mage_shop_link';
+    }
+
+    /**
+     * Get User manual link
+     *
+     * @return string
+     */
+    public function getUserManualUrl()
+    {
+        return 'http://help.x-cart.com/index.php?title=X-Payments:User_manual#Online_Stores';
+    }
+    
+    /**
+     * Get video link
+     *
+     * @return string
+     */
+    public function getVideoUrl()
+    {
+        return 'https://www.youtube.com/embed/2VRR0JW23qc';
+    }
+
+    /**
+     * Get Contact Us link
+     *
+     * @return string
+     */
+    public function getContactUsUrl()
+    {
+        return 'http://www.x-payments.com/contact-us.html?utm_source=mage_shop&utm_medium=link&utm_campaign=mage_shop_link';
+    }
+
+
+    /**
+     * Get description
+     *
+     * @return string
+     */
+    public function getDescription()
+    {
+        $description = 'Give your customers – and yourself – peace of mind with this payment processing module
+            that guarantees compliance with PCI security mandates, significantly reduces the risk of
+            data breaches and ensures you won’t be hit with a fine of up to $500,000 for non-compliance.
+            Safely and conveniently store customers credit card information to use for new orders, reorders
+            or recurring payments.';
+
+        return $this->__($description);
+    }
+
+}

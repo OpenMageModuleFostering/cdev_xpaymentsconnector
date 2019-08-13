@@ -153,7 +153,7 @@ vim: set ts=4 sw=4 sts=4 et:
             </action>
         </reference>
         <reference name="customer_account_navigation">
-            <action method="addLink" translate="label" module="xpaymentsconnector">
+            <action method="addLink" translate="label" module="xpaymentsconnector" ifconfig="payment/savedcards/active">
                 <name>customer_usercards</name>
                 <path>xpaymentsconnector/customer/usercards</path>
                 <label>My Payment Cards</label>

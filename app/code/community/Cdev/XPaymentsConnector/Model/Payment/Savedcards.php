@@ -144,7 +144,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Mode
         $cardData = Mage::getModel('xpaymentsconnector/usercards')->load($paymentCardNumber);
         $txnid = $cardData->getData('txnId');
 
-        if (!$xpHelper->checkIssetSimpleOrder()) {
+        if ($xpHelper->getRecurringQuoteItem()) {
             if(is_null($xpHelper->payDeferredProfileId)){
                 $payDeferredSubscription = $xpHelper->payDeferredSubscription($profile);
                 if(!$payDeferredSubscription){

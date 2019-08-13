@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -58,7 +59,9 @@ class Cdev_XPaymentsConnector_Block_Checkout_Onepage_Orderdetail extends Mage_Co
 
         $product = $recQuoteItem->getProduct();
         $productAdditionalInfo = unserialize($product->getCustomOption('info_buyRequest')->getValue());
-        $deferredDateStamp = strtotime($productAdditionalInfo['recurring_profile_start_datetime']);
+        $deferredDateStamp = isset($productAdditionalInfo['recurring_profile_start_datetime'])
+            ? strtotime($productAdditionalInfo['recurring_profile_start_datetime'])
+            : false;
         if($deferredDateStamp){
             $initialFeeMessage = $this->__(" (initial fee only, 1st recurring fee will be charged on %s)",date('d-M-Y',$deferredDateStamp));
             $rowTotal = $recQuoteItem->getXpRecurringInitialFee() + $recQuoteItem->getInitialfeeTaxAmount();

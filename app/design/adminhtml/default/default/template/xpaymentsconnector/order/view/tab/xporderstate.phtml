@@ -1,5 +1,5 @@
 <?php
-// vim: set ts=4 sw=4 sts=4 et:
+// vim: set ts=2 sw=2 sts=2 et:
 /**
  * Magento
  *
@@ -274,3 +274,96 @@
 <?php  else: ?>
     <?php echo $xpaymentsOrderInfo["error_message"];?>
 <?php endif;?>
+
+<?php
+
+$fraudCheckData = Mage::getModel('xpaymentsconnector/fraudcheckdata')
+    ->getCollection()
+    ->addFieldToFilter('order_id', $this->getOrder()->getId());
+?>
+
+<?php foreach ($fraudCheckData as $data): ?>
+<div class="entry-edit">
+  <div class="entry-edit-head">
+    <h4><?php echo $this->__($data->getData('service')); ?></h4>
+  </div>
+  <div class="fieldset">
+    <table cellspacing="0" class="form-list">
+      <tr>
+        <td class="label"><?php echo $this->__('Result'); ?></td>
+        <td class="value">
+          <?php if ('1' == $data->getData('result')): ?>
+            <strong><?php echo $this->__('Antifraud check passed'); ?></strong>
+          <?php elseif ('2' == $data->getData('result') && 'nofraud' == $data->getData('code')): ?>
+            <strong><?php echo $this->__('Being Reviewed by NoFraud'); ?></strong>
+          <?php elseif ('2' == $data->getData('result')): ?>
+            <strong><?php echo $this->__('Manual Review required'); ?></strong>
+          <?php elseif ('3' == $data->getData('result')): ?>
+            <strong><?php echo $this->__('High fraud risk detected'); ?></strong>
+          <?php else: ?>
+            <strong><?php echo $this->__('Unknown'); ?></strong>          
+          <?php endif; ?>
+        </td>
+      </td>
+      <tr>
+        <td class="label"><?php echo $this->__('Status'); ?></td>
+        <td class="value"><strong><?php echo $data->getData('status'); ?></strong></td>
+      </td>
+      <?php if ($data->getData('score')): ?>
+        <tr>
+          <td class="label"><?php echo $this->__('Score'); ?></td>
+          <td class="value"><strong><?php echo $data->getData('score'); ?></strong></td>
+        </td>      
+      <?php endif; ?>
+      <?php if ($data->getData('transaction_id')): ?>
+        <tr>
+          <td class="label"><?php echo $this->__('Transaction ID'); ?></td>
+          <td class="value">
+            <?php if ($data->getData('url')): ?>
+              <strong><a href="<?php echo $data->getData('url'); ?>" target="_blank"><?php echo $data->getData('transaction_id'); ?></a></strong>
+            <?php else: ?>
+              <strong><?php echo $data->getData('transaction_id'); ?></strong>
+            <?php endif; ?>
+          </td>
+        </td>
+      <?php endif; ?>
+      <?php if ($data->getData('rules')): ?>
+        <tr>
+          <td class="label"><?php echo $this->__('Triggered rules'); ?></td>
+          <td class="value">
+            <ul>
+              <?php foreach ($data->getRulesList() as $rule): ?>
+                <li><?php echo $rule; ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </td>
+        </td>
+      <?php endif; ?>
+      <?php if ($data->getData('errors')): ?>
+        <tr>
+          <td class="label"><?php echo $this->__('Errors'); ?></td>
+          <td class="value">
+            <ul>
+              <?php foreach ($data->getErrorsList() as $error): ?>
+                <li><?php echo $error; ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </td>
+        </td>
+      <?php endif; ?>
+      <?php if ($data->getData('warnings')): ?>
+        <tr>
+          <td class="label"><?php echo $this->__('Warnings'); ?></td>
+          <td class="value">
+            <ul>
+              <?php foreach ($data->getWarningsList() as $warning): ?>
+                <li><?php echo $warning; ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </td>
+        </td>
+      <?php endif; ?>
+    </table>
+  </div>
+</div>
+<?php endforeach; ?>

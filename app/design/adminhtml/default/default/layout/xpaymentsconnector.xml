@@ -93,13 +93,13 @@
         </reference>
     </adminhtml_system_config_edit>
 
-    <xpaymentsconnector_control_index>
+    <adminhtml_settings_xpc_index>
         <reference name="head">
             <action method="addItem">
                 <type>js_css</type>
-                <name>xpayment/xp-contorl.css</name>
+                <name>xpayment/settings-xpc.css</name>
             </action>
         </reference>
-    </xpaymentsconnector_control_index>
+    </adminhtml_settings_xpc_index>
 
 </layout>

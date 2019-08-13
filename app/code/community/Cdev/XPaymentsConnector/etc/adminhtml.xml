@@ -25,9 +25,9 @@
         <system>
             <children>
                 <control translate="title" module="xpaymentsconnector">
-                    <title>X-Payments connector</title>
+                    <title>X-Payments Connector</title>
                     <sort_order>300</sort_order>
-                    <action>xpaymentsconnector/control</action>
+                    <action>adminhtml/settings_xpc/index</action>
                 </control>
             </children>
         </system>
@@ -39,12 +39,12 @@
                     <system>
                         <children>
                             <control>
-                                <title>X-Payments connector</title>
+                                <title>X-Payments Connector</title>
                             </control>
                             <config>
                                 <children>
-                                    <xpaymentsconnector>
-                                        <title>X-Payments connector Settings</title>
+                                    <xpaymentsconnector translate="title" module="xpaymentsconnector">
+                                        <title>X-Payments Connector Settings</title>
                                     </xpaymentsconnector>
                                 </children>
                             </config>

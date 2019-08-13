@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -23,8 +24,9 @@
  * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
-?>
 
+$profiles = $this->getRecurringProfiles();
+?>
 <div class="page-title">
     <h1>
         <?php if ($this->checkOrderSuccess()): ?>
@@ -62,12 +64,20 @@
     <p><?php echo $this->__('Your billing agreement # is: %s.', sprintf('<a href="%s">%s</a>', $this->escapeHtml($this->getAgreementUrl()), $this->escapeHtml($this->getAgreementRefId())))?></p>
 <?php endif;?>
 
-<?php if ($profiles = $this->getRecurringProfiles() && $this->checkOrderSuccess()):?>
+<?php if ($profiles && $this->checkOrderSuccess()): ?>
+
 <p><?php echo $this->__('Your recurring payment profiles:'); ?></p>
 <ul class="disc">
 <?php foreach($profiles as $profile):?>
-    <?php $profileIdHtml = ($this->getCanViewProfiles() ? sprintf('<a href="%s">%s</a>', $this->escapeHtml($this->getProfileUrl($profile)), $this->escapeHtml($this->getObjectData($profile, 'reference_id'))) : $this->escapeHtml($this->getObjectData($profile, 'reference_id'))); ?>
-    <li><?php echo $this->__('Payment profile # %s: "%s".', $profileIdHtml, $this->escapeHtml($this->getObjectData($profile, 'schedule_description'))) ?></li>
+    <li>
+        <?php echo $this->__('Payment profile #'); ?>
+        <?php if ($this->getCanViewProfiles()): ?>
+            <a href="<?php echo $this->escapeHtml($this->getProfileUrl($profile)); ?>"><?php echo $profile->getReferenceId(); ?></a>
+        <?php else: ?>
+            <?php echo $profile->getReferenceId(); ?>
+        <?php endif; ?>
+        : <?php echo $profile->getScheduleDescription(); ?>
+    </li>
 <?php endforeach;?>
 </ul>
 <?php endif;?>

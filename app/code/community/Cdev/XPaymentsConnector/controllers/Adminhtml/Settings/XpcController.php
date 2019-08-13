@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -26,59 +27,69 @@
  * @see     ____class_see____
  * @since   1.0.0
  */
-class Cdev_XPaymentsConnector_ControlController extends Mage_Adminhtml_Controller_Action
+class Cdev_XPaymentsConnector_Adminhtml_Settings_XpcController extends Mage_Adminhtml_Controller_Action
 {
-    /**
-     * General action 
-     * 
-     * @return void
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
-     */
-    public function indexAction()
-    {
-        $this->_title($this->__('System'))->_title($this->__('X-Payments connector control'));
-
-        $this->loadLayout();
-
-        $this->_setActiveMenu('system');
-        $this->_addBreadcrumb(Mage::helper('adminhtml')->__('System'), Mage::helper('adminhtml')->__('System'));
-        $this->_addBreadcrumb(Mage::helper('adminhtml')->__('X-Payments connector control'), Mage::helper('adminhtml')->__('X-Payments connector control'));
-
-        $block = $this->getLayout()->createBlock('xpaymentsconnector/control');
-        $this->_addContent($block);
-
-        $this->renderLayout();
-    }
+    const ERROR_TEXT = 'Conection failed. Please check the X-Payment Connector settings and try again. If all options is ok review your X-Payments settings and make sure you have properly defined shopping cart properties.';
 
     /**
-     * Test connection to X-Payments
-     * 
+     * Check connection with X-Payments via test request. Set the API version
+     *
      * @return void
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
-    public function testAction()
+    public function checkConnection()
     {
         $session = Mage::getSingleton('adminhtml/session');
 
         $model = Mage::getModel('xpaymentsconnector/payment_cc');
 
         try {
-            if ($model->sendTestRequest()) {
-                $session->addSuccess(Mage::helper('adminhtml')->__('The test transaction has been completed successfully.'));
 
-            } else {
-                $session->addError(Mage::helper('adminhtml')->__('Test transaction failed. Please check the X-Payment Connector settings and try again. If all options is ok review your X-Payments settings and make sure you have properly defined shopping cart properties.'));
-            }
+            $result = $model->sendTestRequest();
 
         } catch (Exception $e) {
-            $session->addException($e, 'Test transaction failed. Please check the X-Payment Connector settings and try again. If all options is ok review your X-Payments settings and make sure you have properly defined shopping cart properties.');
+
+            $result = false;
         }
 
-        $this->_redirect('*/*/index');
+        if ($result) {
+
+            $text = Mage::helper('adminhtml')->__('Connection with X-Payments is OK. API version: ')
+                . $model->getApiVersion();
+
+            $session->addSuccess($text);
+
+        } else {
+
+
+            $session->addError(
+                Mage::helper('adminhtml')->__(self::ERROR_TEXT)
+            );
+        }
+    }
+
+    /**
+     * General action 
+     * 
+     * @return void
+     */
+    public function indexAction()
+    {
+        $this->_title($this->__('System'))->_title($this->__('X-Payments Connector settings'));
+
+        $this->loadLayout();
+
+        $this->_setActiveMenu('system');
+        $this->_addBreadcrumb(Mage::helper('adminhtml')->__('System'), Mage::helper('adminhtml')->__('System'));
+        $this->_addBreadcrumb(Mage::helper('adminhtml')->__('X-Payments connector control'), Mage::helper('adminhtml')->__('X-Payments Connector settings'));
+
+        $this->checkConnection();
+
+        $this->_initLayoutMessages('adminhtml/session');
+
+        $block = $this->getLayout()->createBlock('xpaymentsconnector/adminhtml_settings_xpc');
+        $this->_addContent($block);
+
+        $this->renderLayout();
     }
 
     /**

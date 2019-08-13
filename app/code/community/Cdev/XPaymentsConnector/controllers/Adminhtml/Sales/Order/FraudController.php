@@ -37,7 +37,8 @@ class Cdev_XPaymentsConnector_Adminhtml_Sales_Order_FraudController extends Mage
                 $result = $xpaymentCCModel->sendFraudRequest($xpcTxnid,'accept');
 
                 if ($result) {
-                    $order->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
+                    // TODO: Make sure for authorized payments the correct status is set
+                    $order->setStatus(Cdev_XPaymentsConnector_Helper_Data::STATUS_CHARGED);
                     $order->save();
                 }
             }

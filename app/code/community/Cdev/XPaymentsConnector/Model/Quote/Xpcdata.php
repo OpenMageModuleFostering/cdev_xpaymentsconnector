@@ -19,30 +19,38 @@
  * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-?>
-<?php
+
 /**
- * @see Cdev_XPaymentsConnector_Block_Info_Cc
+ * X-Payments Connector Data in quote 
+ * Class Cdev_XPaymentsConnector_Model_FraudCheckData
  */
-?>
-<?php
 
-$order = $this->getInfo()->getMethodInstance()->getOrder();
+class Cdev_XPaymentsConnector_Model_Quote_Xpcdata extends Mage_Core_Model_Abstract
+{
+    /**
+     * Internal constructor
+     * 
+     * @return void
+     */
+    protected function _construct()
+    {
+        $this->_init('xpaymentsconnector/quote_xpcdata');
+    }
 
-$cardData = '';
-
-if ($order) {
-    $cardData = $this->getCardData();
+    /**
+     * Clear data
+     *
+     * @return void
+     */
+    public function clear()
+    {
+        $this->setData('txn_id', '')
+            ->setData('token', '')
+            ->setData('address_saved', false)
+            ->setData('recurring_order_id', 0)
+            ->setData('recurring_profile_id', 0)
+            ->setData('xpc_message', '')
+            ->setData('checkout_data', '')
+            ->save();
+    }
 }
-
-?>
-
-<?php echo $this->getMethod()->getTitle(); ?>
-
-<br />
-
-<?php if ($cardData): ?>
-    <span id="x-payment-prepaid-card-info">
-        <?php echo $this->__('Payment card used for this order: %s', $cardData); ?>
-    </span>
-<?php endif; ?>

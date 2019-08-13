@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -87,4 +88,23 @@ class Cdev_XPaymentsConnector_Block_Checkout_Onepage_Success extends Mage_Checko
         }
     }
 
+    /**
+     * Get recurring profiles
+     *
+     * @return array
+     */
+    public function getRecurringProfiles()
+    {
+        $order = Mage::getModel('sales/order')->load($this->getData('order_entity_id'));
+
+        $profile = Mage::helper('xpaymentsconnector')->getOrderRecurringProfile($order);
+
+        if ($profile) {
+            $profile = array($profile);
+        } else {
+            $profile = false;
+        }
+        
+        return $profile;
+    }
 }

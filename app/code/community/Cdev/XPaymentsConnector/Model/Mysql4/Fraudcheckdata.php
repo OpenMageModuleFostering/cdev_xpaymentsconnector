@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -20,28 +21,22 @@
  */
 
 /**
- * Remove account link "My Payment Cards"
+ * Fraud check data RDBS-specific model
+ * 
+ * @package Cdev_XPaymentsConnector
+ * @see     ____class_see____
+ * @since   1.0.0
  */
-class Cdev_XPaymentsConnector_Block__Customer_Account_Navigation extends Mage_Customer_Block_Account_Navigation
+
+class Cdev_XPaymentsConnector_Model_Mysql4_Fraudcheckdata extends Mage_Core_Model_Mysql4_Abstract
 {
     /**
-     * @return $this
+     * Internal constructor
+     * 
+     * @return void
      */
-    public function removeLink()
+    protected function _construct()
     {
-        $IsSaveCardsPaymentActive = (bool)Mage::getStoreConfig('payment/savedcards/active');
-        if (!$IsSaveCardsPaymentActive) {
-            unset($this->_links['customer_usercards']);
-        }
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    protected function _toHtml()
-    {
-        $this->removeLink();
-        return parent::_toHtml();
+        $this->_init('xpaymentsconnector/fraudcheckdata', 'data_id');
     }
 }

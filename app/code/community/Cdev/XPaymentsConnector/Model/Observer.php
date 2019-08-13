@@ -37,12 +37,6 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $xpHelper = Mage::helper('xpaymentsconnector');
         $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
 
-        //set recurring product discount
-        $issetRecurrnigProduct = $xpHelper->checkIssetRecurringOrder();
-        if ($issetRecurrnigProduct['isset']) {
-            $xpHelper->setRecurringProductDiscount();
-        }
-
     }
 
     public function paymentMethodIsActive($observer)
@@ -112,9 +106,16 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
             if ($response['success']) {
                 $result = $paymentCcModel->updateOrderByXpaymentResponse($order->getId(), $response['response']['transaction_id']);
+
+                // Reload order data, since it has been changed
+                $order = Mage::getModel('sales/order')->load($order->getId());
+    
                 if (!$result['success']) {
                     $checkoutSession->addError($result['error_message']);
                     $checkoutSession->addNotice($noticeHelper);
+                } else {
+                    // Auto create invoice if necessary
+                    Mage::helper('xpaymentsconnector')->processCreateInvoice($order);
                 }
             } else {
                 $checkoutSession->addError($response['error_message']);
@@ -465,9 +466,6 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $xpHelper = Mage::helper('xpaymentsconnector');
         $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
 
-        //set recurring product discount
-        Mage::helper('xpaymentsconnector')->setRecurringProductDiscount();
-
         // update InitAmount for recurring products
         $cart = $observer->getCart('quote');
         foreach ($cart->getAllVisibleItems() as $item){
@@ -584,10 +582,6 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
             $unsetParams = array('token');
             $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
         }
-
-        //set recurring product discount
-        $xpHelper->setRecurringProductDiscount();
-
     }
 
 

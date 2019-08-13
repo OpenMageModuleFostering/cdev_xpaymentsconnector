@@ -223,8 +223,8 @@
 							<show_in_store>0</show_in_store>
 						</xpay_conf_bundle>
                         <xpay_allowed_ip_addresses translate="label,comment">
-                            <label>IP addresses for X-Payments callbacks</label>
-							<comment><![CDATA[X-Payments sends callback requests to the store from specific IP addresses. To secure the data transfer and avoid fraudulent requests, specify these IP addresses here as a comma-separated list. Usually it is IP address of the server where X-Payments is installed.]]></comment>
+                            <label>Allowed X-Payments IP addresses</label>
+                            <comment><![CDATA[X-Payments sends callback requests to the store from specific IP addresses. To secure the data transfer and avoid fraudulent requests, specify these IP addresses here as a comma-separated list. Usually it is IP address of the server where X-Payments is installed.]]></comment>
                             <frontend_type>text</frontend_type>
                             <sort_order>60</sort_order>
                             <show_in_default>1</show_in_default>
@@ -249,6 +249,13 @@
                             <show_in_website>0</show_in_website>
                             <show_in_store>0</show_in_store>
                         </xpay_minimum_payment_recurring_amount>
+                        <xpay_api_version>
+                            <label>API version</label>
+                            <sort_order>90</sort_order>
+                            <show_in_default>0</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </xpay_api_version>
 
 					</fields>
                     <label>X-Payments Connector Settings</label>

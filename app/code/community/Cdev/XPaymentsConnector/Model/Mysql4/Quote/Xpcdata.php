@@ -19,30 +19,24 @@
  * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-?>
-<?php
+
 /**
- * @see Cdev_XPaymentsConnector_Block_Info_Cc
+ * X-Payments Connector Quote data RDBS-specific model
+ * 
+ * @package Cdev_XPaymentsConnector
+ * @see     ____class_see____
+ * @since   1.0.0
  */
-?>
-<?php
 
-$order = $this->getInfo()->getMethodInstance()->getOrder();
-
-$cardData = '';
-
-if ($order) {
-    $cardData = $this->getCardData();
+class Cdev_XPaymentsConnector_Model_Mysql4_Quote_Xpcdata extends Mage_Core_Model_Mysql4_Abstract
+{
+    /**
+     * Internal constructor
+     * 
+     * @return void
+     */
+    protected function _construct()
+    {
+        $this->_init('xpaymentsconnector/quote_xpcdata', 'data_id');
+    }
 }
-
-?>
-
-<?php echo $this->getMethod()->getTitle(); ?>
-
-<br />
-
-<?php if ($cardData): ?>
-    <span id="x-payment-prepaid-card-info">
-        <?php echo $this->__('Payment card used for this order: %s', $cardData); ?>
-    </span>
-<?php endif; ?>
