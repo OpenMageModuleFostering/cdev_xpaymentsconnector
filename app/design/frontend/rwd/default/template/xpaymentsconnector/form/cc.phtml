@@ -27,7 +27,7 @@
 <?php
     $_code=$this->getMethodCode();
     $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
-    $isRecuringProduct = Mage::helper("xpaymentsconnector")->checkIsRecurringOrder();
+    $isRecuringProduct = Mage::helper("xpaymentsconnector")->checkIssetRecurringOrder();
     $IsSaveCardsPaymentActive = (bool)Mage::getStoreConfig('payment/savedcards/active');
 
     // iframe display settings on the current page
@@ -38,7 +38,7 @@
 ?>
 
 <?php if (!$useIframe): ?>
-    <?php if (!$isRecuringProduct): ?>
+    <?php if (!$isRecuringProduct["isset"]): ?>
         <?php if ($IsSaveCardsPaymentActive): ?>
             <ul id="payment_form_<?php echo $_code ?>" style="display:none;">
                 <li>
@@ -71,7 +71,7 @@
                 </iframe>
                 <div id="paymentstep-ajax-loader"></div>
                 <?php if($customerRegistered):?>
-                    <?php if(!$isRecuringProduct): ?>
+                    <?php if(!$isRecuringProduct["isset"]): ?>
                         <?php if ($IsSaveCardsPaymentActive): ?>
                             <span id="iframe-save-card-switcher" >
                                 <input type="checkbox" <?php echo ($isNeedToSaveUserCard)?"checked":"";?> title="<?php echo $this->__("Use this credit card"); ?>" class="checkbox x-payment-card " id="iframe_savecard" name="iframe_savecard" value="1" />

@@ -56,16 +56,35 @@ class Cdev_XPaymentsConnector_Model_Sales_Recurring_Profile extends Mage_Sales_M
         $isVirtual = 1;
         $weight = 0;
         $discountAmount = 0;
+        $qty = 0;
+
         foreach ($itemInfoObjects as $itemInfo) {
             $item = $this->_getItem($itemInfo);
-            $billingAmount += $item->getPrice();
-            $shippingAmount += $item->getShippingAmount();
+            $price = $item->getPrice();
+            if(!is_null($itemInfo->getRowTotal())){
+                $price = $itemInfo->getRowTotal();
+            }
+            $billingAmount += $price;
+            $shippingAmount += $itemInfo->getShippingAmount();
             $taxAmount += $item->getTaxAmount();
-            $discountAmount -= $itemInfo->getDiscountAmount();
+
+            if($itemInfo->getQty()){
+                $qty = $itemInfo->getQty();
+            }
             $weight += $item->getWeight();
             if (!$item->getIsVirtual()) {
                 $isVirtual = 0;
             }
+
+            if(!is_null($itemInfo->getDiscountAmount())){
+                $discountAmount -= $itemInfo->getDiscountAmount();
+                $item->setOriginalDiscountAmount($itemInfo->getDiscountAmount());
+                $item->setBaseOriginalDiscountAmount($itemInfo->getDiscountAmount());
+                $item->setRecurringDiscount($itemInfo->getDiscountAmount());
+                $item->setDiscountAmount($itemInfo->getDiscountAmount());
+                $item->setBaseDiscountAmount($itemInfo->getDiscountAmount());
+            }
+
             $items[] = $item;
         }
 
@@ -119,7 +138,7 @@ class Cdev_XPaymentsConnector_Model_Sales_Recurring_Profile extends Mage_Sales_M
                 $order->setData($key, $shippingInfo[$key]);
             }
         }
-
+        $qty = ($qty)?$qty:$orderInfo['items_qty'];
         $order->setStoreId($this->getStoreId())
             ->setState(Mage_Sales_Model_Order::STATE_NEW)
             ->setBaseToOrderRate($orderInfo['base_to_quote_rate'])
@@ -137,7 +156,7 @@ class Cdev_XPaymentsConnector_Model_Sales_Recurring_Profile extends Mage_Sales_M
             ->setGrandTotal($grandTotal)
             ->setIsVirtual($isVirtual)
             ->setWeight($weight)
-            ->setTotalQtyOrdered($orderInfo['items_qty'])
+            ->setTotalQtyOrdered($qty)
             ->setBillingAddress($billingAddress)
             ->setShippingAddress($shippingAddress)
             ->setPayment($payment);
@@ -177,6 +196,28 @@ class Cdev_XPaymentsConnector_Model_Sales_Recurring_Profile extends Mage_Sales_M
     protected function _getRegularItem($itemInfo)
     {
         $price = $itemInfo->getPrice() ? $itemInfo->getPrice() : $this->getBillingAmount();
+        $rowTotal = $price;
+        $baseRowTotal = $price;
+        $rowTotalInclTax = $price;
+        $baseRowTotalInclTax = $price;
+        $originalPrice = $price;
+
+        if(!is_null($itemInfo->getRowTotal())){
+            $rowTotal = $itemInfo->getRowTotal();
+        }
+        if(!is_null($itemInfo->getBaseRowTotal())){
+            $baseRowTotal = $itemInfo->getBaseRowTotal();
+        }
+        if(!is_null($itemInfo->getRowTotalInclTax())){
+            $rowTotalInclTax = $itemInfo->getRowTotalInclTax();
+        }
+        if(!is_null($itemInfo->getBaseRowTotalInclTax())){
+            $baseRowTotalInclTax = $itemInfo->getBaseRowTotalInclTax();
+        }
+        if(!is_null($itemInfo->getOriginalPrice())){
+            $originalPrice = $itemInfo->getOriginalPrice();
+        }
+
         $shippingAmount = $itemInfo->getShippingAmount() ? $itemInfo->getShippingAmount() : $this->getShippingAmount();
         $taxAmount = $itemInfo->getTaxAmount() ? $itemInfo->getTaxAmount() : $this->getTaxAmount();
         $orderItemInfo = $this->getOrderItemInfo();
@@ -190,12 +231,26 @@ class Cdev_XPaymentsConnector_Model_Sales_Recurring_Profile extends Mage_Sales_M
             ->setBaseOriginalPrice($orderItemInfo['price'])
             ->setPrice($price)
             ->setBasePrice($price)
-            ->setRowTotal($price)
-            ->setBaseRowTotal($price)
+            ->setRowTotal($rowTotal)
+            ->setBaseRowTotal($baseRowTotal)
+            ->setRowTotalInclTax($rowTotalInclTax)
+            ->setBaseRowTotalInclTax($baseRowTotalInclTax)
+            ->setOriginalPrice($originalPrice)
             ->setTaxAmount($taxAmount)
             ->setShippingAmount($shippingAmount)
             ->setId(null);
+
         return $item;
+    }
+
+    /**
+     * Check whether the workflow allows to activate the profile
+     *
+     * @return bool
+     */
+    public function canActivate()
+    {
+        return false;
     }
 
 

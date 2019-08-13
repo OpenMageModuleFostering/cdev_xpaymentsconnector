@@ -20,14 +20,14 @@
  */
 
 /**
- * "Use saved credit cards (X-Payments)"
+ * 'Use saved credit cards (X-Payments)'
  * Class Cdev_XPaymentsConnector_Model_Payment_Savedcards
  */
 
 class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Model_Method_Abstract
     implements  Mage_Payment_Model_Recurring_Profile_MethodInterface
 {
-    protected $_code = "savedcards";
+    protected $_code = 'savedcards';
     protected $_formBlockType = 'xpaymentsconnector/form_savedcards';
     protected $_infoBlockType = 'xpaymentsconnector/info_savedcards';
 
@@ -45,6 +45,8 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Mode
     protected $_canRefundInvoicePartial = true;
 
     protected $_order = null;
+    public $firstTransactionSuccess = true;
+
 
 
     /**
@@ -81,11 +83,11 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Mode
 
         $order = $this->getOrder();
         $data = array(
-            'txnId' => $order->getData("xpc_txnid"),
+            'txnId' => $order->getData('xpc_txnid'),
             'amount' => number_format($amount, 2, '.', ''),
         );
 
-        Mage::getModel("xpaymentsconnector/payment_cc")->authorizedTransactionRequest('capture', $data);
+        Mage::getModel('xpaymentsconnector/payment_cc')->authorizedTransactionRequest('capture', $data);
 
 
         return $this;
@@ -103,11 +105,11 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Mode
         $order = $this->getOrder();
         /*processing during capture invoice*/
         $data = array(
-            'txnId' => $order->getData("xpc_txnid"),
+            'txnId' => $order->getData('xpc_txnid'),
             'amount' => number_format($amount, 2, '.', ''),
         );
 
-        Mage::getModel("xpaymentsconnector/payment_cc")->authorizedTransactionRequest('refund', $data);
+        Mage::getModel('xpaymentsconnector/payment_cc')->authorizedTransactionRequest('refund', $data);
 
         return $this;
     }
@@ -131,41 +133,62 @@ class Cdev_XPaymentsConnector_Model_Payment_Savedcards extends Mage_Payment_Mode
      */
     public function submitRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile, Mage_Payment_Model_Info $paymentInfo){
 
-        $orderItemInfo = $profile->getData("order_item_info");
-        $payDeferredSubscription = Mage::helper("xpaymentsconnector")->payDeferredSubscription($profile);
-        if(!$payDeferredSubscription){
-            $grandTotal = $orderItemInfo["nominal_row_total"];
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $xpHelper->setPrepareOrderType();
+        $quote = $profile->getQuote();
+        $orderItemInfo = $profile->getData('order_item_info');
+        // registered new user and update profile
+        $xpHelper->addXpDefaultRecurringSettings($profile);
+        // end registered user
+        $paymentCardNumber = $quote->getPayment()->getData('xp_payment_card');
+        $cardData = Mage::getModel('xpaymentsconnector/usercards')->load($paymentCardNumber);
+        $txnid = $cardData->getData('txnId');
 
-            $quote = Mage::getSingleton('checkout/session')->getQuote();
-            $paymentCardNumber = $quote->getPayment()->getData("xp_payment_card");
-            $cardData = Mage::getModel("xpaymentsconnector/usercards")->load($paymentCardNumber);
-            $txnid = $cardData->getData("txnId");
-            if($txnid){
-                $profile->setReferenceId($txnid);
-                $orderId = Mage::helper("xpaymentsconnector")->createOrder($profile,$isFirstRecurringOrder = true);
-                $response = Mage::getModel("xpaymentsconnector/payment_cc")->sendAgainTransactionRequest($orderId, NULL, $grandTotal);
+        if (!$xpHelper->checkIssetSimpleOrder()) {
+            if(is_null($xpHelper->payDeferredProfileId)){
+                $payDeferredSubscription = $xpHelper->payDeferredSubscription($profile);
+                if(!$payDeferredSubscription){
+                    $grandTotal = $orderItemInfo['nominal_row_total'];
+                    if($txnid){
+                        $orderId = $xpHelper->createOrder($profile,$isFirstRecurringOrder = true);
+                        $response = Mage::getModel('xpaymentsconnector/payment_cc')->
+                            sendAgainTransactionRequest($orderId, NULL, $grandTotal);
 
-                if ($response["success"]) {
-                    $result = Mage::getModel("xpaymentsconnector/payment_cc")->updateOrderByXpaymentResponse($orderId, $response["response"]['transaction_id']);
-                    if (!$result["success"]) {
-                        Mage::getSingleton("checkout/session")->addError($result["error_message"]);
-                        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
-                    } else {
-                        // additional subscription profile setting for success transaction
-                        $newTransactionDate = new Zend_Date(time());
-                        $profile->setXpSuccessTransactionDate($newTransactionDate->toString(Varien_Date::DATETIME_INTERNAL_FORMAT));
-                        $profile->setXpCountSuccessTransaction(1);
+                        if ($response['success']) {
+                            $result = Mage::getModel('xpaymentsconnector/payment_cc')->
+                                updateOrderByXpaymentResponse($orderId, $response['response']['transaction_id']);
+                            if (!$result['success']) {
+                                Mage::getSingleton('checkout/session')->addError($result['error_message']);
+                                $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
+                            } else {
+                                // additional subscription profile setting for success transaction
+                                $newTransactionDate = new Zend_Date(time());
+                                $profile->setXpSuccessTransactionDate($newTransactionDate->toString(Varien_Date::DATETIME_INTERNAL_FORMAT));
+                                $profile->setXpCountSuccessTransaction(1);
 
-                        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE);
+                                $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE);
+                            }
+
+                        } else {
+                            Mage::getSingleton('checkout/session')->addError($response['error_message']);
+                            $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
+                        }
                     }
+                }
 
-                } else {
-                    Mage::getSingleton("checkout/session")->addError($response["error_message"]);
+                $xpHelper->prepareOrderKeyByRecurringProfile($profile);
+            }
+
+            if($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_CANCELED){
+                $this->firstTransactionSuccess = false;
+            }else{
+                if (!$this->firstTransactionSuccess) {
                     $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
                 }
-            }
+            };
         }
 
+        $profile->setReferenceId($txnid);
 
     }
 

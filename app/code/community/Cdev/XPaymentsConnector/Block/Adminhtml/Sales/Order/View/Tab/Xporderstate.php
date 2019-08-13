@@ -112,7 +112,6 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
                 if($this->transactionStatus){
                     $this->transactionInfo[$currentOrder->getIncrementId()]["payment"]["xpc_txnid"] = $this->txnid;
                 }
-
             }
 
             while(!is_null($parentOrder = $currentOrder->getRelationParentId())){
@@ -148,6 +147,9 @@ class Cdev_XPaymentsConnector_Block_Adminhtml_Sales_Order_View_Tab_Xporderstate
                 break;
             case ($xpOrderStateData["refundedAmountAvailGateway"] > 0 && $xpOrderStateData["capturedAmountAvailGateway"] < 0.01):
                 $actionAmount = $xpOrderStateData["refundedAmountAvailGateway"];
+                break;
+            case ($actionAmount < 0.01 && $xpOrderStateData["chargedAmount"] > 0):
+                $actionAmount = $xpOrderStateData["chargedAmount"];
                 break;
         }
         return $actionAmount;

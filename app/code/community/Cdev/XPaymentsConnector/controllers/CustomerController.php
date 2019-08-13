@@ -59,7 +59,7 @@ class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Fr
                             $txnId = $item->getData("txnId");
                             $recurringProfile = Mage::getModel('sales/recurring_profile')->load($txnId,"reference_id");
                             if($recurringProfile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE){
-                                $errorMessage = Mage::helper("xpaymentsconnector")->__("You can't delete %s card. Because this is recurring card and this recurring is still active.",$item->getXpCardId());
+                                $errorMessage = Mage::helper("xpaymentsconnector")->__("You can't delete %s card. Because this is recurring card and this recurring(s) is still active.",$item->getXpCardId());
                                 Mage::getSingleton("customer/session")->addError($errorMessage);
                                 continue;
                             }

@@ -23,7 +23,7 @@
 <config>
     <modules>
         <Cdev_XPaymentsConnector>
-            <version>1.0.9</version>
+            <version>1.1.1</version>
         </Cdev_XPaymentsConnector>
     </modules>
 	<global>
@@ -306,6 +306,10 @@
                         <class>xpaymentsconnector/quote_address_total_nominal_recurring_discount</class>
                         <sort_order>10</sort_order>
                     </recurring_discount>
+                    <recurring_initialfee_tax>
+                        <class>xpaymentsconnector/quote_address_total_nominal_recurring_initialfee_tax</class>
+                        <sort_order>11</sort_order>
+                    </recurring_initialfee_tax>
                 </nominal_totals>
             </quote>
 
@@ -447,7 +451,7 @@
         <jobs>
             <create_order_by_subscription>
                 <schedule>
-                    <cron_expr>*/30 * * * *</cron_expr>
+                    <cron_expr>0 */1 * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>xpaymentsconnector/observer::createOrdersByCustomerSubscriptions</model>

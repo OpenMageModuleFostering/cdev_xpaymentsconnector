@@ -25,28 +25,22 @@
 
 class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model_Observer
 {
+    protected $_current_customer_id = null;
 
     public function preDispatchCheckout($observer)
     {
 
-        Mage::getSingleton("checkout/session")->unsetData("user_card_save");
+        Mage::getSingleton('checkout/session')->unsetData('user_card_save');
 
         //unset x-payment form place settings
-        $unsetParams = array("place_display");
-        Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+        $unsetParams = array('place_display');
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
 
         //set recurring product discount
-        $isRecurrnigProduct = Mage::helper("xpaymentsconnector")->checkIsRecurringOrder();
-        if ($isRecurrnigProduct) {
-            Mage::helper("xpaymentsconnector")->setRecurringProductDiscount();
-            $useStartDateParam = Mage::helper("xpaymentsconnector")->checkStartDateData();
-            if ($useStartDateParam["success"]) {
-                $currency_symbol = Mage::app()->getLocale()->currency(Mage::app()->getStore()->getCurrentCurrencyCode())->getSymbol();
-                $noticeMessage = Mage::helper("xpaymentsconnector")
-                    ->__("To create a subscription that uses an X-Payments method, your card  will be charged a minimal payment - %s%s",
-                        $useStartDateParam["minimal_payment_amount"], $currency_symbol);
-                Mage::getSingleton("core/session")->addNotice($noticeMessage);
-            }
+        $issetRecurrnigProduct = $xpHelper->checkIssetRecurringOrder();
+        if ($issetRecurrnigProduct['isset']) {
+            $xpHelper->setRecurringProductDiscount();
         }
 
     }
@@ -56,19 +50,19 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $event = $observer->getEvent();
         $method = $event->getMethodInstance();
         $result = $event->getResult();
-        $saveCardsPaymentCode = Mage::getModel("xpaymentsconnector/payment_savedcards")->getCode();
-        $prepaidpayments = Mage::getModel("xpaymentsconnector/payment_prepaidpayments")->getCode();
+        $saveCardsPaymentCode = Mage::getModel('xpaymentsconnector/payment_savedcards')->getCode();
+        $prepaidpayments = Mage::getModel('xpaymentsconnector/payment_prepaidpayments')->getCode();
 
         if (($method->getCode() == $saveCardsPaymentCode) || ($method->getCode() == $prepaidpayments)) {
             $quote = $event->getQuote();
             if ($quote) {
-                $customerId = $quote->getData("customer_id");
+                $customerId = $quote->getData('customer_id');
                 $isBalanceCard = Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD;
                 if ($method->getCode() == $prepaidpayments) {
                     $isBalanceCard = Cdev_XPaymentsConnector_Model_Usercards::BALANCE_CARD;
                 }
                 if ($customerId) {
-                    $cardsCount = Mage::getModel("xpaymentsconnector/usercards")
+                    $cardsCount = Mage::getModel('xpaymentsconnector/usercards')
                         ->getCollection()
                         ->addFieldToFilter('user_id', $customerId)
                         ->addFieldToFilter('usage_type', $isBalanceCard)
@@ -91,48 +85,61 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
     public function updateOrder($observer)
     {
+        $xpHelper = Mage::helper('xpaymentsconnector');
         $event = $observer->getEvent();
         $order = $event->getOrder();
-        $refId = Mage::helper("xpaymentsconnector")->getOrderKey();
+
+        $checkoutSession = Mage::getSingleton('checkout/session');
         $paymentMethod = $order->getPayment()->getMethodInstance()->getCode();
-        $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
-        $saveCardsPaymentCode = Mage::getModel("xpaymentsconnector/payment_savedcards")->getCode();
+        $paymentCcModel = Mage::getModel('xpaymentsconnector/payment_cc');
+        $xpaymentPaymentCode = $paymentCcModel->getCode();
+        $saveCardsPaymentCode = Mage::getModel('xpaymentsconnector/payment_savedcards')->getCode();
+        $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
+        $quote = $observer->getQuote();
 
         if ($paymentMethod == $xpaymentPaymentCode) {
             $order->setCanSendNewEmailFlag(false);
-            $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
 
-            $request = Mage::helper("xpaymentsconnector")->getXpaymentResponse();
+            $request = $xpHelper->getXpaymentResponse();
 
 
             if ($useIframe) {
                 /*update order table*/
                 $order->setData('xpc_txnid', $request['txnId']);
-                $order->setData("xp_card_data", serialize($request));
+                $order->setData('xp_card_data', serialize($request));
                 $order->save();
 
-                $result = Mage::getModel("xpaymentsconnector/payment_cc")->updateOrderByXpaymentResponse($order->getId(), $request['txnId']);
-                if ($result["success"]) {
+                $result = $paymentCcModel->updateOrderByXpaymentResponse($order->getId(), $request['txnId']);
+                if ($result['success']) {
                     /* save credit card to user profile */
-                    $response = Mage::helper("xpaymentsconnector")->getXpaymentResponse();
-                    Mage::getModel("xpaymentsconnector/payment_cc")->saveUserCard($response);
+                    $response = $xpHelper->getXpaymentResponse();
+                    $paymentCcModel->saveUserCard($response);
                     /* end (save payment card) */
                 } else {
-                    Mage::getSingleton("checkout/session")->addError($result["error_message"]);
+                    $checkoutSession->addError($result['error_message']);
                 }
+
             }
 
         } elseif ($paymentMethod == $saveCardsPaymentCode) {
+
             $order->setCanSendNewEmailFlag(false);
-            $response = Mage::getModel("xpaymentsconnector/payment_cc")->sendAgainTransactionRequest($order->getId());
-            if ($response["success"]) {
-                $result = Mage::getModel("xpaymentsconnector/payment_cc")->updateOrderByXpaymentResponse($order->getId(), $response["response"]['transaction_id']);
-                if (!$result["success"]) {
-                    Mage::getSingleton("checkout/session")->addError($result["error_message"]);
+            $paymentCardNumber = NULL;
+            $grandTotal = NULL;
+            $cardData = NULL;
+            $paymentCardNumber = $quote->getPayment()->getData('xp_payment_card');
+            $cardData = Mage::getModel('xpaymentsconnector/usercards')->load($paymentCardNumber);
+
+            $response = $paymentCcModel->sendAgainTransactionRequest($order->getId(),$paymentCardNumber,$grandTotal,$cardData);
+            if ($response['success']) {
+                $result = $paymentCcModel->updateOrderByXpaymentResponse($order->getId(), $response['response']['transaction_id']);
+                if (!$result['success']) {
+                    $checkoutSession->addError($result['error_message']);
                 }
             } else {
-                Mage::getSingleton("checkout/session")->addError($response["error_message"]);
+                $checkoutSession->addError($response['error_message']);
             }
+
         }
 
 
@@ -144,7 +151,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
      */
     public function orderSuccessAction($observer)
     {
-        Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder();
+        Mage::helper('xpaymentsconnector')->unsetXpaymentPrepareOrder();
     }
 
 
@@ -154,35 +161,35 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
     public function postdispatchAdminhtmlSalesOrderCreateSave($observer)
     {
         $quote = Mage::getSingleton('adminhtml/session_quote')->getQuote();
-        $incrementId = $quote->getData("reserved_order_id");
+        $incrementId = $quote->getData('reserved_order_id');
         $order = Mage::getModel('sales/order')->load($incrementId, 'increment_id');
         $paymentMethod = $order->getPayment()->getMethodInstance()->getCode();
         $admSession = Mage::getSingleton('adminhtml/session');
-        $saveCardsPaymentCode = Mage::getModel("xpaymentsconnector/payment_savedcards")->getCode();
-        $prepaidpayments = Mage::getModel("xpaymentsconnector/payment_prepaidpayments")->getCode();
+        $saveCardsPaymentCode = Mage::getModel('xpaymentsconnector/payment_savedcards')->getCode();
+        $prepaidpayments = Mage::getModel('xpaymentsconnector/payment_prepaidpayments')->getCode();
 
         if ($paymentMethod == $saveCardsPaymentCode) {
             $orderId = $order->getId();
-            $grandTotal = $quote->getData("grand_total");
+            $grandTotal = $quote->getData('grand_total');
             $this->adminhtmlSendSaveCardsPaymentTransaction($orderId,$grandTotal);
         } elseif ($paymentMethod == $prepaidpayments) {
-            $xpPrepaidPaymentsCard = $admSession->getData("xp_prepaid_payments");
-            $currentUserCard = Mage::getModel("xpaymentsconnector/usercards")->load($xpPrepaidPaymentsCard);
-            $txnid = $currentUserCard->getData("txnId");
+            $xpPrepaidPaymentsCard = $admSession->getData('xp_prepaid_payments');
+            $currentUserCard = Mage::getModel('xpaymentsconnector/usercards')->load($xpPrepaidPaymentsCard);
+            $txnid = $currentUserCard->getData('txnId');
             $lastTransId = $txnid;
 
-            $order->setData("xpc_txnid",$txnid);
+            $order->setData('xpc_txnid',$txnid);
             $order->getPayment()->setTransactionId($txnid);
             $api = Mage::getModel('xpaymentsconnector/payment_cc');
             list($status, $response) = $api->requestPaymentInfo($txnid,false,true);
 
             if($status){
-                $currentTransaction = end($response["transactions"]);
-                $lastTransId = $currentTransaction["txnid"];
+                $currentTransaction = end($response['transactions']);
+                $lastTransId = $currentTransaction['txnid'];
             }
 
             $order->getPayment()->setLastTransId($lastTransId);
-            $order->setData("xp_card_data",serialize($currentUserCard->getData()));
+            $order->setData('xp_card_data',serialize($currentUserCard->getData()));
             $order->setState(
                 Mage_Sales_Model_Order::STATE_PROCESSING,
                 (bool)Mage_Sales_Model_Order::STATE_PROCESSING,
@@ -190,8 +197,8 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
             );
             $order->save();
         }
-        $admSession->unsetData("xp_payment_card");
-        $admSession->unsetData("xp_prepaid_payments");
+        $admSession->unsetData('xp_payment_card');
+        $admSession->unsetData('xp_prepaid_payments');
 
     }
 
@@ -234,13 +241,13 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
     protected function adminhtmlSendSaveCardsPaymentTransaction($orderId,$grandTotal,$checkOrderAmount = true)
     {
         $admSession = Mage::getSingleton('adminhtml/session');
-        $xpCreditCards = $admSession->getData("xp_payment_card");
+        $xpCreditCards = $admSession->getData('xp_payment_card');
 
-        $response = Mage::getModel("xpaymentsconnector/payment_cc")->sendAgainTransactionRequest($orderId, $xpCreditCards, $grandTotal);
-        if ($response["success"]) {
-            Mage::getModel("xpaymentsconnector/payment_cc")->updateOrderByXpaymentResponse($orderId, $response["response"]['transaction_id'],$checkOrderAmount);
+        $response = Mage::getModel('xpaymentsconnector/payment_cc')->sendAgainTransactionRequest($orderId, $xpCreditCards, $grandTotal);
+        if ($response['success']) {
+            Mage::getModel('xpaymentsconnector/payment_cc')->updateOrderByXpaymentResponse($orderId, $response['response']['transaction_id'],$checkOrderAmount);
         } else {
-            Mage::getSingleton("adminhtml/session")->addError($response["error_message"]);
+            Mage::getSingleton('adminhtml/session')->addError($response['error_message']);
         }
 
     }
@@ -249,17 +256,17 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
     {
         $quote = Mage::getSingleton('adminhtml/session_quote')->getQuote();
         $paymentMethod = $quote->getPayment()->getMethodInstance()->getCode();
-        $prepaidpayments = Mage::getModel("xpaymentsconnector/payment_prepaidpayments")->getCode();
+        $prepaidpayments = Mage::getModel('xpaymentsconnector/payment_prepaidpayments')->getCode();
         if ($paymentMethod == $prepaidpayments) {
             $admSession = Mage::getSingleton('adminhtml/session');
-            $xpPrepaidPaymentsCard = $admSession->getData("xp_prepaid_payments");
-            $currentUserCard = Mage::getModel("xpaymentsconnector/usercards")->load($xpPrepaidPaymentsCard);
-            $grandTotal = $quote->getData("grand_total");
+            $xpPrepaidPaymentsCard = $admSession->getData('xp_prepaid_payments');
+            $currentUserCard = Mage::getModel('xpaymentsconnector/usercards')->load($xpPrepaidPaymentsCard);
+            $grandTotal = $quote->getData('grand_total');
             $cardAmount = $currentUserCard->getAmount();
             if ($cardAmount < $grandTotal) {
-                $errorMessage = Mage::helper("xpaymentsconnector")
+                $errorMessage = Mage::helper('xpaymentsconnector')
                     ->__("You can't make an order using card (**%s) worth over %s",
-                        $currentUserCard->getData("last_4_cc_num"),
+                        $currentUserCard->getData('last_4_cc_num'),
                         Mage::helper('core')->currency($cardAmount));
                 $admSession->addError($errorMessage);
                 /*redirect to last page*/
@@ -280,20 +287,20 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
     public function adminhtmlSavePaymentCard()
     {
-        $payment = Mage::app()->getRequest()->getPost("payment");
-        $saveCardsPaymentCode = Mage::getModel("xpaymentsconnector/payment_savedcards")->getCode();
-        $prepaidpayments = Mage::getModel("xpaymentsconnector/payment_prepaidpayments")->getCode();
+        $payment = Mage::app()->getRequest()->getPost('payment');
+        $saveCardsPaymentCode = Mage::getModel('xpaymentsconnector/payment_savedcards')->getCode();
+        $prepaidpayments = Mage::getModel('xpaymentsconnector/payment_prepaidpayments')->getCode();
 
         if ($payment) {
-            if ($payment["method"] == $saveCardsPaymentCode) {
-                if ($payment["xp_payment_card"]) {
+            if ($payment['method'] == $saveCardsPaymentCode) {
+                if ($payment['xp_payment_card']) {
                     $admSession = Mage::getSingleton('adminhtml/session');
-                    $admSession->setData("xp_payment_card", $payment["xp_payment_card"]);
+                    $admSession->setData('xp_payment_card', $payment['xp_payment_card']);
                 }
-            } elseif ($payment["method"] == $prepaidpayments) {
-                if ($payment["xp_prepaid_payments"]) {
+            } elseif ($payment['method'] == $prepaidpayments) {
+                if ($payment['xp_prepaid_payments']) {
                     $admSession = Mage::getSingleton('adminhtml/session');
-                    $admSession->setData("xp_prepaid_payments", $payment["xp_prepaid_payments"]);
+                    $admSession->setData('xp_prepaid_payments', $payment['xp_prepaid_payments']);
                 }
             }
         }
@@ -302,8 +309,8 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
     public function unsetXpaymentSelectedCard()
     {
         $admSession = Mage::getSingleton('adminhtml/session');
-        $admSession->unsetData("xp_payment_card");
-        $admSession->unsetData("xp_prepaid_payments");
+        $admSession->unsetData('xp_payment_card');
+        $admSession->unsetData('xp_prepaid_payments');
     }
 
     public function orderInvoiceSaveBefore($observer)
@@ -311,8 +318,8 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $invoice = $observer->getEvent()->getInvoice();
         $order = $invoice->getOrder();
         $paymentCode = $order->getPayment()->getMethodInstance()->getCode();
-        if (Mage::helper("xpaymentsconnector")->isXpaymentsMethod($paymentCode)) {
-            $txnid = $order->getData("xpc_txnid");
+        if (Mage::helper('xpaymentsconnector')->isXpaymentsMethod($paymentCode)) {
+            $txnid = $order->getData('xpc_txnid');
             $invoice->setTransactionId($txnid);
         }
     }
@@ -322,78 +329,117 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $invoice = $observer->getInvoice();
         $order = $invoice->getOrder();
         $paymentCode = $order->getPayment()->getMethodInstance()->getCode();
-        if (Mage::helper("xpaymentsconnector")->isXpaymentsMethod($paymentCode)) {
+        if (Mage::helper('xpaymentsconnector')->isXpaymentsMethod($paymentCode)) {
             $data = array(
-                'txnId' => $order->getData("xpc_txnid"),
+                'txnId' => $order->getData('xpc_txnid'),
                 'amount' => number_format($invoice->getGrandTotal(), 2, '.', ''),
             );
-            Mage::getModel("xpaymentsconnector/payment_cc")->authorizedTransactionRequest('void', $data);
+            Mage::getModel('xpaymentsconnector/payment_cc')->authorizedTransactionRequest('void', $data);
         }
     }
 
     public function createOrdersByCustomerSubscriptions($observer)
     {
-        $xpaymentsHelper = Mage::helper("xpaymentsconnector");
+        $xpaymentsHelper = Mage::helper('xpaymentsconnector');
         $recurringProfileList = Mage::getModel('sales/recurring_profile')
             ->getCollection()
-            ->addFieldToFilter("state", Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE);
+            ->addFieldToFilter('state', array('neq' => Mage_Sales_Model_Recurring_Profile::STATE_CANCELED));
+
+        $userTransactionHasBeenSend = false;
         if ($recurringProfileList->getSize() > 0) {
             foreach ($recurringProfileList as $profile) {
-                $startDateTime = strtotime($profile->getStartDatetime());
-                $lastSuccessTransactionDate = strtotime($profile->getXpSuccessTransactionDate());
-                $lastActionDate = ($startDateTime > $lastSuccessTransactionDate) ? $startDateTime : $lastSuccessTransactionDate;
-
-                $profilePeriodValue = $xpaymentsHelper->getCurrentBillingPeriodTimeStamp($profile);
-                $newTransactionDate = $lastActionDate + $profilePeriodValue;
-
-                $currentDateObj = new Zend_Date(time());
-                $currentDateStamp = $currentDateObj->getTimestamp();
-
-                //var_dump("current = ".date("Y-m-d H:m:s",$currentDateStamp),"start = ".date("Y-m-d H:m:s",$startDateTime),"last = ".date("Y-m-d H:m:s",$lastActionDate),"new = ".date("Y-m-d H:m:s",$newTransactionDate),"profile_id = ".$profile->getProfileId());die;
-
-                $timePassed = $currentDateStamp - $lastActionDate;
-
-                if ($timePassed >= $profilePeriodValue) {
-                    // check by count of success transaction
-                    $currentSuccessCycles = $profile->getXpCountSuccessTransaction();
-                    $periodMaxCycles = $profile->getPeriodMaxCycles();
-
-                    if ($periodMaxCycles >= $currentSuccessCycles) {
-                        $orderItemInfo = $profile->getData("order_item_info");
-                        if (!is_array($orderItemInfo)) {
-                            $orderItemInfo = unserialize($orderItemInfo);
-                        }
-                        $grandTotal = $orderItemInfo["nominal_row_total"];
-                        $initialFeeAmount = $orderItemInfo["recurring_initial_fee"];
-
-                        // add discount for grand total amount
-                        $useDiscount = current($profile->getChildOrderIds()) > 0;
-                        $discountAmount = ($useDiscount) ? $orderItemInfo["discount_amount"] : 0;
-
-                        $orderId = $xpaymentsHelper->createOrder($profile);
-                        $cardData = $xpaymentsHelper->getProfileOrderCardData($profile);
-
-                        $response = Mage::getModel("xpaymentsconnector/payment_cc")->sendAgainTransactionRequest($orderId, NULL, $grandTotal - $initialFeeAmount + $discountAmount, $cardData);
-
-                        if ($response["success"]) {
-                            $result = Mage::getModel("xpaymentsconnector/payment_cc")->updateOrderByXpaymentResponse($orderId, $response["response"]['transaction_id']);
-                            $xpaymentsHelper->updateCurrentBillingPeriodTimeStamp($profile, $result["success"], $newTransactionDate);
-                            if (!$result["success"]) {
-                                Mage::log($result["error_message"], null, $xpaymentsHelper::XPAYMENTS_LOG_FILE, true);
-                            }
-
-                        } else {
-                            $xpaymentsHelper->updateCurrentBillingPeriodTimeStamp($profile, $response["success"], $newTransactionDate);
-                            Mage::log($response["error_message"], null, $xpaymentsHelper::XPAYMENTS_LOG_FILE, true);
-                        }
-
-                    } else {
-                        // Subscription is completed
-                        $profile->cancel();
-
-                    }
+                $customerId = $profile->getCustomerId();
+                if($this->_current_customer_id != $customerId){
+                    $this->_current_customer_id = $customerId;
+                    $userTransactionHasBeenSend = false;
                 }
 
+                if(!$userTransactionHasBeenSend){
+                    if ($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_UNKNOWN) {
+                            $cardData = $xpaymentsHelper->getProfileOrderCardData($profile);
+                            $orderAmountData = $xpaymentsHelper->preparePayDeferredOrderAmountData($profile);
+                            if(!empty($orderAmountData)){
+                                $xpaymentsHelper->resendPayDeferredRecurringTransaction($profile, $orderAmountData, $cardData);
+                                $userTransactionHasBeenSend = true;
+                            }else{
+                                $profile->activate();
+                            }
+                        continue;
+                    } elseif ($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE) {
+                        $startDateTime = strtotime($profile->getStartDatetime());
+                        $lastSuccessTransactionDate = strtotime($profile->getXpSuccessTransactionDate());
+                        $lastActionDate = ($startDateTime > $lastSuccessTransactionDate) ? $startDateTime : $lastSuccessTransactionDate;
+
+                        $profilePeriodValue = $xpaymentsHelper->getCurrentBillingPeriodTimeStamp($profile);
+                        $newTransactionDate = $lastActionDate + $profilePeriodValue;
+
+                        $currentDateObj = new Zend_Date(time());
+                        $currentDateStamp = $currentDateObj->getTimestamp();
+                        /*
+                        var_dump('period_stamp ='.$profilePeriodValue / 3600 ."(h)",
+                                 "current = ".date("Y-m-d H:m:s",$currentDateStamp),
+                                 "start = ".date("Y-m-d H:m:s",$startDateTime),
+                                 "last = ".date("Y-m-d H:m:s",$lastActionDate),
+                                 "new = ".date("Y-m-d H:m:s",$newTransactionDate),
+                                 "profile_id = ".$profile->getProfileId());die;
+                        */
+
+                        $timePassed = $currentDateStamp - $lastActionDate;
+
+                        if ($timePassed >= $profilePeriodValue) {
+                            // check by count of success transaction
+                            $currentSuccessCycles = $profile->getXpCountSuccessTransaction();
+                            $periodMaxCycles = $profile->getPeriodMaxCycles();
+
+                            if (($periodMaxCycles > $currentSuccessCycles) || is_null($periodMaxCycles)) {
+                                $orderItemInfo = $profile->getData('order_item_info');
+                                if (!is_array($orderItemInfo)) {
+                                    $orderItemInfo = unserialize($orderItemInfo);
+                                }
+
+                                $initialFeeAmount = $orderItemInfo['recurring_initial_fee'];
+
+
+
+                                $isFirstRecurringOrder = false;
+
+                                //calculate grand total
+                                $billingAmount  =  $profile->getBillingAmount();
+                                $shippingAmount =  $profile->getShippingAmount();
+                                $taxAmount = $profile->getTaxAmount();
+
+                                $initialFeeTax = ($profile->getInitiaFeePaid()) ? 0 : 123;
+                                // add discount for transaction amount
+                                $useDiscount = ($profile->getXpCountSuccessTransaction() > 0) ? false : true;
+                                $discountAmount = ($useDiscount) ? $orderItemInfo['discount_amount'] : 0;
+
+                                $transactionAmount = $billingAmount + $shippingAmount + $taxAmount - $discountAmount ;
+
+                                $orderId = $xpaymentsHelper->createOrder($profile,$isFirstRecurringOrder);
+                                $cardData = $xpaymentsHelper->getProfileOrderCardData($profile);
+
+                                $response = Mage::getModel('xpaymentsconnector/payment_cc')->sendAgainTransactionRequest($orderId, NULL, $transactionAmount , $cardData);
+                                $userTransactionHasBeenSend = true;
+                                if ($response['success']) {
+                                    $result = Mage::getModel('xpaymentsconnector/payment_cc')->updateOrderByXpaymentResponse($orderId, $response['response']['transaction_id']);
+                                    $xpaymentsHelper->updateCurrentBillingPeriodTimeStamp($profile, $result['success'], $newTransactionDate);
+                                    if (!$result['success']) {
+                                        Mage::log($result['error_message'], null, $xpaymentsHelper::XPAYMENTS_LOG_FILE, true);
+                                    }
+
+                                } else {
+                                    $xpaymentsHelper->updateCurrentBillingPeriodTimeStamp($profile, $response['success'], $newTransactionDate);
+                                    Mage::log($response['error_message'], null, $xpaymentsHelper::XPAYMENTS_LOG_FILE, true);
+                                }
+
+                            } else {
+                                // Subscription is completed
+                                $profile->cancel();
+
+                            }
+                        }
+                    }
+                }
             }
 
         }
@@ -407,15 +453,15 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
      */
     public function addRedirectForXpaymentMethod($observer)
     {
-        $profiles = $observer->getData("recurring_profiles");
+        $profiles = $observer->getData('recurring_profiles');
         if (!empty($profiles)) {
             $profile = current($profiles);
-            $currentPaymentMethodCode = $profile->getData("method_code");
-            $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
+            $currentPaymentMethodCode = $profile->getData('method_code');
+            $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
             $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
             if (($currentPaymentMethodCode == $xpaymentPaymentCode) && !$useIframe) {
                 $redirectUrl = Mage::getUrl('xpaymentsconnector/processing/redirect', array('_secure' => true));
-                Mage::getSingleton("checkout/session")->setRedirectUrl($redirectUrl);
+                Mage::getSingleton('checkout/session')->setRedirectUrl($redirectUrl);
             }
 
         }
@@ -425,25 +471,34 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
     /**
      * Set discount for recurring product(for ajax cart item quantity update)
      * Remove X-Payments token
+     * Update initial Fee for recurring product;
      * @param $observer
      */
     public function updateCartItem($observer)
     {
-        $unsetParams = array("token");
-        Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+        $unsetParams = array('token');
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
 
         //set recurring product discount
-        Mage::helper("xpaymentsconnector")->setRecurringProductDiscount();
+        Mage::helper('xpaymentsconnector')->setRecurringProductDiscount();
+        $xpHelper->updateAllRecurringQuoteItem();
     }
 
     /**
-     * Remove X-Payments token
+     * Remove X-Payments token;
+     * Update initial Fee for recurring product;
      * @param $observer
      */
     public function checkoutCartAdd($observer)
     {
-        $unsetParams = array("token");
-        Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $unsetParams = array('token');
+        $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
+
+        $product = $observer->getProduct();
+        $xpHelper->updateRecurringQuoteItem($product);
+
     }
 
     /**
@@ -452,8 +507,8 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
      */
     public function postdispatchCartDelete($observer)
     {
-        $unsetParams = array("token", "prepare_order_id");
-        Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+        $unsetParams = array('token', 'prepare_order_id');
+        Mage::helper('xpaymentsconnector')->unsetXpaymentPrepareOrder($unsetParams);
     }
 
 
@@ -463,7 +518,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
      */
     public function predispatchSaveShippingMethod()
     {
-        Mage::helper("xpaymentsconnector")->setIframePlaceDisplaySettings();
+        Mage::helper('xpaymentsconnector')->setIframePlaceDisplaySettings();
     }
 
     /**
@@ -472,10 +527,11 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
      */
     public function postdispatchSaveShippingMethod($observer)
     {
-        $isPaymentPlaceDisplayFlag = Mage::helper("xpaymentsconnector")->isIframePaymentPlaceDisplay();
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $isPaymentPlaceDisplayFlag = $xpHelper->isIframePaymentPlaceDisplay();
         if (!$isPaymentPlaceDisplayFlag) {
-            $unsetParams = array("token");
-            Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+            $unsetParams = array('token');
+            $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
         }
     }
 
@@ -483,19 +539,20 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
     {
         $quote = Mage::getSingleton('checkout/session')->getQuote();
         $paymentMethodCode = $quote->getPayment()->getMethodInstance()->getCode();
-        $xpaymentPaymentCode = Mage::getModel("xpaymentsconnector/payment_cc")->getCode();
+        $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
+        $xpHelper = Mage::helper('xpaymentsconnector');
 
-        $isXpayments = Mage::helper("xpaymentsconnector")->isXpaymentsMethod($paymentMethodCode);
+        $isXpayments = $xpHelper->isXpaymentsMethod($paymentMethodCode);
         if ($isXpayments) {
-            Mage::helper("xpaymentsconnector")->prepareOrderKey();
+            $xpHelper->prepareOrderKey();
         }
         if ($paymentMethodCode == $xpaymentPaymentCode) {
-            $saveCard = Mage::app()->getRequest()->getPost("savecard");
+            $saveCard = Mage::app()->getRequest()->getPost('savecard');
             if ($saveCard) {
-                Mage::getSingleton("checkout/session")->setData("user_card_save", $saveCard);
+                Mage::getSingleton('checkout/session')->setData('user_card_save', $saveCard);
             }
         } else {
-            Mage::getSingleton("checkout/session")->unsetData("user_card_save");
+            Mage::getSingleton('checkout/session')->unsetData('user_card_save');
         }
     }
 
@@ -505,15 +562,15 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
      */
     public function preDispatchCartIndex($observer)
     {
-        $unsetXpPrepareOrder = Mage::app()->getRequest()->getParam("unset_xp_prepare_order");
+        $unsetXpPrepareOrder = Mage::app()->getRequest()->getParam('unset_xp_prepare_order');
+        $xpHelper = Mage::helper('xpaymentsconnector');
         if (isset($unsetXpPrepareOrder)) {
-            $unsetParams = array("token");
-            Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder($unsetParams);
+            $unsetParams = array('token');
+            $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
         }
 
-
         //set recurring product discount
-        Mage::helper("xpaymentsconnector")->setRecurringProductDiscount();
+        $xpHelper->setRecurringProductDiscount();
 
     }
 
@@ -528,14 +585,14 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
             if(!empty($xpTransactionData)
                 && isset($xpTransactionData['xpaction'])
-                && isset($xpTransactionData["xpc_txnid"])
-                && isset($xpTransactionData["transaction_amount"])
+                && isset($xpTransactionData['xpc_txnid'])
+                && isset($xpTransactionData['transaction_amount'])
             ){
 
-                $xpaymentModel = Mage::getModel("xpaymentsconnector/payment_cc");
+                $xpaymentModel = Mage::getModel('xpaymentsconnector/payment_cc');
                 $data = array(
-                    'txnId' => $xpTransactionData["xpc_txnid"],
-                    'amount' => number_format($xpTransactionData["transaction_amount"], 2, '.', ''),
+                    'txnId' => $xpTransactionData['xpc_txnid'],
+                    'amount' => number_format($xpTransactionData['transaction_amount'], 2, '.', ''),
                 );
                 $result = array();
                 switch ($xpTransactionData['xpaction']) {
@@ -551,7 +608,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
                 }
 
                 if(empty($result['error_message'])){
-                    $message =   Mage::helper("xpaymentsconnector")->__("Transaction '%s' to order (%s)  was successful!",
+                    $message =   Mage::helper('xpaymentsconnector')->__("Transaction '%s' to order (%s)  was successful!",
                     $xpTransactionData['xpaction'],
                     $xpTransactionData['orderid']);
                     Mage::getSingleton('adminhtml/session')->addSuccess($message);

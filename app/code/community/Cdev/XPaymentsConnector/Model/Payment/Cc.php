@@ -90,7 +90,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
     // Root-level tag for all XML messages
     const TAG_ROOT = 'data';
 
-    // Value of the "type" attribute for list items in XML
+    // Value of the 'type' attribute for list items in XML
     const TYPE_CELL = 'cell';
 
     // Payment statuses
@@ -177,6 +177,10 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      */
     protected $_order = null;
 
+    public $_currentProfileId = null;
+    public $firstTransactionSuccess = true;
+
+
     /**
      * Get order
      *
@@ -251,12 +255,12 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
     public function canCapture()
     {
         $order = $this->getOrder();
-        list($status, $response) = $this->requestPaymentInfo($order->getData("xpc_txnid"));
+        list($status, $response) = $this->requestPaymentInfo($order->getData('xpc_txnid'));
         if($status){
-            if($response["status"] == self::CHARGED_STATUS){
+            if($response['status'] == self::CHARGED_STATUS){
                 return false;
             }
-            elseif($response["status"] == self::AUTH_ACTION){
+            elseif($response['status'] == self::AUTH_ACTION){
                 return true;
             }
         }else{
@@ -501,7 +505,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             'confId'      => intval($this->getPaymentConfiguration()->getData('confid')),
             'refId'       => $refId,
             'cart'        => $cart,
-            'returnUrl'   => Mage::getUrl('xpaymentsconnector/processing/return', array('order_id' => $refId,'_secure' => true)),
+            'returnUrl'   => Mage::getUrl('xpaymentsconnector/processing/iframereturn', array('order_id' => $refId,'_secure' => true)),
             'callbackUrl' => Mage::getUrl('xpaymentsconnector/processing/callback', array('order_id' => $refId,'_secure' => true)),
             'template'    => 'default',
             'saveCard'    => 'Y',
@@ -522,7 +526,11 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             Mage::getSingleton('checkout/session')->setData('xpayments_token', $response['token']);
         }
 
-        return $status;
+        $xPaymentDataResponse = array();
+        $xPaymentDataResponse['status'] = $status;
+        $xPaymentDataResponse['response'] = $response;
+
+        return $xPaymentDataResponse;
     }
 
     /**
@@ -544,17 +552,17 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $data = array(
                 'txnId'   => $txn_id,
             );
-            $infoClass = "get_additional_info";
+            $infoClass = 'get_additional_info';
         }else{
             $data = array(
                 'txnId'   => $txn_id,
                 'refresh' => $refresh ? 1 : 0
             );
-            $infoClass = "get_info";
+            $infoClass = 'get_info';
         }
 
         list($status, $response) = $this->request('payment', $infoClass, $data);
-        $checkResponse = (!$withAdditionalInfo)?$response:$response["payment"];
+        $checkResponse = (!$withAdditionalInfo)?$response:$response['payment'];
 
         if ($status) {
             if (!is_array($response) || !isset($checkResponse['status'])) {
@@ -884,11 +892,11 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      */
     protected function isForceAuth()
     {
-
-        $isRecurrnigProduct = Mage::helper("xpaymentsconnector")->checkIsRecurringOrder();
-        if ($isRecurrnigProduct) {
-            $useStartDateParam = Mage::helper("xpaymentsconnector")->checkStartDateData();
-            if ($useStartDateParam["success"]) {
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $isRecurrnigProduct = $xpHelper->checkIssetRecurringOrder();
+        if ($isRecurrnigProduct['isset']) {
+            $useStartDateParam = $xpHelper->checkStartDateData();
+            if ($useStartDateParam['total_min_amount']) {
                 $useInitialFeeAuthorize = Mage::getStoreConfig('payment/xpayments/use_initialfee_authorize');
                 return (bool)$useInitialFeeAuthorize;
             }
@@ -1341,9 +1349,9 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
     {
         $xPaymentDataResponse = array();
         $checkoutData = Mage::getSingleton('checkout/session');
-        $refId = Mage::helper("xpaymentsconnector")->getOrderKey();
+        $refId = Mage::helper('xpaymentsconnector')->getOrderKey();
 
-        $xPaymentDataResponse["order_refid"] = $refId;
+        $xPaymentDataResponse['order_refid'] = $refId;
         $result = array();
         $cart = array();
 
@@ -1371,8 +1379,8 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         list($status, $response) = $this->request('payment', 'init', $sendData);
 
 
-        $xPaymentDataResponse["status"] = $status;
-        $xPaymentDataResponse["response"] = $response;
+        $xPaymentDataResponse['status'] = $status;
+        $xPaymentDataResponse['response'] = $response;
 
 
         //****************stop*****************//
@@ -1380,12 +1388,12 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
         if (!$status || (!isset($response['token']) || !is_string($response['token']))) {
             $result['success'] = false;
-            $result['error_message'] = Mage::helper('core')->__("Transaction token can not be found or has wrong type");
+            $result['error_message'] = Mage::helper('core')->__('Transaction token can not be found or has wrong type');
             return $result;
         }
 
 
-        $checkoutData->setData("xpayment",$xPaymentDataResponse);
+        $checkoutData->setData('xpayment',$xPaymentDataResponse);
 
         if ($status) {
             Mage::getSingleton('checkout/session')->setData('xpayments_token', $response['token']);
@@ -1398,56 +1406,61 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
 
         $quote = Mage::getSingleton('checkout/session')->getQuote();
+        $xpHelper = Mage::helper('xpaymentsconnector');
         if(is_null($paymentCardNumber)){
-            $paymentCardNumber = $quote->getPayment()->getData("xp_payment_card");
+            $paymentCardNumber = $quote->getPayment()->getData('xp_payment_card');
         }
         if(is_null($grandTotal)){
             $grandTotal = $quote->getGrandTotal();
         }
 
         if(is_null($cardData)){
-            $cardData = Mage::getModel("xpaymentsconnector/usercards")->load($paymentCardNumber);
+            $cardData = Mage::getModel('xpaymentsconnector/usercards')->load($paymentCardNumber);
             if($cardData){
                 $cardData = $cardData->getData();
             }
         }
 
         $data = array(
-            'txnId'       => $cardData["txnId"],
+            'txnId'       => $cardData['txnId'],
             'amount'      => number_format($grandTotal, 2, '.','')
         );
         $order = NULL;
+
         if(!is_null($order_id)){
             $order = Mage::getModel('sales/order')->load($order_id);
             $orderIcrementId = $order->getIncrementId();
             $data['description'] = 'Order #' . $orderIcrementId;
         }else{
-            $xpOrderKey = Mage::helper("xpaymentsconnector")->getOrderKey();;
+            $xpOrderKey = $xpHelper->getOrderKey();
+            if(!$xpOrderKey){
+                $xpOrderKey = $xpHelper->prepareSimpleOrderKey();
+            }
             $data['description'] = 'Order(i-frame) #' . $xpOrderKey;
         }
 
 
         list($status, $response) = $this->request('payment', 'recharge', $data);
 
-        $xPaymentDataResponse["status"] = $status;
-        $xPaymentDataResponse["response"] = $response;
+        $xPaymentDataResponse['status'] = $status;
+        $xPaymentDataResponse['response'] = $response;
 
         if($order){
-            $order->setData("xp_card_data",serialize($cardData));
+            $order->setData('xp_card_data',serialize($cardData));
             $order->save();
 
             if ($status && (!isset($response['transaction_id']) || !is_string($response['transaction_id']))) {
-                Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder();
+                $xpHelper->unsetXpaymentPrepareOrder();
                 $order->cancel();
-                $errorMessage = Mage::helper('xpaymentsconnector')->__("Transaction token can not found or has wrong type. The order has been canceled.");
+                $errorMessage = $xpHelper->__('Transaction token can not found or has wrong type. The order has been canceled.');
                 $order->addStatusToHistory(
                     $order::STATE_CANCELED,
                     $errorMessage
                 );
 
                 $order->save();
-                $result["success"] = false;
-                $result["error_message"] = $errorMessage;
+                $result['success'] = false;
+                $result['error_message'] = $errorMessage;
 
                 return $result;
             }
@@ -1455,7 +1468,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         }
 
 
-        $xPaymentDataResponse["success"] = true;
+        $xPaymentDataResponse['success'] = true;
 
         return $xPaymentDataResponse;
 
@@ -1474,19 +1487,21 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      */
     protected function iframePrepareCart($checkoutData,$customer,$isCardAuthorizePayment = false)
     {
-        $refId = Mage::helper("xpaymentsconnector")->getOrderKey();
-        $customerEmail = "";
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $refId = $xpHelper->getOrderKey();
+        $customerEmail = '';
 
         $billingAddress = $checkoutData->getQuote()->getBillingAddress();
         $shippingAddress = $checkoutData->getQuote()->getShippingAddress();
         $quote = $checkoutData->getQuote();
         $result = array();
         /*initial fee check*/
-        $quoteItem = current($checkoutData->getQuote()->getAllItems());
+        $issetRecurringProduct = $xpHelper->checkIssetRecurringOrder();
+
         $forceTransactionType = ($this->isForceAuth()) ? 'A' : 'S';
         $minimalPayment = false;
-        $cardAuthorizeAmount = 0;
 
+        $quote->collectTotals();
         $totals = $quote->getTotals(); //Total object
 
         $totalCost = 0;
@@ -1494,25 +1509,37 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         $tax = 0;
         $shipping = 0;
         $description = 'Order(i-frame) #' . $refId;
+        $currentProduct = false;
+        $recurringProfile = false;
+        $issetSimpleProducts = $xpHelper->checkIssetSimpleOrder();
 
-        if ($quoteItem && $quoteItem->getProduct()->getIsRecurring()) {
-            $useStartDateParam = Mage::helper("xpaymentsconnector")->checkStartDateData();
-            if ($useStartDateParam["success"]) {
-                $minimalPayment = $useStartDateParam["minimal_payment_amount"];
+        if ($issetRecurringProduct['isset'] && !$issetSimpleProducts) {
+            $currentProduct = $issetRecurringProduct['quote_item']->getProduct();
+            $quoteItem = $quote->getItemByProduct($currentProduct);
+            $useStartDateParams = $xpHelper->checkStartDateDataByProduct($currentProduct,$quoteItem);
+            $recurringProfile = $currentProduct->getRecurringProfile();
+            if ($useStartDateParams[$currentProduct->getId()]['success']) {
+                $minimalPayment = $useStartDateParams[$currentProduct->getId()]['minimal_payment_amount'];
+                $tax = 0;
+                if(!empty($recurringProfile['init_amount'])){
+                    $tax = $issetRecurringProduct['quote_item']->getData('initialfee_tax_amount');
+                }
 
-                $totalCost = $minimalPayment;
-                $description = "Recurring profile subscription.";
-
+                $totalCost = $minimalPayment + $tax;
             } else {
-                $tax = $quoteItem->getData("tax_amount");
-                $shipping = $quoteItem->getData("shipping_amount");
-                $totalCost = $quoteItem->getData("nominal_row_total");
-                $discount = abs($quoteItem->getData("discount_amount"));
+                $initialFeeAmount = $issetRecurringProduct['quote_item']->getData('initialfee_tax_amount');
+                $mainTax = $issetRecurringProduct['quote_item']->getData('tax_amount');
+                $tax = $mainTax + $initialFeeAmount;
+
+                $shipping = $issetRecurringProduct['quote_item']->getData('shipping_amount');
+                $totalCost = $issetRecurringProduct['quote_item']->getData('nominal_row_total');
+                $discount = abs($issetRecurringProduct['quote_item']->getData('discount_amount'));
+
             }
 
         } elseif ($isCardAuthorizePayment) {
 
-            $totalCost = floatval(Mage::getStoreConfig("xpaymentsconnector/settings/xpay_minimum_payment_recurring_amount"));
+            $totalCost = floatval(Mage::getStoreConfig('xpaymentsconnector/settings/xpay_minimum_payment_recurring_amount'));
 
         } else {
 
@@ -1582,10 +1609,10 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $addressIndex = $prefix . 'Address';
             foreach ($addressFields as $field => $fn) {
                 $result[$addressIndex][$field] = $data->getData($fn);
-                if(($field == "firstname" || $field == "lastname") && $isCardAuthorizePayment){
+                if(($field == 'firstname' || $field == 'lastname') && $isCardAuthorizePayment){
                     $result[$addressIndex][$field] = $customer->getData($field);
                 }
-                if(($prefix == "shipping") && $result[$addressIndex][$field]){
+                if(($prefix == 'shipping') && $result[$addressIndex][$field]){
                     $shippingIsEmpty = false;
                 }
 
@@ -1605,28 +1632,50 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         }
 
         if($shippingIsEmpty){
-            $result["shippingAddress"] = $result["billingAddress"];
+            $result['shippingAddress'] = $result['billingAddress'];
         }
 
         $cartItems = $quote->getAllVisibleItems();
 
         // Set products
-        foreach ($cartItems as $item) {
-            $productId = $item->getProductId();
-            $product = Mage::getModel('catalog/product')->load($productId);
-            $price = ($minimalPayment) ? $minimalPayment : $product->getPrice();
-            $quantity = ($minimalPayment) ? 1 :$item->getQty();
-            $result['items'][] = array(
-                'sku'      => $product->getData('sku'),
-                'name'     => $product->getData('name'),
-                'price'    => number_format($price, 2, '.',''),
-                'quantity' => intval($quantity),
-            );
+        if ($issetRecurringProduct['isset'] && !$issetSimpleProducts) {
+            if($currentProduct){
+                $quantity = $issetRecurringProduct['quote_item']->getQty();
+                $recurringPrice = $currentProduct->getPrice();
+                if(!empty($recurringProfile['init_amount'])){
+                    $xpRecurringInitialFee  = $issetRecurringProduct['quote_item']->getXpRecurringInitialFee();
+                    $recurringPrice += $xpRecurringInitialFee/$quantity;
+                }
+
+                $price = ($minimalPayment) ? $minimalPayment/$quantity : $recurringPrice;
+                $result['items'][] = array(
+                    'sku'      => $currentProduct->getData('sku'),
+                    'name'     => $currentProduct->getData('name'),
+                    'price'    => number_format($price, 2, '.',''),
+                    'quantity' => intval($quantity),
+                );
+            }
+        }else{
+            foreach ($cartItems as $item) {
+                if(!$item->getIsNominal()){
+                    $productId = $item->getProductId();
+                    $product = Mage::getModel('catalog/product')->load($productId);
+                    $price = $product->getPrice();
+                    $quantity = $item->getQty();
+
+                    $result['items'][] = array(
+                        'sku'      => $product->getData('sku'),
+                        'name'     => $product->getData('name'),
+                        'price'    => number_format($price, 2, '.',''),
+                        'quantity' => intval($quantity),
+                    );
+                }
+            }
         }
 
         if($isCardAuthorizePayment){
             $result['items'][] = array(
-                'sku'      => "000000",
+                'sku'      => '000000',
                 'name'     => 'Card Authorize',
                 'price'    => number_format($totalCost, 2, '.',''),
                 'quantity' => intval(1),
@@ -1653,32 +1702,29 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
         if (
             $status
-            && in_array($response["payment"]['status'], array(self::AUTH_STATUS, self::CHARGED_STATUS))
+            && in_array($response['payment']['status'], array(self::AUTH_STATUS, self::CHARGED_STATUS))
         ) {
             // TODO - save message - $response['message']
-
             // TODO - process faud status
-            /*
-            if ($response['isFraudStatus']) {
-            }
-            */
-            /**/
-            if ($response["payment"]['amount'] != number_format($order->getGrandTotal(), 2, '.','') && $checkOrderAmount) {
 
+            if ($response['payment']['amount'] != number_format($order->getGrandTotal(), 2, '.','') && $checkOrderAmount) {
+                $order->cancel();
+                $order->save();
                 // Total wrong
                 Mage::log(
                     'Order total amount doesn\'t match: Order total = ' . number_format($order->getGrandTotal(), 2, '.','')
-                    . ', X-Payments amount = ' . $response["payment"]['amount'],
+                    . ', X-Payments amount = ' . $response['payment']['amount'],
                     Zend_Log::ERR
                 );
                 Mage::throwException('Transaction amount doesn\'t match.');
 
-            } elseif ($response["payment"]['currency'] != $this->getCurrency()) {
-
+            } elseif ($response['payment']['currency'] != $this->getCurrency()) {
+                $order->cancel();
+                $order->save();
                 // Currency wrong
                 Mage::log(
                     'Order currency doesn\'t match: Order currency = ' . $this->getCurrency()
-                    . ', X-Payments currency = ' . $response["payment"]['currency'],
+                    . ', X-Payments currency = ' . $response['payment']['currency'],
                     Zend_Log::ERR
                 );
                 Mage::throwException('Transaction currency doesn\'t match.');
@@ -1687,17 +1733,14 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
                 $order->getPayment()->setTransactionId($txnid);
 
-                $currentTransaction = end($response["transactions"]);
-                $order->getPayment()->setLastTransId($currentTransaction["txnid"]);
+                $currentTransaction = end($response['transactions']);
+                $order->getPayment()->setLastTransId($currentTransaction['txnid']);
 
-
-
-
-                if (isset($response["payment"]['advinfo']) && isset($response["payment"]['advinfo']['AVS'])) {
-                    $order->getPayment()->setCcAvsStatus($response["payment"]['advinfo']['AVS']);
+                if (isset($response['payment']['advinfo']) && isset($response['payment']['advinfo']['AVS'])) {
+                    $order->getPayment()->setCcAvsStatus($response['payment']['advinfo']['AVS']);
                 }
 
-                if ($response["payment"]['status'] == self::AUTH_ACTION) {
+                if ($response['payment']['status'] == self::AUTH_ACTION) {
                     $order->setState(
                         Mage_Sales_Model_Order::STATE_PROCESSING,
                         (bool)$order->getPayment()->getMethodInstance()->getConfigData('order_status'),
@@ -1715,10 +1758,10 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
                 $order->save();
                 $order->sendNewOrderEmail();
             }
-            $result["success"] = true;
+            $result['success'] = true;
             return $result;
         }else{
-            Mage::helper("xpaymentsconnector")->unsetXpaymentPrepareOrder();
+            Mage::helper('xpaymentsconnector')->unsetXpaymentPrepareOrder();
             $order->cancel();
             $order->addStatusToHistory(
                 $order::STATE_CANCELED,
@@ -1726,12 +1769,12 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             );
             $order->save();
 
-            $result["success"] = false;
-            if(!empty($response["payment"]["error_message"])){
-                $result["error_message"] = Mage::helper('xpaymentsconnector')->__('%s. The order has been canceled.',$response["payment"]["error_message"]);
+            $result['success'] = false;
+            if(!empty($response['payment']['error_message'])){
+                $result['error_message'] = Mage::helper('xpaymentsconnector')->__('%s. The order has been canceled.',$response['payment']['error_message']);
             }else{
                 $transactionStatusLabel =  $this->getTransactionStatusLabels();
-                $result["error_message"] = Mage::helper('xpaymentsconnector')->__('Transaction status is "%s". The order has been canceled.',$transactionStatusLabel[$response["payment"]['status']]);
+                $result['error_message'] = Mage::helper('xpaymentsconnector')->__('Transaction status is "%s". The order has been canceled.',$transactionStatusLabel[$response['payment']['status']]);
             }
 
             return $result;
@@ -1747,20 +1790,23 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      */
     public function saveUserCard($cardData,$usageType = Cdev_XPaymentsConnector_Model_Usercards::SIMPLE_CARD){
 
-        if(Mage::getSingleton('customer/session')->isLoggedIn()){
-            $customer =  Mage::getSingleton('customer/session')->getCustomer();
+        $customerSession = Mage::getSingleton('customer/session');
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        if($customerSession->isLoggedIn()){
+            $customer =  $customerSession->getCustomer();
             try
             {
-                if (Mage::helper("xpaymentsconnector")->isNeedToSaveUserCard()) {
-                    $usercards = Mage::getModel("xpaymentsconnector/usercards");
+                if ($xpHelper->isNeedToSaveUserCard()) {
+                    $usercards = Mage::getModel('xpaymentsconnector/usercards');
                     $usercards->setData(array(
-                            "user_id" => $customer->getId(),
-                            "txnId" => $cardData['txnId'],
-                            "last_4_cc_num" => $cardData['last_4_cc_num'],
-                            "card_type" => $cardData['card_type'],
-                            "usage_type" => $usageType)
+                            'user_id' => $customer->getId(),
+                            'txnId' => $cardData['txnId'],
+                            'last_4_cc_num' => $cardData['last_4_cc_num'],
+                            'card_type' => $cardData['card_type'],
+                            'usage_type' => $usageType)
                     );
-                   return $usercards->save();
+                    $xpHelper->userCardSaved();
+                    return $usercards->save();
                 }
             }
             catch(Exception $e)
@@ -1772,7 +1818,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
     }
 
     public function authorizedTransactionRequest($action,$data){
-        $data["target"] = "payment";
+        $data['target'] = 'payment';
         list($status, $response) = $this->request('payment', $action, $data);
 
         //****************stop*****************//
@@ -1800,7 +1846,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
 
         $order = $this->getOrder();
         $data = array(
-            'txnId' => $order->getData("xpc_txnid"),
+            'txnId' => $order->getData('xpc_txnid'),
             'amount' => number_format($amount, 2, '.', ''),
         );
 
@@ -1829,7 +1875,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
         $order = $this->getOrder();
         /*processing during capture invoice*/
         $data = array(
-            'txnId' => $order->getData("xpc_txnid"),
+            'txnId' => $order->getData('xpc_txnid'),
             'amount' => number_format($amount, 2, '.', ''),
         );
 
@@ -1857,21 +1903,67 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      */
     public function submitRecurringProfile(Mage_Payment_Model_Recurring_Profile $profile, Mage_Payment_Model_Info $paymentInfo)
     {
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $quote = $profile->getQuote();
+        // registered new user and update profile
+        $xpHelper->addXpDefaultRecurringSettings($profile);
+        // end registered user
+        $xpHelper->setPrepareOrderType();
+
+        //add txnid for all subscriptions
+        $cardData = $xpHelper->getXpaymentResponse();
+
         $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
+
+        if (!$xpHelper->checkIssetSimpleOrder()) {
+            if ($useIframe) {
+                if (is_null($this->_currentProfileId)) {
+                    $payDeferredSubscription = $xpHelper->payDeferredSubscription($profile);
+                    if ($payDeferredSubscription) {
+                        $this->_currentProfileId = $profile->getProfileId();
+                    } else {
+                        $this->createFirstRecurringOrder($profile);
+                    }
+                    if($profile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_CANCELED){
+                        $this->firstTransactionSuccess = false;
+                    };
+                }else{
+                    if (!$this->firstTransactionSuccess) {
+                        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
+                    }
+                }
+                $xpHelper->prepareOrderKeyByRecurringProfile($profile);
+            } else {
+                if (is_null($this->_currentProfileId)) {
+                    $updateSendData = array();
+                    $updateSendData['template'] = 'default';
+                    $xpaymentResponse = $this->sendIframeHandshakeRequest($updateSendData);
+
+                    if (isset($xpaymentResponse['success']) && !$xpaymentResponse['success']) {
+                        $this->firstTransactionSuccess = false;
+                        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
+                    }
+                    $xpHelper->updateRecurringMasKeys($profile);
+                    $this->_currentProfileId = $profile->getProfileId();
+                } else {
+                    if (!$this->firstTransactionSuccess) {
+                        $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
+                    }
+                }
+            }
+        }
+
         if($useIframe){
-            $payDeferredSubscription = Mage::helper("xpaymentsconnector")->payDeferredSubscription($profile);
-            if(!$payDeferredSubscription){
-                $this->createFirstRecurringOrder($profile);
+            $profile->setReferenceId($cardData['txnId']);
+            if (is_null($this->_currentProfileId) && $xpHelper->checkIssetSimpleOrder()) {
+                //save user card
+                Mage::getSingleton('checkout/session')->setData('user_card_save', true);
+                $this->saveUserCard($cardData, $usageType = Cdev_XPaymentsConnector_Model_Usercards::RECURRING_CARD);
             }
-
-        }else{
-            $updateSendData = array();
-            $updateSendData['template'] = 'default';
-            $xpaymentResponse = $this->sendIframeHandshakeRequest($updateSendData);
-
-            if(isset($xpaymentResponse["success"]) && !$xpaymentResponse["success"]){
-                $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
-            }
+            $this->_currentProfileId = $profile->getProfileId();
+        }else {
+            $orderItemInfo = $profile->getData('order_item_info');
+            $quote->getItemById($orderItemInfo['item_id'])->isDeleted(true);
         }
 
     }
@@ -1919,10 +2011,10 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      */
     public function getTransactionStatusLabels(){
         $statuses = array(
-            self::NEW_STATUS => "New",
-            self::AUTH_STATUS => "Authorized",
-            self::DECLINED_STATUS => "Declined",
-            self::CHARGED_STATUS => "Charged",
+            self::NEW_STATUS => 'New',
+            self::AUTH_STATUS => 'Authorized',
+            self::DECLINED_STATUS => 'Declined',
+            self::CHARGED_STATUS => 'Charged',
         );
         return $statuses;
     }
@@ -1931,20 +2023,32 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
      *
      * @param Mage_Payment_Model_Recurring_Profile $profile
      */
-    public function createFirstRecurringOrder(Mage_Payment_Model_Recurring_Profile $profile){
-        $cardData = Mage::helper("xpaymentsconnector")->getXpaymentResponse();
-        $orderId = Mage::helper("xpaymentsconnector")->createOrder($profile,$isFirstRecurringOrder = true);
+    public function createFirstRecurringOrder(Mage_Payment_Model_Recurring_Profile $profile)
+    {
+        $xpHelper = Mage::helper('xpaymentsconnector');
+        $cardData = $xpHelper->getXpaymentResponse();
+        $orderId = $xpHelper->createOrder($profile, $isFirstRecurringOrder = true);
 
         /*update order by card data*/
-        $order =  Mage::getModel('sales/order')->load($orderId);
-        $order->setData("xp_card_data", serialize($cardData));
+        $order = Mage::getModel('sales/order')->load($orderId);
+        $order->setData('xp_card_data', serialize($cardData));
         $order->save();
+        $orderItemInfo = $profile->getData('order_item_info');
 
-        $profile->setReferenceId($cardData["txnId"]);
-        $result = $this->updateOrderByXpaymentResponse($orderId, $cardData["txnId"]);
+        $profile->setReferenceId($cardData['txnId']);
+        if (is_null($this->_currentProfileId)) {
+            $result = $this->updateOrderByXpaymentResponse($orderId, $cardData['txnId']);
+        } else {
+            $grandTotal = $orderItemInfo['nominal_row_total'];
+            $response = $this->sendAgainTransactionRequest($orderId, NULL, $grandTotal, $cardData);
 
-        if (!$result["success"]) {
-            Mage::getSingleton("checkout/session")->addError($result["error_message"]);
+            if ($response['success']) {
+                $result = $this->updateOrderByXpaymentResponse($orderId, $response['response']['transaction_id']);
+            }
+        }
+
+        if (!$result['success']) {
+            Mage::getSingleton('checkout/session')->addError($result['error_message']);
             $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_CANCELED);
         } else {
             $profile->setState(Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE);
@@ -1952,12 +2056,18 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
             $newTransactionDate = new Zend_Date(time());
             $profile->setXpSuccessTransactionDate($newTransactionDate->toString(Varien_Date::DATETIME_INTERNAL_FORMAT));
             $profile->setXpCountSuccessTransaction(1);
-            //save user card
-            Mage::getSingleton("checkout/session")->setData("user_card_save",true);
-            $this->saveUserCard($cardData,$usageType = Cdev_XPaymentsConnector_Model_Usercards::RECURRING_CARD);
+            if (is_null($this->_currentProfileId)) {
+                //save user card
+                Mage::getSingleton('checkout/session')->setData('user_card_save', true);
+                $this->saveUserCard($cardData, $usageType = Cdev_XPaymentsConnector_Model_Usercards::RECURRING_CARD);
+            }
 
         }
+
+        $this->_currentProfileId = $profile->getProfileId();
+
         return $profile;
+
     }
 
 }

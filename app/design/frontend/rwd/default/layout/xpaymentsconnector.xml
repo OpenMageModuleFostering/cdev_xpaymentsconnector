@@ -52,6 +52,8 @@
         <reference name="checkout.onepage.review.info.items.after">
             <block type="xpaymentsconnector/checkout_onepage_settings" name="xpayment_settings" output="toHtml"
                    template="xpaymentsconnector/checkout/onepage/xpayment-iframe.phtml"/>
+            <block type="xpaymentsconnector/checkout_onepage_orderdetail" name="xpayment_recurring_detail" output="toHtml"
+                   template="xpaymentsconnector/checkout/onepage/order-detail.phtml"/>
         </reference>
         <reference name="checkout.onepage.review.button">
             <action method="setTemplate">

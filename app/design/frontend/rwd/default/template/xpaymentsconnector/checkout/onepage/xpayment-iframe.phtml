@@ -28,23 +28,24 @@
 ?>
 
 <?php
+$xpHelper = Mage::helper("xpaymentsconnector");
 $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
-$isRecuringProduct = Mage::helper("xpaymentsconnector")->checkIsRecurringOrder();
+$isRecuringProduct = $xpHelper->checkIssetRecurringOrder();
 $IsSaveCardsPaymentActive = (bool)Mage::getStoreConfig('payment/savedcards/active');
 $displayOnPaymentStep = (bool)(Mage::getStoreConfig('payment/xpayments/placedisplay') == "review");
 ?>
 
 <?php if($this->isXpaymentMethod() && $useIframe && $displayOnPaymentStep):?>
     <?php
-    $iFrameUrl  = Mage::helper("xpaymentsconnector")->getIframeUrl();
-    $isNeedToSaveUserCard = Mage::helper("xpaymentsconnector")->isNeedToSaveUserCard();
-    $customerRegistered = Mage::helper("xpaymentsconnector")->isRegisteredUser();
+    $iFrameUrl  = $xpHelper->getIframeUrl();
+    $isNeedToSaveUserCard = $xpHelper->isNeedToSaveUserCard();
+    $customerRegistered = $xpHelper->isRegisteredUser();
     ?>
     <div id="xpayment-iframe-block">
       <iframe id="xp-iframe" class="xp-iframe" data-src="<?php echo $iFrameUrl;?>" src="<?php echo $iFrameUrl;?>" name="xp-iframe">
       </iframe>
        <?php if($customerRegistered):?>
-           <?php if(!$isRecuringProduct): ?>
+           <?php if(!$isRecuringProduct["isset"]): ?>
                <?php if ($IsSaveCardsPaymentActive): ?>
                     <span id="iframe-save-card-switcher" >
                                 <input type="checkbox" <?php echo ($isNeedToSaveUserCard)?"checked":"";?> title="<?php echo $this->__("Use this credit card"); ?>" class="checkbox x-payment-card " id="iframe_savecard" name="iframe_savecard" value="1" />

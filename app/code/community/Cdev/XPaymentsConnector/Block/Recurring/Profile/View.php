@@ -40,6 +40,15 @@ class Cdev_XPaymentsConnector_Block_Recurring_Profile_View extends Mage_Sales_Bl
                 'is_amount' => true,
             ));
         }
+        $initialFeeTaxAmount = $orderItemInfo["initialfee_tax_amount"];
+        if($initialFeeTaxAmount){
+            $initialFeeTaxNominalModel = Mage::getModel("xpaymentsconnector/quote_address_total_nominal_recurring_initialfee_tax");
+            $this->_addInfo(array(
+                'label' => $initialFeeTaxNominalModel->getLabel(),
+                'value' => Mage::helper('core')->formatCurrency($initialFeeTaxAmount, false),
+                'is_amount' => true,
+            ));
+        }
     }
 
 }

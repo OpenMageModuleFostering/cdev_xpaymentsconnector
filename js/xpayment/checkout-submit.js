@@ -67,7 +67,9 @@ function submitXpaymentIframe(iframeCheckUrl) {
 
 function receiveMessage(event)
 {
-    jQuery("#opc-payment .step-title").click();
+    if(jQuery("#opc-payment #xp-iframe").length){
+        jQuery("#opc-payment .step-title").click();
+    }
     jQuery("#review-buttons-container .btn-checkout").show();
     jQuery("#review-please-wait").hide();
 }

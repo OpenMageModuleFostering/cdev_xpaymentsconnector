@@ -55,7 +55,12 @@ class Cdev_XPaymentsConnector_Model_Quote_Address_Total_Nominal extends Mage_Sal
                     $totals[] = $itemRowTotal;
                     if ($model->getCode() == "recurring_discount") {
                         $rowTotal -= $itemRowTotal;
-                        $baseRowTotal -= $model->getItemBaseRowTotal($item);
+                        $baseRowTotal -= $itemRowTotal;
+                    }elseif (($model->getCode() == "recurring_initial_fee" ) &&
+                              !is_null($item->getXpRecurringInitialFee())
+                    ) {
+                        $rowTotal += $item->getXpRecurringInitialFee();
+                        $baseRowTotal += $item->getXpRecurringInitialFee();
                     } else {
                         $rowTotal += $itemRowTotal;
                         $baseRowTotal += $model->getItemBaseRowTotal($item);
@@ -67,6 +72,10 @@ class Cdev_XPaymentsConnector_Model_Quote_Address_Total_Nominal extends Mage_Sal
                 if ((float)$itemRowTotal > 0 && $label = $model->getLabel()) {
                     if ($model->getCode() == "recurring_discount") {
                         $itemRowTotal = -$itemRowTotal;
+                    }elseif ($model->getCode() == "recurring_initial_fee") {
+                        if(!is_null($item->getXpRecurringInitialFee())){
+                            $itemRowTotal = $item->getXpRecurringInitialFee();
+                        }
                     }
                     $totalDetails[] = new Varien_Object(array(
                         'label' => $label,

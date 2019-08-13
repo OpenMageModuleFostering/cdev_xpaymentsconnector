@@ -454,3 +454,11 @@ iframe .buttonRow {
 }
 
 /*end(xp transaction form)*/
+
+#recurring-detail-block ul {
+    list-style-type:disc;
+}
+
+#recurring-detail-block li {
+    margin-left: 15px;
+}
