@@ -31,15 +31,15 @@
 class Cdev_XPaymentsConnector_Model_Payment_Recurring_Profile extends  Mage_Payment_Model_Recurring_Profile
 {
 
-    public function exportScheduleInfo()
+    public function exportScheduleInfo($quoteItem = null)
     {
         $result = array(
             new Varien_Object(array(
                 'title'    => Mage::helper('payment')->__('Billing Period'),
-                'schedule' => $this->_renderSchedule('period_unit', 'period_frequency', 'period_max_cycles',"init_amount"),
+                'schedule' => $this->_renderSchedule('period_unit', 'period_frequency', 'period_max_cycles', "init_amount", $quoteItem),
             ))
         );
-        $trial = $this->_renderSchedule('trial_period_unit', 'trial_period_frequency', 'trial_period_max_cycles');
+        $trial = $this->_renderSchedule('trial_period_unit', 'trial_period_frequency', 'trial_period_max_cycles', $initKey = null, $quoteItem);
         if ($trial) {
             $result[] = new Varien_Object(array(
                 'title'    => Mage::helper('payment')->__('Trial Period'),
@@ -49,7 +49,7 @@ class Cdev_XPaymentsConnector_Model_Payment_Recurring_Profile extends  Mage_Paym
         return $result;
     }
 
-    protected function _renderSchedule($periodKey, $frequencyKey, $cyclesKey,$initKey = null)
+    protected function _renderSchedule($periodKey, $frequencyKey, $cyclesKey,$initKey = null, $quoteItem = null)
     {
         $result = array();
 
@@ -73,6 +73,12 @@ class Cdev_XPaymentsConnector_Model_Payment_Recurring_Profile extends  Mage_Paym
         }
         $init = $this->_getData($initKey);
         if($init){
+            $qty = Mage::app()->getRequest()->getParam('qty');
+            if (!is_null($quoteItem)) {
+                $init = $init * $quoteItem->getQty();
+            } elseif ($qty) {
+                $init = $init * $qty;
+            }
             $result[] = Mage::helper('xpaymentsconnector')->__('Initial Fee %s.', Mage::helper('core')->currency($init,true,false));
         }
 

@@ -23,13 +23,34 @@
  * "Prepaid Payments (X-Payments)" info block
  */
 
-class Cdev_XPaymentsConnector_Block_Info_Prepaidpayments extends  Mage_Payment_Block_Info
+class Cdev_XPaymentsConnector_Block_Info_Prepaidpayments extends Mage_Payment_Block_Info
 {
 
     protected function _construct()
     {
         parent::_construct();
         $this->setTemplate('xpaymentsconnector/info/prepaidpayments.phtml');
+    }
+
+    /**
+     * @return array
+     */
+    public function getCardData()
+    {
+        $admSession = Mage::getSingleton('adminhtml/session');
+        $xpPrepaidPaymentsCard = $admSession->getData('xp_prepaid_payments');
+        $cardData = Mage::getModel('xpaymentsconnector/usercards')->load($xpPrepaidPaymentsCard)->getData();
+
+        return $cardData;
+    }
+
+    /**
+     * @return array
+     */
+    public function getOrderCardData($orderId)
+    {
+        $orderCardData = unserialize(Mage::getModel('sales/order')->load($orderId)->getData("xp_card_data"));
+        return $orderCardData;
     }
 }
 

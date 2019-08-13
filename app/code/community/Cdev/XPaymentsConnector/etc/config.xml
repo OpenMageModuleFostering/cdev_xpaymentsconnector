@@ -420,13 +420,14 @@
                 <allowspecific>0</allowspecific>
                 <title>Use saved payment cards (X-Payments)</title>
             </savedcards>
-            <prepaidpayments>
+            <!-- @TODO: need process 'charge response' from 'x-payment server'  -->
+            <!--<prepaidpayments>
                 <active>0</active>
                 <model>xpaymentsconnector/payment_prepaidpayments</model>
                 <order_status>1</order_status>
                 <allowspecific>0</allowspecific>
                 <title>Prepaid Payments (X-Payments)</title>
-            </prepaidpayments>
+            </prepaidpayments>-->
 		</payment>
 		<xpaymentsconnector>
 			<settings>

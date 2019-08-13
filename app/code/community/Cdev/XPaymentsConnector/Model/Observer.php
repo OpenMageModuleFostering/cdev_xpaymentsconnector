@@ -486,7 +486,46 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
         //set recurring product discount
         Mage::helper('xpaymentsconnector')->setRecurringProductDiscount();
-        //$xpHelper->updateAllRecurringQuoteItem();
+
+        // update InitAmount for recurring products
+        $cart = $observer->getCart('quote');
+        foreach ($cart->getAllVisibleItems() as $item){
+            $product = $item->getProduct();
+            if ((bool)$product->getIsRecurring()) {
+                $profile = Mage::getModel('payment/recurring_profile')
+                    ->setLocale(Mage::app()->getLocale())
+                    ->setStore(Mage::app()->getStore())
+                    ->importProduct($product);
+                if($profile->getInitAmount()){
+                    // duplicate as 'additional_options' to render with the product statically
+                    $infoOptions = array(array(
+                        'label' => $profile->getFieldLabel('start_datetime'),
+                        'value' => $profile->exportStartDatetime(true),
+                    ));
+
+                    foreach ($profile->exportScheduleInfo($item) as $info) {
+                        $infoOptions[] = array(
+                            'label' => $info->getTitle(),
+                            'value' => $info->getSchedule(),
+                        );
+                    }
+
+                    $itemOptionModel = Mage::getModel('sales/quote_item_option')
+                        ->getCollection()
+                        ->addItemFilter($item->getId())
+                        ->addFieldToFilter('code','additional_options')
+                        ->addFieldToFilter('product_id',$product->getId())
+                        ->getFirstItem();
+
+                    $itemOptionModel->setValue(serialize($infoOptions));
+                    $itemOptionModel->save();
+                }
+            }
+
+
+        }
+        //
+
     }
 
     /**

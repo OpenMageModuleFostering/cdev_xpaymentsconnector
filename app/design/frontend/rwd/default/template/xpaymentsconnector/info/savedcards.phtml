@@ -25,11 +25,8 @@
  */
 ?>
 <?php
-$admSession = Mage::getSingleton('adminhtml/session');
-$adminhtmlPaymentCardNumber = $admSession->getData("xp_payment_card");
-$quote = Mage::getSingleton('checkout/session')->getQuote();
-$paymentCardNumber = $quote->getPayment()->getData("xp_payment_card");
-$cardData = Mage::getModel("xpaymentsconnector/usercards")->load($paymentCardNumber)->getData();
+$adminhtmlPaymentCardNumber = $this->getAdminXpPaymentCard();
+$cardData = $this->getCardData();
 ?>
 <?php echo $this->getMethod()->getTitle(); ?>
 <br />
@@ -37,13 +34,13 @@ $cardData = Mage::getModel("xpaymentsconnector/usercards")->load($paymentCardNum
     <span id="x-payment-card-info">
         <?php echo $this->__("For current order we used your payment card (**%s)",$cardData['last_4_cc_num']); ?>
     </span>
-<?php elseif ($orderId = $this->getRequest()->getParam("order_id")): ?>
-    <?php $orderCardData = unserialize(Mage::getModel('sales/order')->load($orderId)->getData("xp_card_data")); ?>
+<?php elseif ($orderId = $this->getRequest()->getParam('order_id')): ?>
+    <?php $orderCardData = $this->getOrderCardData($orderId); ?>
     <span id="x-payment-card-info">
         <?php echo $this->__("For current order we used your payment card (**%s)",$orderCardData['last_4_cc_num']); ?>
     </span>
 <?php elseif ($adminhtmlPaymentCardNumber): ?>
-    <?php $cardData = Mage::getModel("xpaymentsconnector/usercards")->load($adminhtmlPaymentCardNumber)->getData(); ?>
+    <?php $cardData = $this->getCardData($adminhtmlPaymentCardNumber); ?>
     <?php if(!empty($cardData)): ?>
         <span id="x-payment-card-info">
             <?php echo $this->__("For current order we used your payment card (**%s)",$cardData['last_4_cc_num']); ?>

@@ -436,10 +436,6 @@ iframe .buttonRow {
     padding-right: 25px;
 }
 
-#new-card-block #xpayment-iframe-block #xp-iframe{
-    height: 260px;
-}
-
 /* xp transaction form */
 .xp_fast_transactions input {
     max-width: 170px;

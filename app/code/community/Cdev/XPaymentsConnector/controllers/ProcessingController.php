@@ -55,8 +55,8 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
      * @see    ____func_see____
      * @since  1.0.0
      */
-    public function callbackAction(){
-
+    public function callbackAction()
+    {
         // Check request type
 
         if (!$this->getRequest()->isPost()) {
@@ -68,6 +68,8 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             '/^.+$/Ss',
             explode(',', Mage::getStoreConfig('xpaymentsconnector/settings/xpay_allowed_ip_addresses'))
         );
+        $api = Mage::getModel('xpaymentsconnector/payment_cc');
+
         if ($ips) {
             $helper = Mage::helper('core/http');
             if (method_exists($helper, 'getRemoteAddr')) {
@@ -79,7 +81,7 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
             }
 
             if (!in_array($remoteAddr, $ips)) {
-                Mage::throwException('IP can\'t be validated as X-Payments server IP.');
+                $api->getApiError('IP can\'t be validated as X-Payments server IP.');
             }
         }
 
@@ -98,12 +100,15 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
         }
 
         // add request to log
-        $api = Mage::getModel('xpaymentsconnector/payment_cc');
-        if ($request['updateData']){
+        if ($request['updateData']) {
             $request['updateData'] = $api->decryptXML($request['updateData']);
         }
 
-        $api->getAPIError(serialize($request));
+        Mage::log(sprintf('X-Payment server response: %s', serialize($request)),
+            null,
+            $xpaymentsHelper::XPAYMENTS_LOG_FILE,
+            true);
+
 
         // Check order
         $order = Mage::getModel('sales/order')->loadByAttribute('xpc_txnid', $request['txnId']);
@@ -133,45 +138,50 @@ class Cdev_XPaymentsConnector_ProcessingController extends Mage_Core_Controller_
                 $order->save();
             }
 
-        } elseif (isset($request['updateData']['parentId'])) {
-
-            $userCardModel = Mage::getModel('xpaymentsconnector/usercards');
-            $userCardCollection = $userCardModel
-                ->getCollection()
-                ->addFieldToSelect('user_id')
-                ->addFieldToSelect('last_4_cc_num')
-                ->addFieldToSelect('card_type')
-                ->addFilter('txnId', $request['updateData']['parentId']);
-            if ($userCardCollection->getSize()) {
-                $newPrepaidCard = $userCardCollection->getFirstItem()->getData();
-                $newPrepaidCard['txnId'] = $request['txnId'];
-                $newPrepaidCard['usage_type'] = Cdev_XPaymentsConnector_Model_Usercards::BALANCE_CARD;
-                $newPrepaidCard['amount'] = $request['updateData']['amount'];
-                $userCardModel->setData($newPrepaidCard);
-                $userCardModel->save();
-            } else {
-                $order = Mage::getModel('sales/order')->loadByAttribute('xpc_txnid', $request['updateData']['parentId']);
-                if ($order->getId()) {
-                    $newPrepaidCard = array();
-                    $newPrepaidCard['user_id'] = $order->getData('customer_id');
-                    $newPrepaidCard['txnId'] = $request['txnId'];
-                    $newPrepaidCard['usage_type'] = Cdev_XPaymentsConnector_Model_Usercards::BALANCE_CARD;
-                    $newPrepaidCard['amount'] = $request['updateData']['amount'];
-
-                    $parentXpaymentResponseData = unserialize($order->getData('xp_card_data'));
-                    $newPrepaidCard['last_4_cc_num'] = $parentXpaymentResponseData['last_4_cc_num'];
-                    $newPrepaidCard['card_type'] = $parentXpaymentResponseData['card_type'];
-
-                    $userCardModel->setData($newPrepaidCard);
-                    $userCardModel->save();
-                } else {
-
-                    $errorMessage = "Unable to create 'prepaid cart' because there is no corresponding order with the number of tokens -".$request['txnId'];
-                    $api->getAPIError($errorMessage);
-
-                }
-            }
         }
+
+        //TODO: need process 'charge response' from 'x-payment server'
+        /*
+            elseif (isset($request['updateData']['parentId'])) {
+
+               $userCardModel = Mage::getModel('xpaymentsconnector/usercards');
+               $userCardCollection = $userCardModel
+                   ->getCollection()
+                   ->addFieldToSelect('user_id')
+                   ->addFieldToSelect('last_4_cc_num')
+                   ->addFieldToSelect('card_type')
+                   ->addFilter('txnId', $request['updateData']['parentId']);
+               if ($userCardCollection->getSize()) {
+                   $newPrepaidCard = $userCardCollection->getFirstItem()->getData();
+                   $newPrepaidCard['txnId'] = $request['txnId'];
+                   $newPrepaidCard['usage_type'] = Cdev_XPaymentsConnector_Model_Usercards::BALANCE_CARD;
+                   $newPrepaidCard['amount'] = $request['updateData']['amount'];
+                   $userCardModel->setData($newPrepaidCard);
+                   $userCardModel->save();
+               } else {
+                   $order = Mage::getModel('sales/order')->loadByAttribute('xpc_txnid', $request['updateData']['parentId']);
+                   if ($order->getId()) {
+                       $newPrepaidCard = array();
+                       $newPrepaidCard['user_id'] = $order->getData('customer_id');
+                       $newPrepaidCard['txnId'] = $request['txnId'];
+                       $newPrepaidCard['usage_type'] = Cdev_XPaymentsConnector_Model_Usercards::BALANCE_CARD;
+                       $newPrepaidCard['amount'] = $request['updateData']['amount'];
+
+                       $parentXpaymentResponseData = unserialize($order->getData('xp_card_data'));
+                       $newPrepaidCard['last_4_cc_num'] = $parentXpaymentResponseData['last_4_cc_num'];
+                       $newPrepaidCard['card_type'] = $parentXpaymentResponseData['card_type'];
+
+                       $userCardModel->setData($newPrepaidCard);
+                       $userCardModel->save();
+                   } else {
+
+                       $errorMessage = "Unable to create 'prepaid cart' because there is no corresponding order with the number of tokens -".$request['txnId'];
+                       $api->getAPIError($errorMessage);
+
+                   }
+               }
+           }
+       */
         exit(0);
     }
 

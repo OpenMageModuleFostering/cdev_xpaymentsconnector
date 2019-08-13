@@ -643,9 +643,10 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
                             $card = Mage::getModel('xpaymentsconnector/usercards')->load($paymentCardNumber);
                             $cardData = $card->getData();
                             $this->resendPayDeferredRecurringTransaction($recurringProfile, $orderAmountData, $cardData);
+                        } else {
+                            $recurringProfile->activate();
                         }
                         $this->payDeferredProfileId = $recurringProfile->getProfileId();
-                        $recurringProfile->activate();
 
                         return true;
                         break;

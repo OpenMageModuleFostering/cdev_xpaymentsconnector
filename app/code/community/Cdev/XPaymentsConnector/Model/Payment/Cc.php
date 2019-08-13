@@ -903,17 +903,29 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
     protected function isForceAuth()
     {
         $xpHelper = Mage::helper('xpaymentsconnector');
-        $isRecurrnigProduct = $xpHelper->checkIssetRecurringOrder();
-        if ($isRecurrnigProduct['isset']) {
-            $useStartDateParam = $xpHelper->checkStartDateData();
-            if ($useStartDateParam['total_min_amount']) {
-                $useInitialFeeAuthorize = Mage::getStoreConfig('payment/xpayments/use_initialfee_authorize');
-                return (bool)$useInitialFeeAuthorize;
-            }
+        $isRecurringProduct = $xpHelper->checkIssetRecurringOrder();
+
+        $request = Mage::app()->getRequest()->getActionName();
+        if($request == 'cardadd'){
+            return true;
+        };
+
+        if ($xpHelper->checkIssetSimpleOrder()) {
+            $useAuthorize = Mage::getStoreConfig('payment/xpayments/use_authorize');
+            return (bool)$useAuthorize;
         }
 
-        $useAuthorize = Mage::getStoreConfig('payment/xpayments/use_authorize');
-        return (bool)$useAuthorize;
+        if ($isRecurringProduct['isset']) {
+            $currentProduct = $isRecurringProduct['quote_item']->getProduct();
+            $checkQuoteItemResult = $xpHelper->checkStartDateDataByProduct($currentProduct,$isRecurringProduct['quote_item']);
+            if ($checkQuoteItemResult[$currentProduct->getId()]['success']) {
+                if (!$isRecurringProduct['quote_item']->getXpRecurringInitialFee()) {
+                    return true;
+                }
+            }
+            $useInitialFeeAuthorize = Mage::getStoreConfig('payment/xpayments/use_initialfee_authorize');
+            return (bool)$useInitialFeeAuthorize;
+        }
     }
 
     /**
@@ -1358,6 +1370,8 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
     public function sendIframeHandshakeRequest($updateSendData = array(),$isCardAuthorizePayment = false)
     {
         $xPaymentDataResponse = array();
+        $xPaymentDataResponse['success'] = true;
+
         $checkoutData = Mage::getSingleton('checkout/session');
         $xpHelper = Mage::helper('xpaymentsconnector');
         $refId = $xpHelper->getOrderKey();
@@ -1792,7 +1806,12 @@ class Cdev_XPaymentsConnector_Model_Payment_Cc extends Mage_Payment_Model_Method
                     $order->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
                 }
                 $order->save();
-                $order->sendNewOrderEmail();
+                if(method_exists($order,'sendNewOrderEmail')){
+                    $order->sendNewOrderEmail();
+                }elseif(method_exists($order,'queueNewOrderEmail')){
+                    $order->queueNewOrderEmail();
+                }
+
             }
             $result['success'] = true;
             return $result;

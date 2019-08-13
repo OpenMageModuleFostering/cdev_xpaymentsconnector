@@ -101,4 +101,12 @@ class Cdev_XPaymentsConnector_Block_Customer_Usercards extends Mage_Core_Block_T
         return $this->getUrl('xpaymentsconnector/customer/cardadd');
     }
 
+    /**
+     * @return array
+     */
+    public function getCardsUsageOptions(){
+        $cardUsageOptions = Mage::getModel("xpaymentsconnector/usercards")->getCardsUsageOptions();
+        return $cardUsageOptions;
+    }
+
 }

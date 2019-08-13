@@ -25,14 +25,14 @@
  */
 ?>
 <?php $_items = $this->getItems(); ?>
-<?php $cardUsageOptions = Mage::getModel("xpaymentsconnector/usercards")->getCardsUsageOptions();?>
+<?php $cardUsageOptions = $this->getCardsUsageOptions();?>
 <div class="page-title">
-    <h1><?php echo Mage::helper('xpaymentsconnector')->__('Edit payment cards list (X-Payments)') ?></h1>
+    <h1><?php echo $this->__('Edit payment cards list (X-Payments)') ?></h1>
 </div>
 <?php echo $this->getMessagesBlock()->getGroupedHtml() ?>
 <?php echo $this->getChildHtml('pager'); ?>
 <form  id="credit-card-list-form" method="post" action="<?php echo Mage::getUrl("xpaymentsconnector/customer/usercards");?>">
-<?php if(count($_items)): ?>
+    <?php if(count($_items)): ?>
         <table class="data-table" id="my-credit-cards-table">
             <col width="1" />
             <col width="1" />
@@ -42,12 +42,12 @@
             <thead>
             <tr>
                 <th><a id="select-all-cards" href="#" onclick="addRelatedCard(event)">Select all</a>
-                     /
+                    /
                     <a id="unselect-all-cards" href="#" onclick="removeRelatedCard(event)">Unselect all</a></th>
-                <th><?php echo Mage::helper('xpaymentsconnector')->__('Card id #') ?></th>
-                <th><?php echo Mage::helper('xpaymentsconnector')->__('Card number') ?></th>
-                <th><?php echo Mage::helper('xpaymentsconnector')->__('Card type') ?></th>
-                <th><?php echo Mage::helper('xpaymentsconnector')->__('Usage card type'); ?></th>
+                <th><?php echo $this->__('Card id #') ?></th>
+                <th><?php echo $this->__('Card number') ?></th>
+                <th><?php echo $this->__('Card type') ?></th>
+                <th><?php echo $this->__('Usage card type'); ?></th>
             </tr>
             </thead>
             <tbody>
@@ -65,18 +65,18 @@
         </table>
         <input type="hidden" name="action" value="remove">
 
-    <script type="text/javascript">decorateTable('my-credit-cards-table')</script>
-<?php else: ?>
-    <p><?php echo Mage::helper('xpaymentsconnector')->__('You have no saved credit cards yet.'); ?></p>
-<?php endif; ?>
-<?php echo $this->getChildHtml('pager'); ?>
-<div class="buttons-set">
-    <p class="back-link"><a href="<?php echo $this->escapeUrl($this->getBackUrl()) ?>"><small>&laquo; </small><?php echo $this->__('Back') ?></a></p>
-    <?php  if(count($_items)):  ?>
-        <button class="button" title="Save" type="submit"><span><span>Remove</span></span></button>
+        <script type="text/javascript">decorateTable('my-credit-cards-table')</script>
+    <?php else: ?>
+        <p><?php echo $this->__('You have no saved credit cards yet.'); ?></p>
     <?php endif; ?>
-    <button onclick="window.location='<?php echo $this->getAddCardUrl();?>'" class="button" title="Add new card" type="button"><span><span>Add new card</span></span></button>
-</div>
+    <?php echo $this->getChildHtml('pager'); ?>
+    <div class="buttons-set">
+        <p class="back-link"><a href="<?php echo $this->escapeUrl($this->getBackUrl()) ?>"><small>&laquo; </small><?php echo $this->__('Back') ?></a></p>
+        <?php  if(count($_items)):  ?>
+            <button class="button" title="Save" type="submit"><span><span>Remove</span></span></button>
+        <?php endif; ?>
+        <button onclick="window.location='<?php echo $this->getAddCardUrl();?>'" class="button" title="Add new card" type="button"><span><span>Add new card</span></span></button>
+    </div>
 </form>
 
 <script type="text/javascript">

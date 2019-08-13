@@ -25,9 +25,7 @@
  */
 ?>
 <?php
-$admSession = Mage::getSingleton('adminhtml/session');
-$xpPrepaidPaymentsCard = $admSession->getData("xp_prepaid_payments");
-$cardData = Mage::getModel("xpaymentsconnector/usercards")->load($xpPrepaidPaymentsCard)->getData();
+$cardData = $this->getCardData()
 ?>
 <?php echo $this->getMethod()->getTitle(); ?>
 <br />
@@ -36,7 +34,7 @@ $cardData = Mage::getModel("xpaymentsconnector/usercards")->load($xpPrepaidPayme
         <?php echo $this->__("For current order we charged funds from your payment card (**%s)",$cardData['last_4_cc_num']); ?>
     </span>
 <?php elseif ($orderId = $this->getRequest()->getParam("order_id")): ?>
-    <?php $orderCardData = unserialize(Mage::getModel('sales/order')->load($orderId)->getData("xp_card_data")); ?>
+    <?php $orderCardData = $this->getOrderCardData($orderId); ?>
     <span id="x-payment-prepaid-card-info">
         <?php echo $this->__("For current order we charged funds from your payment card (**%s)",$orderCardData['last_4_cc_num']); ?>
     </span>

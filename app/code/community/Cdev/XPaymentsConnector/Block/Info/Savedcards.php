@@ -31,4 +31,34 @@ class Cdev_XPaymentsConnector_Block_Info_Savedcards extends Mage_Payment_Block_I
         $this->setTemplate('xpaymentsconnector/info/savedcards.phtml');
     }
 
+    public function getAdminXpPaymentCard()
+    {
+        $admSession = Mage::getSingleton('adminhtml/session');
+        $adminhtmlPaymentCardNumber = $admSession->getData('xp_payment_card');
+
+        return $adminhtmlPaymentCardNumber;
+    }
+
+    public function getCardData($adminhtmlPaymentCardNumber = NULL)
+    {
+        $cardData = array();
+        $xpUserCardsModel = Mage::getModel('xpaymentsconnector/usercards');
+        if (is_null($adminhtmlPaymentCardNumber)) {
+            $quote = Mage::getSingleton('checkout/session')->getQuote();
+            $paymentCardNumber = $quote->getPayment()->getData('xp_payment_card');
+            $cardData = $xpUserCardsModel->load($paymentCardNumber)->getData();
+        } else {
+            $cardData = $xpUserCardsModel->load($adminhtmlPaymentCardNumber)->getData();
+        }
+
+        return $cardData;
+    }
+
+    public function getOrderCardData($orderId)
+    {
+        $orderCardData = unserialize(Mage::getModel('sales/order')->load($orderId)->getData('xp_card_data'));
+
+        return$orderCardData;
+    }
+
 }
