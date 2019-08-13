@@ -1,4 +1,6 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
+
 /**
  * Magento
  *
@@ -12,10 +14,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -25,45 +27,25 @@
 
 class Cdev_XPaymentsConnector_Block_Form_Cc extends Mage_Payment_Block_Form
 {
-
+    /**
+     * Constructor
+     *
+     * @return void
+     */
     protected function _construct()
     {
         parent::_construct();
         $this->setTemplate('xpaymentsconnector/form/cc.phtml');
     }
 
-    public function getIframeUrl()
+    /**
+     * Display iframe on the paymment step (before review) or not
+     *
+     * @return bool
+     */
+    protected function isVisible()
     {
-
-        $quotePayment = Mage::getSingleton('checkout/session')->getQuote()->getPayment();
-        $isPaymentPlaceDisplayFlag = Mage::helper('xpaymentsconnector')->isIframePaymentPlaceDisplay();
-        $methods = Mage::helper('xpaymentsconnector')->getAllowedPaymentsMethods();
-        if ($quotePayment->getMethod()) {
-            $currentPaymentMethodCode = $quotePayment->getMethodInstance()->getCode();
-            $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
-            if ($isPaymentPlaceDisplayFlag) {
-                if ($currentPaymentMethodCode == $xpaymentPaymentCode) {
-                    $unsetParams = array('token');
-                    Mage::helper('xpaymentsconnector')->unsetXpaymentPrepareOrder($unsetParams);
-                    return Mage::helper('xpaymentsconnector')->getIframeUrl();
-                }
-            }
-        }
-
-        if($methods && $isPaymentPlaceDisplayFlag){
-            if(count($methods) == 1){
-                $currentMethod = current($methods);
-                $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
-                if($currentMethod['method_code'] == $xpaymentPaymentCode){
-                    $unsetParams = array('token');
-                    Mage::helper('xpaymentsconnector')->unsetXpaymentPrepareOrder($unsetParams);
-                    return Mage::helper('xpaymentsconnector')->getIframeUrl();
-                }
-            }
-        }
-
-
-        return '#';
+        return Mage::helper('xpaymentsconnector')->isUseIframe()
+            && 'payment' == Mage::helper('xpaymentsconnector')->getIframePlaceDisplay();
     }
-
 }

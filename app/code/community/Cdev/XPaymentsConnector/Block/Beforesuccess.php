@@ -12,10 +12,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -28,6 +28,7 @@
  */
 class Cdev_XPaymentsConnector_Block_Beforesuccess extends Mage_Core_Block_Template
 {
+    protected $_agreements = array();
     /**
      * Get block contecnt as HTML
      *
@@ -54,6 +55,18 @@ class Cdev_XPaymentsConnector_Block_Beforesuccess extends Mage_Core_Block_Templa
     public function getXpaymentsCode(){
         $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
         return $xpaymentPaymentCode;
+    }
+
+    public function getAgreements(){
+        if(empty($this->_agreements)){
+            if (Mage::getStoreConfigFlag('checkout/options/enable_agreements')) {
+                $agreements = Mage::getModel('checkout/agreement')->getCollection()
+                    ->addStoreFilter(Mage::app()->getStore()->getId())
+                    ->addFieldToFilter('is_active', 1);
+                $this->_agreements = $agreements;
+            }
+        }
+        return $this->_agreements;
     }
 
 }

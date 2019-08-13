@@ -1,4 +1,5 @@
 /**
+ vim: set ts=4 sw=4 sts=4 et:
  * Magento
  *
  * NOTICE OF LICENSE
@@ -11,23 +12,20 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
-#xpayment-iframe-block iframe {
+iframe.xp-iframe {
     text-align: center;
-    height: 300px;
-    overflow-x: hidden;
-    overflow-y: hidden;
+    height: 0px;
+    overflow: hidden;
     border: 0px;
-    width: 87%;
+    width: 100%;
     margin: 0 auto;
-    clear: both;
-    margin-left: 13%;
 }
 
 #xpayment-iframe-block {
@@ -39,15 +37,6 @@
 #checkout-payment-method-load #xpayment-iframe-block {
     padding-bottom: 10px;
     border: 0px;
-}
-
-#checkout-payment-method-load #xpayment-iframe-block iframe{
-    border: 1px solid #d9dde3;
-    margin-left: 0%;
-}
-
-iframe .buttonRow {
-    display: none;
 }
 
 * {
@@ -78,11 +67,16 @@ iframe .buttonRow {
 
 #paymentstep-ajax-loader {
     background: url("images/loader.gif") 50% 50% no-repeat;
-    height: 213px;
+    height: 55px;
     margin-bottom: 0;
     margin-right: 0;
     text-align: center;
     z-index: 100000;
+    display: none;
+}
+
+#payment_form_xpayments {
+    height: 0px;
 }
 
 #payment_form_xpayments > li {
@@ -424,16 +418,48 @@ iframe .buttonRow {
 }
 
 /*add new credit card block style*/
+
+
+#new-card-block #default-billing-addres {
+    overflow: hidden;
+    width: 45%;
+    padding: 30px 10% 10px;
+    box-sizing: border-box;
+}
+
+#new-card-block #default-billing-addres li {
+    list-style-type: none;
+}
+
 #new-card-block #xpayment-iframe-block {
     background-color: rgb(251, 250, 246);
     border: 1px solid rgb(196, 193, 188);
-    padding-bottom: 40px;
-    padding-top: 10px;
+    padding: 30px;
+}
+#new-card-block #xpayment-iframe-block:after {
+    display: block;
+    clear: both;
+    content: '';
+}
+#new-card-block #xpayment-iframe-block .iframe-block {
+    float: left;
+    width: 55%;
+}
+
+@media screen and (max-width: 768px){
+    #new-card-block #xpayment-iframe-block .iframe-block {
+        float: none;
+        width: 100%;
+    }
+    #new-card-block #default-billing-addres {
+        width: 100%;
+    }
 }
 
 #new-card-block #xpayment-iframe-block #create-card-button{
+    clear: both;
     float: right;
-    padding-right: 25px;
+    margin: 25px;
 }
 
 /* xp transaction form */

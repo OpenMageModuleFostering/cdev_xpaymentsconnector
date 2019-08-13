@@ -1,4 +1,6 @@
 <?php
+// vim: set ts=2 sw=2 sts=2 et:
+
 /**
  * Magento
  *
@@ -12,10 +14,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 ?>
@@ -24,98 +26,23 @@
  * @see Cdev_XPaymentsConnector_Block_Form_Cc
  */
 ?>
-<?php
-    $_code=$this->getMethodCode();
-    $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
-    $isRecuringProduct = Mage::helper("xpaymentsconnector")->checkIssetRecurringOrder();
-    $IsSaveCardsPaymentActive = (bool)Mage::getStoreConfig('payment/savedcards/active');
+<?php if ($this->isVisible()): ?>
 
-    // iframe display settings on the current page
-    $displayOnPaymentStep = (bool)(Mage::getStoreConfig('payment/xpayments/placedisplay') == "payment");
+  <ul id="payment_form_xpayments">
+    <li>
+      <div id="xpayment-iframe-block">
 
-    $isNeedToSaveUserCard = Mage::helper("xpaymentsconnector")->isNeedToSaveUserCard();
-    $customerRegistered = Mage::helper("xpaymentsconnector")->isRegisteredUser();
-?>
+        <iframe id="xp-iframe" class="xp-iframe" src="" name="xp-iframe"></iframe>
+        <div id="paymentstep-ajax-loader"></div>
 
-<?php if (!$useIframe): ?>
-    <?php if (!$isRecuringProduct["isset"]): ?>
-        <?php if ($IsSaveCardsPaymentActive): ?>
-            <ul id="payment_form_<?php echo $_code ?>" style="display:none;">
-                <li>
-                <span class="input-box">
-                    <input type="checkbox"
-                           title="<?php echo $this->__("I want to save a credit card for my future orders in this shop"); ?>"
-                           class="checkbox x-payment-card " id="<?php echo $_code . "_" . "save_card" ?>"
-                           name="savecard" value="1"/>
-                    <label
-                        for="<?php echo $_code . "_" . "save_card" ?>"><?php echo $this->__("I want to save a credit card for my future orders in this shop"); ?></label>
-                </span>
-                </li>
-            </ul>
-        <?php endif; ?>
-    <?php else: ?>
-        <ul id="payment_form_<?php echo $_code ?>" style="display:none;">
-            <li>
-                <span class="input-box">
-                    <?php echo $this->__("Your credit card will be saved for this subscription."); ?>
-                </span>
-            </li>
-        </ul>
-    <?php endif; ?>
-<?php elseif($displayOnPaymentStep): ?>
-    <?php $iframeUrl = $this->getIframeUrl();?>
-    <ul id="payment_form_<?php echo $_code ?>" style="display:none;">
-        <li>
-            <div id="xpayment-iframe-block">
-                <iframe id="xp-iframe" class="xp-iframe" data-src="<?php echo $iframeUrl; ?>" src="<?php echo $iframeUrl;?>" name="xp-iframe" style="display: none">
-                </iframe>
-                <div id="paymentstep-ajax-loader"></div>
-                <?php if($customerRegistered):?>
-                    <?php if(!$isRecuringProduct["isset"]): ?>
-                        <?php if ($IsSaveCardsPaymentActive): ?>
-                            <span id="iframe-save-card-switcher" >
-                                <input type="checkbox" <?php echo ($isNeedToSaveUserCard)?"checked":"";?> title="<?php echo $this->__("Use this credit card"); ?>" class="checkbox x-payment-card " id="iframe_savecard" name="iframe_savecard" value="1" />
-                                <label for="iframe_savecard"><?php echo $this->__("I want to use this credit card for my future orders in this shop."); ?></label>
-                    </span>
-                            <script type="text/javascript">
-                                var url = "<?php echo Mage::getUrl("xpaymentsconnector/processing/saveusercard");?>";
-                                $('iframe_savecard').observe('change',
-                                    function() {
-                                        if($('iframe_savecard').checked === true) {
-                                            new Ajax.Request(url, {
-                                                parameters: "user_card_save=1"
-                                            });
-                                        }else{
-                                            new Ajax.Request(url, {
-                                                parameters: "user_card_save=0"
-                                            });
-                                        }
-                                    });
-                            </script>
-                        <?php endif; ?>
-                    <?php else: ?>
-                        <span id="iframe-save-card-switcher" >
-                  <?php echo $this->__("Your credit card will be saved for this subscription."); ?>
-              </span>
-                    <?php endif;?>
-                <?php endif;?>
-            </div>
-        </li>
-    </ul>
+      </div>
+    </li>
+  </ul>
 
-    <script type="text/javascript">
-        xpaymentMethodCode = '<?php echo $_code; ?>';
-        getIfameUrl = "<?php echo Mage::getUrl("xpaymentsconnector/processing/getcheckoutiframeurl", array('_nosid' => true, '_secure' => true));?>";
-        displayIframeOnPaymentStep = '<?php echo $displayOnPaymentStep ?>';
-        iframe = $('xp-iframe');
-
-        Event.observe(iframe, "load", function () {
-            $('paymentstep-ajax-loader').hide();
-            iframe.show();
-        });
-    </script>
+  <script type="text/javascript">
+  //<![CDATA[
+      document.fire('xpc:iframeBlockLoaded');
+  //]]>
+  </script>
 
 <?php endif; ?>
-
-
-

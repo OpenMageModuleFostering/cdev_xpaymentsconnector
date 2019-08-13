@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -84,13 +85,20 @@ class Cdev_XPaymentsConnector_Block_Info_Cc extends Mage_Payment_Block_Info
             . '/admin.php?target=payment&amp;txnid=' . $this->getInfo()->getLastTransId();
     }
 
+    /**
+     * Get masked card data as a string
+     *
+     * @return string
+     */
     public function getCardData()
     {
         $order = $this->getInfo()->getMethodInstance()->getOrder();
-        $xpCardData = unserialize($order->getXpCardData());
-        $xpCardDataStr = Mage::helper('xpaymentsconnector')->prepareCardDataString($xpCardData);
 
-        return $xpCardDataStr;
+        $data = unserialize($order->getXpCardData());
+
+        $result = Mage::helper('xpaymentsconnector')->prepareCardDataString($data, true);
+
+        return $result;
     }
 
 }

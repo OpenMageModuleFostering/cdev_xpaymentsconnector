@@ -3,11 +3,11 @@
     "type": "magento-module",
     "license": "OSL-3.0",
     "homepage": "",
-    "description": "Connector to integrate Magento CE with X-Payments PA-DSS certified solution for PCI compliant CC processing",
+    "description": "Connector to integrate Magento CE & EE with X-Payments PA-DSS certified solution for PCI compliant CC processing",
     "authors": [
     {
-        "name": "Valerii Demidov",
-        "email": "vdemidov@corp.web4pro.com.ua"
+        "name": "Alexander Mulin",
+        "email": "alex.mulin@x-payments.com"
     }
 ],
     "suggest": {

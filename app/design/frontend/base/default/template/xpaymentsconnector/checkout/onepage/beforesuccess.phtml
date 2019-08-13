@@ -12,10 +12,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 /**
@@ -48,22 +48,31 @@
 <script type="text/javascript">
     jQuery(document).ready(function () {
         var dataObj = {};
-        if (jQuery("#checkout-agreements", window.parent.document).length) {
+/*        if (jQuery("#checkout-agreements", window.parent.document).length) {
             jQuery("#checkout-agreements input", window.parent.document).each(function (obj, item) {
                 dataObj[item.name] = item.value;
             });
+        } else {
+            <?php if ($this->getAgreements()): ?>
+                <?php foreach($this->getAgreements() as $_a):?>
+                    dataObj['agreement[<?php echo $_a->getId()?>]'] = 1;
+                <?php endforeach;?>
+            <?php endif; ?>
         }
+*/
+//		 window.location = "<?php echo $this->getCheckoutSuccessUrl();?>";
+
         dataObj["payment[method]"] = "<?php echo $this->getXpaymentsCode();?>";
         dataObj["form_key"] = "<?php echo $formKey;?>";
 
         jQuery.ajax({
-            url: "<?php echo $this->getSaveOrderUrl();?>",
+            url: "<?php echo Mage::getUrl('checkout/onepage/saveorder'); ?>",
             type: "post",
             data: jQuery.param(dataObj),
             success: function (data) {
                 var response = jQuery.parseJSON(data);
                 if (response.success == true) {
-                    window.parent.location = "<?php echo $this->getCheckoutSuccessUrl();?>";
+                    window.location = "<?php echo $this->getCheckoutSuccessUrl();?>";
                 } else if (response.success == false) {
                     if (response['error_messages']) {
                         alert(response['error_messages']);

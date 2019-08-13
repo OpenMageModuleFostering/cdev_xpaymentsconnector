@@ -12,10 +12,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -25,6 +25,23 @@
 
 class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Template
 {
+    protected $_customerSession = null;
+    protected $_defaultBillingAddress = null;
+
+
+
+    /**
+     * Internal constructor, that is called from real constructor
+     *
+     */
+    protected function _construct()
+    {
+        parent::_construct();
+        $this->_customerSession = Mage::getSingleton('customer/session');
+        $customer = $this->_customerSession->getCustomer();
+        $this->_defaultBillingAddress = $customer->getDefaultBillingAddress();
+
+    }
 
     /**
      * Enter description here...
@@ -48,8 +65,7 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
         $refId =  'authorization';
         $updateSendData = array();
 
-        $customerSession = Mage::getSingleton('customer/session');
-        $customerId = $customerSession->getId();
+        $customerId = $this->_customerSession->getId();
 
         $updateSendData['returnUrl'] = Mage::getUrl('xpaymentsconnector/customer/cardadd',
             array('order_refid' => $refId,'customer_id' => $customerId,'_secure' => true));
@@ -62,7 +78,7 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
         $xpaymentFormUrl = Mage::helper('payment')->getMethodInstance('xpayments')->getUrl();
         $api = Mage::getModel('xpaymentsconnector/payment_cc');
 
-        $result = $api->sendIframeHandshakeRequest($updateSendData,$isCardAuthorizePayment = true);
+        $result = $api->sendIframeHandshakeRequest(true);
         if($result['success']){
             $iframeUrlDataArray = array('target' => $xpaymentFormData['target'], 'token' => $result['response']['token']);
             $iframeUrl = $xpaymentFormUrl . '?' . http_build_query($iframeUrlDataArray);
@@ -79,6 +95,18 @@ class Cdev_XPaymentsConnector_Block_Customer_Cardadd extends Mage_Core_Block_Tem
         $xpayUrlMas =  parse_url(Mage::getModel('xpaymentsconnector/payment_cc')->getConfig('xpay_url'));
         $xpayUrl =  $xpayUrlMas["scheme"]."://".$xpayUrlMas["host"];
         return $xpayUrl;
+    }
+
+    public function getDefaultAddressHtml(){
+        return ($this->_defaultBillingAddress) ? $this->_defaultBillingAddress->format('html') : "";
+    }
+
+    public function getAddressEditUrl()
+    {
+        if (!empty($this->getDefaultAddressHtml())) {
+            return $this->getUrl('customer/address/edit', array('_secure' => true, 'id' => $this->_defaultBillingAddress->getId()));
+        }
+        return $this->getUrl('customer/address/edit');
     }
 
 

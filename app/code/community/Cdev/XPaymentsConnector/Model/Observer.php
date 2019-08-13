@@ -12,10 +12,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -94,36 +94,12 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $paymentCcModel = Mage::getModel('xpaymentsconnector/payment_cc');
         $xpaymentPaymentCode = $paymentCcModel->getCode();
         $saveCardsPaymentCode = Mage::getModel('xpaymentsconnector/payment_savedcards')->getCode();
-        $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
+        $useIframe = Mage::helper('xpaymentsconnector')->isUseIframe();
         $quote = $observer->getQuote();
 
         $noticeHelper = $xpHelper->getFailureCheckoutNoticeHelper();
 
-        if ($paymentMethod == $xpaymentPaymentCode) {
-            $order->setCanSendNewEmailFlag(false);
-
-            $cardData = $xpHelper->getXpCardData();
-
-
-            if ($useIframe) {
-                /*update order table*/
-                $order->setData('xpc_txnid', $cardData['txnId']);
-                $order->save();
-
-                $result = $paymentCcModel->updateOrderByXpaymentResponse($order->getId(), $cardData['txnId']);
-                if ($result['success']) {
-                    /* save credit card to user profile */
-                    $xpCardData = unserialize($quote->getXpCardData());
-                    $paymentCcModel->saveUserCard($xpCardData);
-                    /* end (save payment card) */
-                } else {
-                    $checkoutSession->addError($result['error_message']);
-                    $checkoutSession->addNotice($noticeHelper);
-                }
-
-            }
-
-        } elseif ($paymentMethod == $saveCardsPaymentCode) {
+        if ($paymentMethod == $saveCardsPaymentCode) {
 
             $order->setCanSendNewEmailFlag(false);
             $paymentCardNumber = NULL;
@@ -133,6 +109,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
             $cardData = Mage::getModel('xpaymentsconnector/usercards')->load($paymentCardNumber);
 
             $response = $paymentCcModel->sendAgainTransactionRequest($order->getId(),$paymentCardNumber,$grandTotal,$cardData);
+
             if ($response['success']) {
                 $result = $paymentCcModel->updateOrderByXpaymentResponse($order->getId(), $response['response']['transaction_id']);
                 if (!$result['success']) {
@@ -466,7 +443,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
             $profile = current($profiles);
             $currentPaymentMethodCode = $profile->getData('method_code');
             $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
-            $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
+            $useIframe = Mage::helper('xpaymentsconnector')->isUseIframe();
             if (($currentPaymentMethodCode == $xpaymentPaymentCode) && !$useIframe) {
                 $redirectUrl = Mage::getUrl('xpaymentsconnector/processing/redirect', array('_secure' => true));
                 Mage::getSingleton('checkout/session')->setRedirectUrl($redirectUrl);
@@ -585,10 +562,6 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $xpaymentPaymentCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
         $xpHelper = Mage::helper('xpaymentsconnector');
 
-        $isXpayments = $xpHelper->isXpaymentsMethod($paymentMethodCode);
-        if ($isXpayments) {
-            $xpHelper->prepareOrderKey();
-        }
         if ($paymentMethodCode == $xpaymentPaymentCode) {
             $saveCard = Mage::app()->getRequest()->getPost('savecard');
             if ($saveCard) {

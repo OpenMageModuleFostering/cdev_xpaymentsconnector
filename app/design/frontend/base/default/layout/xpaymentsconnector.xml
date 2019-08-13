@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <!--
+vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -13,10 +14,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 -->
@@ -34,17 +35,6 @@
 
     <checkout_onepage_index translate="label">
         <reference name="head">
-            <block type="core/text" name="google.jquery">
-                <action method="setText">
-                    <text>
-                        <![CDATA[<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>]]></text>
-                </action>
-            </block>
-            <block type="core/text" name="google.jquery.noconflict" after="google.jquery">
-                <action method="setText">
-                    <text><![CDATA[<script type="text/javascript">jQuery.noConflict(); </script>]]></text>
-                </action>
-            </block>
             <action method="addItem">
                 <type>js_css</type>
                 <name>xpayment/settings.css</name>
@@ -55,23 +45,52 @@
                 <name>xpayment/checkout-submit.js</name>
                 <params/>
             </action>
+            <block type="core/template" name="xpc_data" template="xpaymentsconnector/xpc_data.phtml" />
         </reference>
     </checkout_onepage_index>
+
+    <onestepcheckout_index_index>
+        <reference name="head">
+            <action method="addItem">
+                <type>js_css</type>
+                <name>xpayment/settings.css</name>
+                <params/>
+            </action>
+            <action method="addItem">
+                <type>js</type>
+                <name>xpayment/checkout-submit.js</name>
+                <params/>
+            </action>
+            <block type="core/template" name="xpc_data" template="xpaymentsconnector/xpc_data.phtml" />
+        </reference>
+    </onestepcheckout_index_index>
+
+    <firecheckout_index_index>
+        <reference name="head">
+            <action method="addItem">
+                <type>js_css</type>
+                <name>xpayment/settings.css</name>
+                <params/>
+            </action>
+            <action method="addItem">
+                <type>js</type>
+                <name>xpayment/checkout-submit.js</name>
+                <params/>
+            </action>
+            <block type="core/template" name="xpc_data" template="xpaymentsconnector/xpc_data.phtml" />
+        </reference>
+        <reference name="checkout.onepage.review.info.items.after">
+            <block type="xpaymentsconnector/checkout_onepage_orderdetail" name="xpayment_recurring_detail" output="toHtml" after="checkout.onepage.review.button"
+                   template="xpaymentsconnector/checkout/onepage/order-detail.phtml"/>
+        </reference>
+    </firecheckout_index_index>
 
     <checkout_onepage_review translate="label">
         <reference name="checkout.onepage.review.info.items.after">
             <block type="xpaymentsconnector/checkout_onepage_settings" name="xpayment_settings" output="toHtml"
                    template="xpaymentsconnector/checkout/onepage/xpayment-iframe.phtml"/>
-            <block type="xpaymentsconnector/checkout_onepage_orderdetail" name="xpayment_recurring_detail" output="toHtml"
+            <block type="xpaymentsconnector/checkout_onepage_orderdetail" name="xpayment_recurring_detail" output="toHtml" after="checkout.onepage.review.button"
                    template="xpaymentsconnector/checkout/onepage/order-detail.phtml"/>
-        </reference>
-        <reference name="checkout.onepage.review.button">
-            <action method="setTemplate">
-                <template helper="xpaymentsconnector/data/getReviewButtonTemplate">
-                    <name>xpaymentsconnector/checkout/onepage/review/button.phtml</name>
-                    <block>checkout.onepage.review.button</block>
-                </template>
-            </action>
         </reference>
     </checkout_onepage_review>
 
@@ -99,6 +118,30 @@
                    template="xpaymentsconnector/redirect.phtml"/>
         </reference>
     </xpaymentsconnector_processing_redirect>
+
+    <xpaymentsconnector_processing_redirectiframe>
+        <reference name="root">
+            <action method="setTemplate">
+                <template>xpaymentsconnector/blank.phtml</template>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="xpaymentsconnector/redirect" name="xpaymentsconnector_redirect"
+                   template="xpaymentsconnector/redirectiframe.phtml"/>
+        </reference>
+    </xpaymentsconnector_processing_redirectiframe>
+
+    <xpaymentsconnector_processing_return>
+        <reference name="root">
+            <action method="setTemplate">
+                <template>xpaymentsconnector/blank.phtml</template>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="xpaymentsconnector/return" name="xpaymentsconnector_return"
+                   template="xpaymentsconnector/return.phtml"/>
+        </reference>
+    </xpaymentsconnector_processing_return>
 
 
     <customer_account>

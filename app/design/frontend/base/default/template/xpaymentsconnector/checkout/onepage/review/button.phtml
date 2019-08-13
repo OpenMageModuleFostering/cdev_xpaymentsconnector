@@ -1,4 +1,6 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
+
 /**
  * Magento
  *
@@ -12,69 +14,19 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 ?>
-<?php
-$xpayUrlMas =  parse_url(Mage::getModel('xpaymentsconnector/payment_cc')->getConfig('xpay_url'));
-$xpayUrl =  $xpayUrlMas["scheme"]."://".$xpayUrlMas["host"];
-$updateCartUrl = Mage::getUrl("checkout/cart",array("unset_xp_prepare_order"=>1));
-$checkIframeUrl = Mage::getUrl('xpaymentsconnector/processing/istokenactual', array('_nosid' => true,'_secure'=>true));
-?>
 
-<button type="submit" title="<?php echo $this->__('Place Order') ?>" class="button btn-checkout" onclick="submitXpaymentIframe('<?php echo $checkIframeUrl;?>');"><span><span><?php echo $this->__('Place Order') ?></span></span></button>
+<button type="submit" title="<?php echo $this->__('Place Order') ?>" class="button btn-checkout" onclick="javascript: review.save();"><span><span><?php echo $this->__('Place Order') ?></span></span></button>
+<div id="xpayment-review-block"></div>
 
 <script type="text/javascript">
-    /*process iframe session expired*/
-    var redirectUrl = '<?php echo $updateCartUrl;?>';
-    var eventUrlPath = '<?php echo $xpayUrl; ?>';
-    Event.observe(window, 'message', function (event) {
-        var eventUrl = event.origin;
-        if (eventUrl == eventUrlPath) {
-            var jsonEventData = JSON.parse(event.data)
-            if (jsonEventData.message = "paymentFormSubmitError") {
-                if (jsonEventData.params.type != undefined && jsonEventData.params.type == "2") {
-                    Foobar = function () {
-                        this.callBack = function () {
-                            window.location.replace(redirectUrl);
-                        };
-                    }
-                    Foobar.prototype = {
-                        Init: function () {
-                            var self = this;
-                            var errorMessage = jsonEventData.params.error+ " (X-Payments)";
-                            alert(errorMessage);
-                            self.callBack.call();
-
-                        }
-                    };
-                    var foobar = new Foobar();
-                    foobar.Init();
-                }
-            }
-        }
+    jQuery('#xpayment-review-block').ready( function() {
+        jQuery(document).trigger('xpc:reviewBlockLoaded', {});
     });
-
-    //add 'validate-agreement' class into 'terms and conditions' form
-    if ($("checkout-agreements") != null) {
-        $$("#checkout-agreements input").each(function (obj, item) {
-            if (!$(obj).hasClassName("validate-agreement")) {
-                $(obj).addClassName('validate-agreement');
-            }
-        });
-    }
-
-    Validation.add('validate-agreement',
-        '<?php echo $this->__('Please agree to all the terms and conditions before placing the order.'); ?>',
-        function (v) {
-            return !Validation.get('IsEmpty').test(v);
-        });
 </script>
-
-
-
-

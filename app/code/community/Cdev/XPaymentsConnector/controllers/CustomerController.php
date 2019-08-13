@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -47,31 +48,50 @@ class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Fr
     public function usercardsAction()
     {
         $request = $this->getRequest()->getPost();
-        if (!empty($request)) {
-            if ($request["action"] == "remove") {
-                if (count($request["card"]) > 0) {
 
-                    $itemCollection = Mage::getModel("xpaymentsconnector/usercards")
-                        ->getCollection()
-                        ->addFieldToFilter('xp_card_id', array('in' => $request["card"]));
-                    foreach ($itemCollection as $item) {
-                        if ($item->getUsageType() == Cdev_XPaymentsConnector_Model_Usercards::RECURRING_CARD) {
-                            $txnId = $item->getData("txnId");
-                            $recurringProfile = Mage::getModel('sales/recurring_profile')->load($txnId,"reference_id");
-                            if($recurringProfile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE){
-                                $errorMessage = Mage::helper("xpaymentsconnector")->__("You can't delete %s card. Because this is recurring card and this recurring(s) is still active.",$item->getXpCardId());
-                                Mage::getSingleton("customer/session")->addError($errorMessage);
-                                continue;
-                            }
+        if (
+            !empty($request)
+            && !empty($request['action'])
+            && 'remove' == $request['action']
+        ) {
+            if (
+                isset($request['card']) 
+                && count($request['card']) > 0
+             ) {
+
+                $itemCollection = Mage::getModel('xpaymentsconnector/usercards')
+                    ->getCollection()
+                    ->addFieldToFilter('xp_card_id', array('in' => $request['card']));
+
+                foreach ($itemCollection as $item) {
+
+                    if ($item->getUsageType() == Cdev_XPaymentsConnector_Model_Usercards::RECURRING_CARD) {
+
+                        $recurringProfile = Mage::getModel('sales/recurring_profile')->load($item->getData('txnId'), 'reference_id');
+
+                        if ($recurringProfile->getState() == Mage_Sales_Model_Recurring_Profile::STATE_ACTIVE) {
+
+                            $errorMessage = Mage::helper('xpaymentsconnector')->__(
+                                'You can\'t delete %s card. Because this is recurring card and this recurring(s) is still active.',
+                                $item->getXpCardId()
+                            );
+
+                            Mage::getSingleton('customer/session')->addError($errorMessage);
+                     
+                            continue;
                         }
-                        $item->delete();
-                    }
-                    $message = $this->__('Credit cards have been removed successfully.');
-                    Mage::getSingleton("customer/session")->addSuccess($message);
-                } else {
-                    $message = $this->__('You have not selected any credit card.');
-                    Mage::getSingleton("customer/session")->addError($message);
+                    } 
+   
+                    $item->delete();
                 }
+
+                $message = $this->__('Credit cards have been removed successfully.');
+                Mage::getSingleton('customer/session')->addSuccess($message);
+
+            } else {
+
+                $message = $this->__('You have not selected any credit card.');
+                Mage::getSingleton('customer/session')->addError($message);
             }
         }
 
@@ -90,6 +110,12 @@ class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Fr
 
 
     public function cardaddAction(){
+
+        $customer = Mage::getSingleton('customer/session')->getCustomer();
+        if ($customer) {
+            if (empty($customer->getDefaultBillingAddress()))
+                Mage::getSingleton("core/session")->addError("Please specify billing address for this credit card.");
+        }
 
         $isPostResponse = $this->getRequest()->isPost();
         if($isPostResponse){
@@ -116,24 +142,20 @@ class Cdev_XPaymentsConnector_CustomerController extends Mage_Core_Controller_Fr
                 !$status
                 || !in_array($response['status'], array($CCPaymentModel::AUTH_STATUS, $CCPaymentModel::CHARGED_STATUS))
             ) {
-                if (isset($transactionStatusLabel[$response['status']])) {
-                    $errorMessage = $this->__("Transaction status is '%s'. Card authorization has been cancelled.",$transactionStatusLabel[$response['status']]);
+                if (!empty($response['advinfo']['Message'])) {
+                    $errorMessage = $this->__('%s New card has not been saved.', $response['advinfo']['Message']);
+                } elseif (isset($transactionStatusLabel[$response['status']])) {
+                    $errorMessage = $this->__("Transaction status is '%s'. New card has not been saved.", $transactionStatusLabel[$response['status']]);
                 } else {
-                    $errorMessage = $this->__('%s. Card authorization has been cancelled.',$response['error_message']);
+                    $errorMessage = $this->__('%s New card has not been saved.', $response['error_message']);
                 }
 
                 Mage::getSingleton('customer/session')->addError($errorMessage);
                 $resultMessage = 'Card authorization has been cancelled.';
             }else{
-                $customer = Mage::getSingleton('customer/session')->getCustomer();
-                $cardData = unserialize($customer->getData('xp_buffer'));
-
-                // save user card
-                Mage::getSingleton('checkout/session')->setData('user_card_save',true);
-                $newCardData = $CCPaymentModel->saveUserCard($cardData);
                 $resultMessage = $this->__('Payment card has been added successfully!');
 
-                Mage::getSingleton('customer/session')->addSuccess( $this->__("You created card number '%s'. Transaction status is '%s'.",$newCardData->getData('xp_card_id'),$transactionStatusLabel[$response['status']]));
+                Mage::getSingleton('customer/session')->addSuccess( $this->__("You created new card. Transaction status is '%s'.", $transactionStatusLabel[$response['status']]));
             }
 
             $this->getResponse()->setBody(

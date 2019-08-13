@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -69,37 +70,46 @@ class Cdev_XPaymentsConnector_Block_Redirect extends Mage_Core_Block_Template
     }
 
     /**
-     * Get form action (URL)
-     * 
-     * @return string
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
+     * Get payment method model
+     *
+     * @return
      */
-    public function getFormAction()
+    protected function getPaymentMethod()
     {
-        if(is_null($this->paymentMethod)){
+        if (is_null($this->paymentMethod)) {
             $this->paymentMethod = Mage::getModel('xpaymentsconnector/payment_cc');
         }
 
-        return $this->paymentMethod->getUrl();
+        return $this->paymentMethod;
+    }
+
+    /**
+     * Get form action (URL)
+     * 
+     * @return string
+     */
+    public function getFormAction()
+    {
+        return $this->getPaymentMethod()->getUrl();
     }
 
     /**
      * Get form data 
      * 
      * @return array
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
     public function getFormData()
     {
-        if(is_null($this->paymentMethod)){
-            $this->paymentMethod = Mage::getModel('xpaymentsconnector/payment_cc');
-        }
-        return $this->paymentMethod->getFormFields();
+        return $this->getPaymentMethod()->getFormFields();
     }
 
-
+    /**
+     * Check if payment token is valid
+     *
+     * @return bool
+     */
+    public function checkToken()
+    {
+        return $this->getPaymentMethod()->checkToken();
+    }
 }

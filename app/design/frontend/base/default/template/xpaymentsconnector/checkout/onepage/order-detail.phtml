@@ -1,4 +1,6 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
+
 /**
  * Magento
  *
@@ -12,10 +14,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 ?>
@@ -35,7 +37,7 @@ $recurringQuoteItems = $this->getRecurringQuoteItems();
     <div id="recurring-detail-block">
         <strong><?php echo  $this->__('ATTENTION:');?></strong>
         </br>
-        <?php echo  $this->__('Since this orders contains recurring products we charge your credit card several times:');?>
+        <?php echo  $this->__('Since this order contains recurring products we charge your credit card several times:');?>
         </br>
         <ul>
             <?php $simpleQuoteItemMessage = $this->getSimpleQuoteItemMessage(); ?>
@@ -56,4 +58,8 @@ $recurringQuoteItems = $this->getRecurringQuoteItems();
     </div>
 <?php endif;?>
 
-
+<script type="text/javascript">
+//<![CDATA[
+    document.fire('xpc:reviewBlockLoaded');
+//]]>
+</script>

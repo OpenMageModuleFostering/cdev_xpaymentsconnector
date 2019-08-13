@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -20,40 +21,27 @@
  */
 
 /**
- * Payment cancel block (frontend)
+ * Return from X-Payments block
  * 
  * @package Cdev_XPaymentsConnector
  * @see     ____class_see____
  * @since   1.0.0
  */
-class Cdev_XPaymentsConnector_Block_Cancel extends Mage_Core_Block_Template
+class Cdev_XPaymentsConnector_Block_Return extends Mage_Core_Block_Template
 {
     /**
-     * Constructor
-     * 
-     * @return void
-     * @access protected
-     * @see    ____func_see____
-     * @since  1.0.0
-     */
-    protected function _construct()
-    {
-        parent::_construct();
-
-        $this->setTemplate('xpaymentsconnector/cancel.phtml');
-    }
-
-    /**
-     * Get Continue shopping link URL 
-     * 
+     * Get succcess URL
+     *
      * @return string
-     * @access public
-     * @see    ____func_see____
-     * @since  1.0.0
      */
-    public function getContinueShoppingUrl()
+    public function getRedirectUrl()
     {
-        return Mage::getUrl('*/*/cancel', array('_nosid' => true));
-    }
+        $url = Mage::getSingleton('checkout/type_onepage')->getCheckout()->getXpcRedirectUrl();
 
+        if (!$url) {
+            $url = Mage::getUrl('checkout/cart');
+        }
+    
+        return $url; 
+    }
 }

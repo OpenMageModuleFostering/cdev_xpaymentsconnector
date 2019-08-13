@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 ?>
@@ -25,23 +26,29 @@
  */
 ?>
 <?php
-  $orderCardData = $this->getCardData();
+
+$order = $this->getInfo()->getMethodInstance()->getOrder();
+
+$txnId = $cardData = '';
+
+if ($order) {
+    $cardData = $this->getCardData();
+    $txnId = $order->getData('xpc_txnid');
+}
+
 ?>
 
 <?php echo $this->getMethod()->getTitle(); ?>
+
 <br />
-<?php if ($this->getInfo()->getLastTransId() == ''): ?>
-    <?php
-        echo $this->__('You will be redirected to X-Payments website when you place an order.');
-    ?>
-<?php else: ?>
-    <?php
-        echo $this->__('X-Payments Transaction ID: %s', $this->htmlEscape($this->getInfo()->getLastTransId()));
-    ?>
-    <br/>
+
+<?php if ($txnId): ?>
+    <?php echo $this->__('X-Payments Transaction ID: %s', $this->htmlEscape($txnId)); ?>
+    <br />
 <?php endif; ?>
-<?php if(!empty($orderCardData)): ?>
+
+<?php if ($cardData): ?>
     <span id="x-payment-prepaid-card-info">
-            <?php echo $this->__('For current order we used your payment card %s', $orderCardData); ?>
+        <?php echo $this->__('Credit card used for this order: %s', $cardData); ?>
     </span>
-<?php endif;?>
+<?php endif; ?>

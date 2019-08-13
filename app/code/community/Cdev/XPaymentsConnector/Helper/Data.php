@@ -1,4 +1,5 @@
 <?php
+// vim: set ts=4 sw=4 sts=4 et:
 /**
  * Magento
  *
@@ -12,10 +13,10 @@
  * obtain it through the world-wide-web, please send an email
  * to license@magentocommerce.com so we can send you a copy immediately.
  *
- * @author     Valerii Demidov
+ * @author     Qualiteam Software info@qtmsoft.com
  * @category   Cdev
  * @package    Cdev_XPaymentsConnector
- * @copyright  (c) Qualiteam Software Ltd. <info@qtmsoft.com>. All rights reserved.
+ * @copyright  (c) 2010-2016 Qualiteam software Ltd <info@x-cart.com>. All rights reserved
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -33,12 +34,40 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     const WEEK_TIME_STAMP = 604800;
     const SEMI_MONTH_TIME_STAMP = 1209600;
 
-    const STATE_XPAYMENT_PENDING_PAYMENT = 'xp_pending_payment';
+    const STATE_XPAYMENTS_PENDING_PAYMENT = 'xp_pending_payment';
 
     const XPAYMENTS_LOG_FILE = 'xpayments.log';
     const RECURRING_ORDER_TYPE = 'recurring';
     const SIMPLE_ORDER_TYPE = 'simple';
 
+    // TODO: change both names in the database!!!!!!!!
+
+    /**
+     * Attribute name to store temporary X-Payments data in Quote model
+     */
+    const XPC_DATA = 'xp_card_data';
+
+    /**
+     * Attribute name to store checkout data in Quote model
+     */
+    const CHECKOUT_DATA = 'xp_callback_approve';
+
+    /**
+     * Placeholder for empty email (something which will pass X-Payments validation)
+     */
+    const EMPTY_USER_EMAIL = 'user@example.com';
+
+    /**
+     * Placeholder for not available cart data
+     */
+    const NOT_AVAILABLE = 'N/A';
+
+    /**
+     * Checkout methods
+     */
+    const METHOD_LOGIN_IN = 'login_in';
+    const METHOD_REGISTER = 'register';
+    
     /**
      * save/update qty for createOrder function.
      * @var int
@@ -122,6 +151,100 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
 
     }
 
+    /**
+     * Check if Idev OneStepCheckout module is enablled and activated
+     *
+     * @return bool
+     */
+    public function checkOscModuleEnabled()
+    {
+        $modules = Mage::getConfig()->getNode('modules')->children();
+        $modules = (array)$modules;
+
+        $result = false;
+
+        if (isset($modules['Idev_OneStepCheckout'])) {
+
+            $module = $modules['Idev_OneStepCheckout'];
+
+            if ($module->active) {
+
+                $result = (bool)Mage::getStoreConfig(
+                    'onestepcheckout/general/rewrite_checkout_links',
+                    Mage::app()->getStore()
+                );
+            }
+
+        }
+
+        return $result;
+    }
+
+    /**
+     * Check if Firecheckout module is enablled and activated
+     *
+     * @return bool
+     */
+    public function checkFirecheckoutModuleEnabled()
+    {
+        $modules = Mage::getConfig()->getNode('modules')->children();
+        $modules = (array)$modules;
+
+        $result = false;
+
+        if (isset($modules['TM_FireCheckout'])) {
+
+            $module = $modules['TM_FireCheckout'];
+
+            if ($module->active) {
+
+                $result = (bool)Mage::getStoreConfig(
+                    'firecheckout/general/enabled',
+                    Mage::app()->getStore()
+                );
+            }
+
+        }
+
+        return $result;
+    }
+
+
+    /**
+     * Get place to display iframe. Review or payment step of checkout
+     *
+     * @return string "payment" or "review"
+     */
+    public function getIframePlaceDisplay()
+    {
+        $place = Mage::getStoreConfig('payment/xpayments/placedisplay');
+
+        if (
+            $this->checkOscModuleEnabled()
+            || $this->checkFirecheckoutModuleEnabled()
+        ) {
+            $place = 'payment';
+        } elseif (
+            $place != 'payment'
+            && $place != 'review'
+        ) {
+            $place = 'payment';
+        }
+
+        return $place;
+    }
+
+    /**
+     * Check if iframe should be used or not
+     * 
+     * @return bool 
+     */
+    public function isUseIframe()
+    {
+        return $this->checkOscModuleEnabled()
+            || $this->checkFirecheckoutModuleEnabled()
+            || Mage::getStoreConfig('payment/xpayments/use_iframe');
+    }
 
     /**
      * This function set 'place_display' flag for feature x-payment form.
@@ -135,10 +258,9 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
      */
     public function setIframePlaceDisplaySettings()
     {
-        $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
-        if ($useIframe) {
+        if ($this->isUseIframe()) {
             $xpaymentPrepareOrder = Mage::getSingleton('checkout/session')->getData('xpayment_prepare_order');
-            $xpaymentPrepareOrder['place_display'] = Mage::getStoreConfig('payment/xpayments/placedisplay');
+            $xpaymentPrepareOrder['place_display'] = $this->getIframePlaceDisplay();
             Mage::getSingleton('checkout/session')->setData('xpayment_prepare_order', $xpaymentPrepareOrder);
         }
     }
@@ -176,47 +298,19 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     }
 
     /**
-     * This function save user card data to Quote
-     * @param null $quoteId
-     * @param array $cardData
-     * @return array|bool|mixed
+     * Save masked CC details to the order model
+     *
+     * @param Mage_Sales_Model_Order $order 
+     *
+     * @return void
      */
-
-    public function saveXpCardData($quoteId = null,$cardData = array())
+    public function saveMaskedCardToOrder(Mage_Sales_Model_Order $order, $data)
     {
-        if (is_null($quoteId)) {
-            $currentCart = Mage::getModel('checkout/cart')->getQuote();
-            $quoteId = $currentCart->getEntityId();
-        }
-        $cartModel = Mage::getModel('sales/quote')->load($quoteId);
-        $cardData = serialize($cardData);
-        $cartModel->setXpCardData($cardData);
+        $data = serialize($data);
 
-        $cartModel->save();
-    }
-
-    /**
-     * This function return 'token' for X-Payments i-frame Url.
-     * Xpayment Prepare Order Mas(xpayment_prepare_order):
-     * - prepare_order_id (int)
-     * - xpayment_response
-     * - token
-     * return
-     * @return bool or int
-     */
-    public function getIframeToken()
-    {
-        $xpaymentPrepareOrder = Mage::getSingleton('checkout/session')->getData('xpayment_prepare_order');
-        if ($xpaymentPrepareOrder && isset($xpaymentPrepareOrder['token']) && !empty($xpaymentPrepareOrder['token'])) {
-            return $xpaymentPrepareOrder['token'];
-        } else {
-            $api = Mage::getModel('xpaymentsconnector/payment_cc');
-            $result = $api->sendIframeHandshakeRequest();
-            $xpaymentPrepareOrder['token'] = $result['response']['token'];
-            Mage::getSingleton('checkout/session')->setData('xpayment_prepare_order', $xpaymentPrepareOrder);
-            return $xpaymentPrepareOrder['token'];
-        }
-
+        $order->setData(self::XPC_DATA, $data);
+        
+        $order->save();
     }
 
     /**
@@ -330,7 +424,7 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     public function getReviewButtonTemplate($name, $block)
     {
         $quote = Mage::getSingleton('checkout/session')->getQuote();
-        $useIframe = Mage::getStoreConfig('payment/xpayments/use_iframe');
+        $useIframe = $this->isUseIframe();
         $xpCcMethodCode = Mage::getModel('xpaymentsconnector/payment_cc')->getCode();
         if ($quote) {
             $payment = $quote->getPayment();
@@ -360,18 +454,25 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     }
 
     /**
+     * Check if user is registered, or registers at checkout
+     *
      * @return bool
      */
     public function isRegisteredUser()
     {
-        $currentCustomerState = Mage::getSingleton('checkout/type_onepage')->getCheckoutMethod();
-        $registerMethod = Mage_Checkout_Model_Type_Onepage::METHOD_REGISTER;
-        $customerMethod = Mage_Checkout_Model_Type_Onepage::METHOD_CUSTOMER;
-        if (($currentCustomerState == $registerMethod) || ($currentCustomerState == $customerMethod)) {
-            return true;
-        } else {
-            return false;
+        $result = false;
+
+        $checkoutMethod = Mage::getSingleton('checkout/type_onepage')->getCheckoutMethod();
+
+        if (
+            Mage_Checkout_Model_Type_Onepage::METHOD_REGISTER == $checkoutMethod
+            || Mage_Checkout_Model_Type_Onepage::METHOD_CUSTOMER == $checkoutMethod
+            || 'register' == Mage::getSingleton('checkout/session')->getData('xpc_checkout_method')
+        ) {
+            $result = true;
         }
+
+        return $result;
     }
 
     /**
@@ -877,22 +978,6 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     }
 
     /**
-     * @return string
-     */
-    public function getIframeUrl()
-    {
-
-        $xpaymentFormData = Mage::helper('payment')->getMethodInstance('xpayments')->getFormFields();
-        $xpaymentFormUrl = Mage::helper('payment')->getMethodInstance('xpayments')->getUrl();
-
-        $this->prepareOrderKey();
-        $token = $this->getIframeToken();
-        $iframeUrlDataArray = array('target' => $xpaymentFormData['target'], 'token' => $token);
-        $iframeUrl = $xpaymentFormUrl . "?" . http_build_query($iframeUrlDataArray);
-        return $iframeUrl;
-    }
-
-    /**
      * This function fixed magento bug. Magento can't create user
      * during checkout with recurring products.
      * @return mixed
@@ -1066,25 +1151,51 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
     }
 
     /**
-     * @param array $xpCardData
+     * Prepare masked card data as a string
+     *
+     * @param array $data Masked card data
+     * @param bool $withType Include card type or not
+     *
      * @return string
      */
-    public function prepareCardDataString($xpCardData)
+    public function prepareCardDataString($data, $withType = false)
     {
-        $xpCardDataStr = '';
-        if (!empty($xpCardData)) {
-            $last4 = (isset($xpCardData['last4'])) ? $xpCardData['last4'] : $xpCardData['last_4_cc_num'];
+        $result = '';
 
-            $xpCardDataStr = $this->__('%s******%s',
-                $xpCardData['first6'],
-                $last4
-            );
-            if (!empty($xpCardData['expire_month']) && !empty($xpCardData['expire_year'])) {
-                $xpCardDataStr .= $this->__(' ( %s/%s )', $xpCardData['expire_month'], $xpCardData['expire_year']);
+        if (!empty($data)) {
+
+            if (isset($data['last4'])) {
+                $last4 = $data['last4'];
+            } elseif (isset($data['last_4_cc_num'])) {
+                $last4 = $data['last_4_cc_num'];
+            } else {
+                $last4 = '****';
+            }
+
+            if (isset($data['first6'])) {
+                $first6 = $data['first6'];
+            } else {
+                $first6 = '******';
+            }
+
+            $result = $first6 . '******' . $last4;       
+ 
+            if (
+                !empty($data['expire_month']) 
+                && !empty($data['expire_year'])
+            ) {
+                $result .= ' (' . $data['expire_month'] . '/' . $data['expire_year'] . ')';
+            }
+
+            if (
+                $withType
+                && !empty($data['type'])
+            ) {
+                $result = strtoupper($data['type']) . ' ' . $result;
             }
         }
 
-        return $xpCardDataStr;
+        return $result;
     }
 
     /**
@@ -1103,4 +1214,901 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         }
     }
 
+    /**
+     * Prepare state
+     * 
+     * @param array $data Address data
+     *
+     * @return string
+     */
+    protected function prepareState($data)
+    {
+        $state = self::NOT_AVAILABLE;
+
+        if (!empty($data['region_id'])) {
+
+            $region = Mage::getModel('directory/region')->load($data['region_id']);
+
+            if (
+                $region
+                && $region->getCode()
+            ) {
+                $state = $region->getCode();
+            }
+        }
+
+        return $state;
+    }
+
+    /**
+     * Prepare street (Address lines 1 and 2)
+     *
+     * @param array $data Address data
+     *
+     * @return string
+     */
+    protected function prepareStreet($data)
+    {
+        $street = self::NOT_AVAILABLE;
+
+        if (!empty($data['street'])) {
+
+            $street = $data['street'];
+
+            if (is_array($street)) {
+                $street = array_filter($street);
+                $street = implode("\n", $street);
+            }
+        }
+
+        return $street;
+    }
+
+    /**
+     * Prepare address for initial payment request
+     *
+     * @param Mage_Sales_Model_Quote $quote Quote
+     * @param Mage_Customer_Model_Customer $customer Customer
+     * @param $type Address type, Billing or Shipping
+     *
+     * @return array
+     */
+    protected function prepareAddress(Mage_Sales_Model_Quote $quote = null, Mage_Customer_Model_Customer $customer = null, $type = 'Billing')
+    {
+        $getAddress = 'get' . $type . 'Address';
+        $getDefaultAddress = 'getDefault' . $type . 'Address';
+
+        $customerAddress = $customerDefaultAddress = $quoteAddress = array();
+
+        if ($quote) {
+
+            $customer = $quote->getCustomer();
+
+            if ($quote->$getAddress()) {
+                $quoteAddress = $quote->$getAddress()->getData();
+            }
+        }
+
+        if ($customer) {
+
+            $customerAddress = $customer->getData();
+
+            if ($customer->$getDefaultAddress()) {
+                $customerDefaultAddress = $customer->$getDefaultAddress()->getData();
+            }
+        }
+
+        $data = array_merge(
+            array_filter($customerAddress),
+            array_filter($customerDefaultAddress),
+            array_filter($quoteAddress)
+        );
+
+        $result = array(
+            'firstname' => !empty($data['firstname']) ? $data['firstname'] : self::NOT_AVAILABLE,
+            'lastname'  => !empty($data['lastname']) ? $data['lastname'] : self::NOT_AVAILABLE,
+            'address'   => $this->prepareStreet($data),
+            'city'      => !empty($data['city']) ? $data['city'] : self::NOT_AVAILABLE,
+            'state'     => $this->prepareState($data),
+            'country'   => !empty($data['country_id']) ? $data['country_id'] : 'XX', // WA fix for MySQL 5.7 with strict mode
+            'zipcode'   => !empty($data['postcode']) ? $data['postcode'] : self::NOT_AVAILABLE,
+            'phone'     => !empty($data['telephone']) ? $data['telephone'] : '',
+            'fax'       => '',
+            'company'   => '',
+            'email'     => !empty($data['email']) ? $data['email'] : self::EMPTY_USER_EMAIL,
+        );
+
+        return $result;
+    }
+
+    /**
+     * Format price in 1234.56 format
+     *
+     * @param mixed $price
+     *
+     * @return string
+     */
+    protected function preparePrice($price)
+    {
+        return number_format($price, 2, '.', '');
+    }
+
+    /**
+     * Prepare totals item: shipping, tax, discount
+     *
+     * @param array $totals Cart totals
+     * @param string $key Totals item key
+     *
+     * @return string
+     */
+    protected function prepareTotalsItem($totals, $key)
+    {
+        $value = 0;
+
+        if (
+            isset($totals[$key])
+            && is_object($totals[$key])
+            && method_exists($totals[$key], 'getValue')
+        ) {
+            $value = abs($totals[$key]->getValue());
+        }
+
+        return $this->preparePrice($value);
+    }
+
+
+    /**
+     * Prepare simple items for initial payment request
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @param array &$result
+     *
+     * @return void 
+     */
+    protected function prepareSimpleItems(Mage_Sales_Model_Quote $quote, &$result)
+    {
+        $quote->collectTotals();
+        $totals = $quote->getTotals();
+
+        $result['totalCost'] = $this->preparePrice($quote->getGrandTotal());
+        $result['shippingCost'] = $this->prepareTotalsItem($totals, 'shipping');
+        $result['taxCost'] = $this->prepareTotalsItem($totals, 'tax');
+        $result['discount'] = $this->prepareTotalsItem($totals, 'discount');
+
+        $cartItems = $quote->getAllVisibleItems();
+
+        foreach ($cartItems as $item) {
+
+            if ($item->getIsNominal()) {
+                continue;
+            }
+
+            $productId = $item->getProductId();
+            $product = Mage::getModel('catalog/product')->load($productId);
+
+            $result['items'][] = array(
+                'sku'      => $product->getData('sku'),
+                'name'     => $product->getData('name'),
+                'price'    => $this->preparePrice($product->getPrice()),
+                'quantity' => intval($item->getQty()),
+            );
+        }
+    }
+
+    /**
+     * Prepare recurring items for initial payment request
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @param array &$result
+     *
+     * @return void
+     */
+    protected function prepareRequringItems(Mage_Sales_Model_Quote $quote, &$result)
+    {
+        $issetRecurringProduct = $this->checkIssetRecurringOrder();
+
+        $quoteItem = $issetRecurringProduct['quote_item'];
+        $product = $quoteItem->getProduct();
+
+        $item = $quote->getItemByProduct($product);
+
+        $recurringProfile = $product->getRecurringProfile();
+
+        $startDateParams = $this->checkStartDateDataByProduct($product, $item);
+        $startDateParams = $startDateParams[$product->getId()];
+
+        $shipping = $issetRecurringProduct['quote_item']->getData('shipping_amount');
+        $discount = abs($issetRecurringProduct['quote_item']->getData('discount_amount'));
+
+        $quantity = $quoteItem->getQty();
+
+        if ($startDateParams['success']) {
+
+            $minimalPayment = $startDateParams['minimal_payment_amount'];
+
+            $tax = !empty($recurringProfile['init_amount'])
+                ? $quoteItem->getData('initialfee_tax_amount')
+                : 0;
+
+            $totalCost = $minimalPayment + $tax + $shipping - $discount;
+
+        } else {
+
+            $minimalPayment = 0;
+
+            $tax = $quoteItem->getData('initialfee_tax_amount') + $quoteItem->getData('tax_amount');
+
+            $totalCost = $quoteItem->getData('nominal_row_total');
+        }
+
+        $recurringPrice = $product->getPrice();
+
+        if (!empty($recurringProfile['init_amount'])) {
+            $recurringPrice += $quoteItem->getXpRecurringInitialFee() / $quantity;
+        }
+
+        $price = $minimalPayment
+            ? $minimalPayment / $quantity
+            : $recurringPrice;
+
+        $result['items'][] = array(
+            'sku'      => $product->getData('sku'),
+            'name'     => $product->getData('name'),
+            'price'    => $this->preparePrice($price),
+            'quantity' => intval($quantity),
+        );
+
+        $result['totalCost'] = $this->preparePrice($totalCost);
+        $result['shippingCost'] = $this->preparePrice($shipping);
+        $result['taxCost'] = $this->preparePrice($tax);
+        $result['discount'] = $this->preparePrice($discount);
+    }
+
+    /**
+     * Prepare items for initial payment request
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @param array &$result
+     *
+     * @return void 
+     */
+    protected function prepareItems(Mage_Sales_Model_Quote $quote, &$result)
+    {
+        $issetSimpleProducts = $this->checkIssetSimpleOrder();
+        $issetRecurringProduct = $this->checkIssetRecurringOrder();
+
+        if ($issetRecurringProduct['isset'] && !$issetSimpleProducts) {
+            $this->prepareRequringItems($quote, $result);
+        } else {
+            $this->prepareSimpleItems($quote, $result);
+        }
+    }
+
+    /**
+     * Prepare cart for initial payment request
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @param string $refId Reference to the order
+     *
+     * @return array
+     */
+    public function prepareCart(Mage_Sales_Model_Quote $quote, $refId = false)
+    {
+        $customer = $quote->getCustomer();
+
+        if (
+            !$customer->getData('email')
+            || !$customer->getData('entity_id')
+        ) {
+            $login = 'Anonymous customer (Quote ID #' . $quote->getId() . ')';
+        } else {
+            $login = $customer->getData('email') . ' (User ID #' . $customer->getData('entity_id') . ')';
+        }
+
+        if ($refId) {
+            $description = 'Order #' . $refId;
+        } else {
+            $description = 'Quote #' . $quote->getId();
+        }
+
+        $result = array(
+            'login'                => $login,
+            'billingAddress'       => $this->prepareAddress($quote, null, 'Billing'),
+            'shippingAddress'      => $this->prepareAddress($quote, null, 'Shipping'),    
+            'items'                => array(),
+            'currency'             => $quote->getData('quote_currency_code'),
+            'shippingCost'         => 0.00,
+            'taxCost'              => 0.00,
+            'discount'             => 0.00,
+            'totalCost'            => 0.00,
+            'description'          => $description,
+            'merchantEmail'        => Mage::getStoreConfig('trans_email/ident_sales/email'),
+            'forceTransactionType' => '',
+        );
+
+        $this->prepareItems($quote, $result);
+
+        return $result;
+    }
+
+    /**
+     * Prepare cart for initial payment request
+     *
+     * Mage_Customer_Model_Customer $customer Customer
+     *
+     * @return array
+     */
+    public function prepareFakeCart(Mage_Customer_Model_Customer $customer)
+    {
+        $refId = 'authorization';
+
+        $description = 'Authorization'; // TODO: add reference to customer?
+
+        $price = $this->preparePrice(Mage::getStoreConfig('xpaymentsconnector/settings/xpay_minimum_payment_recurring_amount'));
+
+        $result = array(
+            'login'                => $customer->getData('email') . ' (User ID #' . $customer->getData('entity_id') . ')',
+            'billingAddress'       => $this->prepareAddress(null, $customer, 'Billing'),
+            'shippingAddress'      => $this->prepareAddress(null, $customer, 'Shipping'),
+            'items'                => array(
+                array(
+                    'sku'      => 'CardSetup',
+                    'name'     => 'CardSetup',
+                    'price'    => $price,
+                    'quantity' => '1',
+                ),
+            ),
+            'currency'             => Mage::getModel('xpaymentsconnector/payment_cc')->getCurrency(), 
+            'shippingCost'         => 0.00,
+            'taxCost'              => 0.00,
+            'discount'             => 0.00,
+            'totalCost'            => $price,
+            'description'          => $description,
+            'merchantEmail'        => Mage::getStoreConfig('trans_email/ident_sales/email'),
+            'forceTransactionType' => '',
+        );
+
+        return $result;
+    }
+
+    /**
+     * Get callback URL for initial payment request 
+     *
+     * @param string $refId    Reference ID
+     * @param string $entityId Quote ID or Cutomer ID
+     * @param bool   $zeroAuth Is it zero auth request
+     *
+     * @return array
+     */
+    public function getCallbackUrl($refId, $entityId, $zeroAuth = false)
+    {
+        $params = array(
+            '_secure' => true,
+            '_nosid'  => true,
+        );
+
+        if ($zeroAuth) {
+
+            $params['customer_id'] = $entityId;
+
+        } else {
+
+            $params['quote_id'] = $entityId;
+        }
+
+        $url = Mage::getUrl('xpaymentsconnector/processing/callback', $params);
+
+        return $url;
+    }
+
+    /**
+     * Get return URL for initial payment request
+     *
+     * @param string $refId    Reference ID
+     * @param string $entityId Quote ID or Cutomer ID
+     * @param bool   $zeroAuth Is it zero auth request
+     *
+     * @return array
+     */
+    public function getReturnUrl($refId, $entityId, $zeroAuth = false)
+    {
+        $params = array(
+            '_secure' => true,
+            '_nosid'  => true,
+        );
+
+        if ($zeroAuth) {
+
+            $params['customer_id'] = $entityId;
+
+            $url = Mage::getUrl('xpaymentsconnector/customer/cardadd', $params);
+
+        } else {
+
+            $params['quote_id'] = $entityId;
+
+            $url = Mage::getUrl('xpaymentsconnector/processing/return', $params);
+        }
+
+        return $url;
+    }
+
+    /**
+     * Get address data saved at checkout
+     *
+     * @param array  $data Checkout data
+     * @param string $type Address type 'billing' or 'shipping'
+     *
+     * @return array
+     */
+    protected function getCheckoutAddressData($data, $type)
+    {
+        $result = array();
+
+        $key = $type . '_address_id';
+
+        if (isset($data[$key])) {
+
+            // Address data from the address book
+            $address = Mage::getModel('customer/address')->load($data[$key]);
+            $result += array_filter($address->getData());
+        }
+
+        if (isset($data[$type])) {
+
+            // Addrress data from checkout
+            $result += array_filter($data[$type]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Save checkout data
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @param array $data Some checkout data
+     *
+     * @return void
+     */
+    public function saveCheckoutData($quote, $data)
+    {
+        $this->writeLog('Save checkout data for Quote #' . $quote->getEntityId(), $data);
+
+        $data = serialize($data);
+        $quote->setData(self::CHECKOUT_DATA, $data);
+        $quote->save();
+    }
+
+    /**
+     * Load data saved at checkou
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * 
+     * @return array
+     */
+    public function loadCheckoutData(Mage_Sales_Model_Quote $quote)
+    {
+        return unserialize($quote->getData(self::CHECKOUT_DATA));
+    }
+
+    /**
+     * Save some temporary X-Payments data to Quote
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @param array $data Some data
+     *
+     * @return void
+     */
+    public function saveQuoteXpcData(Mage_Sales_Model_Quote $quote, $data = array())
+    {
+        $data = serialize($data);
+        $quote->setData(self::XPC_DATA, $data);
+        $quote->save();
+    }
+
+    /**
+     * Clear temporary X-Payments data from Quote (just a wrapper)
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     *
+     * @return void
+     */
+    public function clearQuoteXpcData(Mage_Sales_Model_Quote $quote)
+    {
+        return $this->saveQuoteXpcData($quote);
+    }
+
+    /**
+     * Append some temporary X-Payments data to Quote
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @param array $appendData Some data to append
+     *
+     * @return void
+     */
+    public function appendQuoteXpcData(Mage_Sales_Model_Quote $quote, $appendData = array())
+    {
+        $data = $this->loadQuoteXpcData($quote);
+
+        $data += $appendData;
+
+        $this->saveQuoteXpcData($quote, $data);
+    }
+
+    /**
+     * Load temporary X-Payments data from Quote 
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     *
+     * @return array
+     */
+    public function loadQuoteXpcData(Mage_Sales_Model_Quote $quote)
+    {
+        $data = unserialize($quote->getData(self::XPC_DATA));
+
+        if (!is_array($data)) {
+            $data = array();
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get token from quote 
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     *
+     * @return string or false 
+     */
+    public function getQuoteXpcDataToken(Mage_Sales_Model_Quote $quote)
+    {
+        $data = $this->loadQuoteXpcData($quote);
+
+        return !empty($data['token'])
+            ? $data['token']
+            : false;
+    }
+
+    /**
+     * Process data saved at checkout
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     *
+     * @return void
+     */
+    protected function processCheckoutData(Mage_Sales_Model_Quote $quote)
+    {
+        // Grab data saved at checkout
+        $data = $this->loadCheckoutData($quote);
+
+        // Add billing address data from checkout
+        $quote->getBillingAddress()->addData($this->getCheckoutAddressData($data, 'billing'));
+
+        if (
+            isset($data['billing']['use_for_shipping'])
+            && (bool)$data['billing']['use_for_shipping']
+        ) {
+
+            // Overwrite shipping address data with billing one
+            $data['shipping'] = $data['billing'];
+
+            if (
+                $this->checkOscModuleEnabled()
+                && !empty($data['billing_address_id'])
+            ) {
+                $shippingAddress = Mage::getModel('customer/address')->load($data['billing_address_id']);
+                $data['shipping'] = $shippingAddress->getData();
+            }
+        }
+
+        if (
+            !empty($data['billing']['telephone'])
+            && empty($data['shipping']['telephone'])
+        ) {
+            // WA fix for Firecheckout which doesn't fill shipping phone
+            $data['shipping']['telephone'] = $data['billing']['telephone'];
+        }
+
+        // Add shipping address data from checkout
+        $quote->getShippingAddress()->addData($this->getCheckoutAddressData($data, 'shipping'));
+
+        if (!$this->checkOscModuleEnabled()) {
+
+            // TODO: Understand what's wrong with it for OSC.
+
+            // Save shipping method
+            if (!empty($data['shipping_method'])) {
+                $quote->getShippingAddress()->setCollectShippingRates(true)->collectShippingRates();
+                $quote->setShippingMethod($data['shipping_method']);
+            }
+        }
+
+        $copyFields = array(
+            'email',
+            'firstname',
+            'lastname',
+        );
+
+        foreach ($copyFields as $field) {
+
+            if (
+                !$quote->getData('customer_' . $field)
+                && !empty($data['billing'][$field])
+            ) {
+                $quote->setData('customer_' . $field, $data['billing'][$field]);
+            }
+        }
+    }
+
+    /**
+     * Prepare quote for customer registration and customer order submit
+     *
+     * @return Mage_Checkout_Model_Type_Onepage
+     */
+    protected function createNewCustomer(Mage_Sales_Model_Quote $quote)
+    {
+        $billing    = $quote->getBillingAddress();
+        $shipping   = $quote->isVirtual() ? null : $quote->getShippingAddress();
+
+        //$customer = Mage::getModel('customer/customer');
+        $customer = $quote->getCustomer();
+        /* @var $customer Mage_Customer_Model_Customer */
+        $customerBilling = $billing->exportCustomerAddress();
+        $customer->addAddress($customerBilling);
+        $billing->setCustomerAddress($customerBilling);
+        $customerBilling->setIsDefaultBilling(true);
+        if ($shipping && !$shipping->getSameAsBilling()) {
+            $customerShipping = $shipping->exportCustomerAddress();
+            $customer->addAddress($customerShipping);
+            $shipping->setCustomerAddress($customerShipping);
+            $customerShipping->setIsDefaultShipping(true);
+        } else {
+            $customerBilling->setIsDefaultShipping(true);
+        }
+
+        Mage::helper('core')->copyFieldset('checkout_onepage_quote', 'to_customer', $quote, $customer);
+        $customer->setPassword($customer->decryptPassword($quote->getPasswordHash()));
+        $quote->setCustomer($customer)
+            ->setCustomerId(true);
+
+        return $customer;
+    }
+
+    /**
+     * Check if new customer profile should be created
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @param $includeLoginMethod Consider login_in method or not
+     *
+     * @return bool
+     */
+    public function isCreateNewCustomer(Mage_Sales_Model_Quote $quote, $includeLoginMethod = false)
+    {
+        $result = false;
+
+        if ($this->checkOscModuleEnabled()) {
+
+            // For One Step Checkout module
+            $data = $this->loadCheckoutData($quote);
+
+            $result = isset($data['create_account']) 
+                && (bool)$data['create_account'];
+
+        } elseif ($this->checkFirecheckoutModuleEnabled()) {
+
+            // For Firecheckout module
+            $data = $this->loadCheckoutData($quote);
+
+            $result = isset($data['billing']['register_account']) 
+                && (bool)$data['billing']['register_account'];
+            
+        } else {
+
+            // For default one page checkout
+            $checkoutMethod = $quote->getCheckoutMethod();
+
+            $result = self::METHOD_REGISTER == $checkoutMethod
+                || $includeLoginMethod && self::METHOD_LOGIN_IN == $checkoutMethod;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Convert quote to order
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     *
+     * @return string
+     */
+    public function funcPlaceOrder(Mage_Sales_Model_Quote $quote)
+    {
+        $refId = false;
+
+        try {
+
+            // Process data saved at checkout
+            $this->processCheckoutData($quote);
+
+            if ($this->isCreateNewCustomer($quote)) {
+            
+                // Prepare data for customer who's registered at checkout
+                $customer = $this->createNewCustomer($quote);
+                $customer->save();
+
+                $this->appendQuoteXpcData($quote, array('address_saved' => true));
+            }
+
+            // Set payment method (maybe not necessary. Just in case)
+            $quote->collectTotals()->getPayment()->setMethod('xpayments');
+
+            // Place order
+            $service = Mage::getModel('sales/service_quote', $quote);
+            $service->submitAll();
+
+            $order = $service->getOrder();
+
+            $quote->setIsActive(false)->save();
+
+            $cardData = $quote->getData(self::XPC_DATA);
+            $order->setData(self::XPC_DATA, $cardData);
+
+            $cardData = unserialize($cardData);
+
+            $order->setData('xpc_txnid', $cardData['txnId']);
+
+            $order->save();
+
+            $refId = $order->getIncrementId();
+
+            $this->writeLog('Placed order #' . $refId, $cardData);
+
+        } catch (Exception $e) {
+
+            $this->writeLog('Unable to create order: ' . $e->getMessage(), $e->getTraceAsString());
+
+            // Save error message in quote
+            $this->appendQuoteXpcData(
+                $quote,
+                array(
+                    'xpc_message' => $e->getMessage(),
+                )
+            );
+        }
+
+        return $refId;
+    }
+
+    /**
+     * Just a wrapper to omit sid and secure params
+     *
+     * @param $path URL path
+     *
+     * @return string
+     */
+    protected function getXpcCheckoutUrl($path, $params = array())
+    {
+        $params += array(
+            '_nosid' => true,
+            '_secure' => true
+        );
+
+        return Mage::getUrl($path, $params);
+    }
+
+    /**
+     * Get some JSON data for javascript at checkout
+     * 
+     * @return string 
+     */
+    public function getXpcJsonData()
+    {
+        // Display iframe on the review step (after payment step) or not
+        $isDisplayOnReviewStep = 'review' == Mage::helper('xpaymentsconnector')->getIframePlaceDisplay();
+
+        $xpOrigin = parse_url(Mage::getModel('xpaymentsconnector/payment_cc')->getConfig('xpay_url'));
+        $xpOrigin = $xpOrigin['scheme'] . '://' . $xpOrigin['host'];
+
+        $data = array(
+            'url' => array(
+
+                'redirectIframe'           => $this->getXpcCheckoutUrl('xpaymentsconnector/processing/redirectiframe'),
+
+                'redirectIframeUnsetOrder' => $this->getXpcCheckoutUrl(
+                    'xpaymentsconnector/processing/redirectiframe', 
+                    array(
+                        'unset_xp_prepare_order' => 1
+                    )
+                ),
+
+                'setMethodRegister'        => $this->getXpcCheckoutUrl(
+                    'xpaymentsconnector/processing/redirectiframe', 
+                    array(
+                        'unset_xp_prepare_order' => 1, 
+                        'checkout_method' => 'register'
+                    )
+                ),
+
+                'setMethodGuest'           => $this->getXpcCheckoutUrl(
+                    'xpaymentsconnector/processing/redirectiframe',
+                    array(
+                        'unset_xp_prepare_order' => 1,
+                        'checkout_method' => 'guest'
+                    )
+                ),
+
+                'saveCheckoutData'         => $this->getXpcCheckoutUrl('xpaymentsconnector/processing/save_checkout_data'),
+
+                'changeMethod'             => $this->getXpcCheckoutUrl('checkout/cart/'),
+    
+                'checkAgreements'          => $this->getXpcCheckoutUrl('xpaymentsconnector/processing/check_agreements'), 
+            ),
+            'xpOrigin'            => $xpOrigin,    
+            'displayOnReviewStep' => $isDisplayOnReviewStep,
+            'useIframe'           => $this->isUseIframe(),
+            'isOneStepCheckout'   => $this->checkOscModuleEnabled(),
+            'isFirecheckout'      => $this->checkFirecheckoutModuleEnabled(),   
+            'height'              => 0,
+        );
+
+        return json_encode($data, JSON_FORCE_OBJECT);
+    }
+
+    /**
+     * Clear init data and something about "unset prepared order"
+     *
+     * @return void 
+     */
+    public function resetInitData($quote = null)
+    {
+        $unsetParams = array('token');
+        $this->unsetXpaymentPrepareOrder($unsetParams);
+
+        if (!$quote) {
+            // Get quote from session
+            $quote = Mage::getSingleton('checkout/session')->getQuote();
+        }
+
+        $this->clearQuoteXpcData($quote);
+    }
+
+    /**
+     * Find last order by X-Payments transaction ID
+     *
+     * @param string $txnId
+     *
+     * @return Mage_Sales_Model_Order
+     */
+    public function getOrderByTxnId($txnId)
+    {
+        return Mage::getModel('sales/order')->getCollection()
+            ->addAttributeToSelect('*')
+            ->addFieldToFilter('xpc_txnid', $txnId)
+            ->getLastItem();
+    }
+
+    /**
+     * Write log
+     *
+     * @param string $title Log title 
+     * @param mixed  $data  Data to log
+     *
+     * @return void
+     */
+    public function writeLog($title, $data = '')
+    {
+        if (!is_string($data)) {
+            $data = var_export($data, true);
+        }
+
+        $message = PHP_EOL . date('Y-m-d H:i:s') . PHP_EOL
+            . $title . PHP_EOL
+            . $data . PHP_EOL
+            . Mage::helper('core/url')->getCurrentUrl() . PHP_EOL
+            . '--------------------------' . PHP_EOL 
+            . PHP_EOL; 
+
+        Mage::log($message, null, self::XPAYMENTS_LOG_FILE, true);
+    }
 }
