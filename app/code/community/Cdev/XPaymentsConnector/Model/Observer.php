@@ -482,7 +482,7 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
 
         //set recurring product discount
         Mage::helper('xpaymentsconnector')->setRecurringProductDiscount();
-        $xpHelper->updateAllRecurringQuoteItem();
+        //$xpHelper->updateAllRecurringQuoteItem();
     }
 
     /**
@@ -495,10 +495,6 @@ class Cdev_XPaymentsConnector_Model_Observer extends Mage_CatalogInventory_Model
         $xpHelper = Mage::helper('xpaymentsconnector');
         $unsetParams = array('token');
         $xpHelper->unsetXpaymentPrepareOrder($unsetParams);
-
-        $product = $observer->getProduct();
-        $xpHelper->updateRecurringQuoteItem($product);
-
     }
 
     /**

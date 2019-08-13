@@ -861,13 +861,12 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
 
     /**
      * Save custom calculating initial fee amount
-     * @param Mage_Catalog_Model_Product $product
+     * @param Mage_Sales_Model_Quote_Item $product
      */
-    public function updateRecurringQuoteItem(Mage_Catalog_Model_Product $product)
+    public function updateRecurringQuoteItem(Mage_Sales_Model_Quote_Item $quoteItem)
     {
-        $quote = Mage::getModel('checkout/cart')->getQuote();
+        $product = $quoteItem->getProduct();
         if ($product->getIsRecurring()) {
-            $quoteItem = $quote->getItemByProduct($product);
             $recurringProfile = $product->getRecurringProfile();
             $initAmount = $recurringProfile['init_amount'];
             if(!is_null($initAmount)){
@@ -897,8 +896,7 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         $quote = Mage::getModel('checkout/cart')->getQuote();
         $quoteItems = $quote->getAllVisibleItems();
         foreach ($quoteItems as $quoteItem) {
-            $product = $quoteItem->getProduct();
-            $this->updateRecurringQuoteItem($product);
+            $this->updateRecurringQuoteItem($quoteItem);
         }
 
     }
@@ -920,12 +918,6 @@ class Cdev_XPaymentsConnector_Helper_Data extends Mage_Payment_Helper_Data
         $orderItemInfo = $profile->getOrderItemInfo();
         if($orderItemInfo['xp_recurring_initial_fee']){
             $profile->setInitAmount($orderItemInfo['xp_recurring_initial_fee']);
-        }
-
-        $quoteItemInfo = $profile->getQuoteItemInfo();
-        if(!is_null($quoteItemInfo)){
-            $currentProduct = $quoteItemInfo->getProduct();
-            $this->updateRecurringQuoteItem($currentProduct);
         }
 
     }

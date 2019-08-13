@@ -114,7 +114,7 @@
 "Show credit card form at","Show credit card form at"
 "Transaction '%s' to order (%s)  was successful!","Transaction '%s' to order (%s)  was successful!"
 "You can't delete %s card. Because this is recurring card and this recurring(s) is still active.","You can't delete %s card. Because this is recurring card and this recurring(s) is still active."
-"Since this orders contains recurring products we we charge your credit card several times:","Since this orders contains recurring products we we charge your credit card several times:"
+"Since this orders contains recurring products we charge your credit card several times:","Since this orders contains recurring products we charge your credit card several times:"
 "ATTENTION:","ATTENTION:"
 " (initial fee only, 1st recurring fee will be charged on %s)"," (initial fee only, 1st recurring fee will be charged on %s)"
 "%s%s for recurring product '%s' in your cart.","%s%s for recurring product '%s' in your cart."

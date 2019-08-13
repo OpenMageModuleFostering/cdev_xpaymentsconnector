@@ -34,6 +34,8 @@ class Cdev_XPaymentsConnector_Model_Quote_Address_Total_Nominal extends Mage_Sal
      */
     public function collect(Mage_Sales_Model_Quote_Address $address)
     {
+        Mage::helper('xpaymentsconnector')->updateAllRecurringQuoteItem();
+
         $collector = Mage::getSingleton('sales/quote_address_total_nominal_collector',
             array('store' => $address->getQuote()->getStore())
         );

@@ -50,7 +50,6 @@ class Cdev_XPaymentsConnector_Block_Checkout_Onepage_Orderdetail extends Mage_Co
      */
     public function getRecurringItemMessage(Mage_Sales_Model_Quote_Item $recQuoteItem){
 
-        $xpHelper = Mage::helper('xpaymentsconnector');
         $recurringItemMessage = '';
         $initialFeeMessage = '';
         $rowTotal = $recQuoteItem->getNominalRowTotal();
@@ -65,9 +64,9 @@ class Cdev_XPaymentsConnector_Block_Checkout_Onepage_Orderdetail extends Mage_Co
             $rowTotal = $recQuoteItem->getXpRecurringInitialFee() + $recQuoteItem->getInitialfeeTaxAmount();
         }
 
-        $recurringItemMessage = $xpHelper
+        $recurringItemMessage = $this
             ->__("%s%s for recurring product '%s' in your cart.",
-                $rowTotal, $currency_symbol,$recQuoteItem->getName());
+                number_format($rowTotal, 2, '.', ''), $currency_symbol,$recQuoteItem->getName());
 
         $mainMessage = $recurringItemMessage.$initialFeeMessage;
 
@@ -81,8 +80,7 @@ class Cdev_XPaymentsConnector_Block_Checkout_Onepage_Orderdetail extends Mage_Co
         $simpleQuoteItemMessage = '';
         if($quot->getGrandTotal()){
             $currency_symbol = Mage::app()->getLocale()->currency(Mage::app()->getStore()->getCurrentCurrencyCode())->getSymbol();
-            $xpHelper = Mage::helper('xpaymentsconnector');
-            $simpleQuoteItemMessage = $this->__("%s%s for all non-recurring products in your cart.",$quot->getGrandTotal(), $currency_symbol);
+            $simpleQuoteItemMessage = $this->__("%s%s for all non-recurring products in your cart.",number_format($quot->getGrandTotal(), 2, '.', ''), $currency_symbol);
         }
 
         return $simpleQuoteItemMessage;
