@@ -1,5 +1,5 @@
 {
-    "name": "OpenMageModuleFostering\/CDev_XPaymentsConnector",
+    "name": "openmage-module-fostering\/cdev_xpaymentsconnector",
     "type": "magento-module",
     "license": "OSL-3.0",
     "homepage": "",
